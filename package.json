@@ -1,0 +1,40 @@
+{
+  "name": "dalsaegim-saju",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,magenta \"npm run dev -w server\" \"npm run dev -w web\"",
+    "build": "npm run build -w web",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "lint": "eslint .",
+    "check:independence": "node scripts/check-independence.mjs",
+    "db:migrate": "npm run db:migrate -w server",
+    "admin:create": "npm run admin:create -w server",
+    "check:secrets": "node scripts/scan-secrets.mjs",
+    "make:brand": "node scripts/make-brand-images.mjs"
+  },
+  "devDependencies": {
+    "@fullstackfamily/manseryeok": "^1.0.8",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.3",
+    "concurrently": "^10.0.5",
+    "drizzle-orm": "^0.45.3",
+    "eslint": "^10.11.0",
+    "prettier": "^3.9.9",
+    "sharp": "^0.35.5",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^5.0.2"
+  },
+  "version": "1.0.0"
+}
