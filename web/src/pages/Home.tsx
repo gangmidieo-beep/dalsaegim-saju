@@ -55,7 +55,7 @@ export default function Home() {
             </>
           ) : (
             <>
-              <h1 className="h1 mt8">{accountName ?? profile.name} 님,<br />{t.headline}</h1>
+              <h1 className="h1 mt8" style={{ fontSize: 23 }}>{accountName ?? profile.name} 님,<br />{t.headline}</h1>
               <p className="muted mt8 small">오늘의 키워드 <b style={{ color: '#F2DCCB' }}>‘{t.keyword}’</b></p>
             </>
           )}
