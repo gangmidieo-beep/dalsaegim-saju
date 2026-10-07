@@ -158,7 +158,7 @@ export function engineContent(product: { id: string; title: string }, people: Pe
   const chapters = titles.map((title, i) => {
     const chunk = facts.sections?.[i] ?? facts.paras.slice(starts[i], starts[i] + base + (i < extra ? 1 : 0));
     const body = (chunk.length ? chunk : facts.paras.slice(0, 2)).join('\n\n');
-    return { id: `c${i + 1}`, title, say: facts.keywords[i % facts.keywords.length] ?? title, body: `${name} 님, ${body}`, highlight: (chunk[0] ?? body).split(/(?<=요\.)\s/)[0] };
+    return { id: `c${i + 1}`, title, say: facts.keywords[i % facts.keywords.length] ?? title, body: body.startsWith(name) ? body : `${name} 님, ${body}`, highlight: (chunk[0] ?? body).split(/(?<=요\.)\s/)[0] };
   });
   return {
     productId: product.id, title: product.title, generatedBy: 'engine',
