@@ -22,7 +22,7 @@ npm run check:independence    # 다른 서비스 흔적 검사
 ```
 
 ## 배포 (Railway)
-- 서비스 2개: `api`(server/Dockerfile, 설정 `deploy/railway-server.json`) · `web`(web/Dockerfile, `deploy/railway-web.json`) + PostgreSQL
+- 서비스 2개: `api`(Dockerfile 경로 `server/Dockerfile`, 헬스체크 `/health`, 포트 8791) · `web`(`web/Dockerfile`, 헬스체크 `/`, 포트 8080) + PostgreSQL(같은 지역)
 - 필요한 변수는 `.env.example` 참고. 웹은 `API_ORIGIN`·`PUBLIC_WEB_ORIGIN` 이 빌드 때 들어간다.
 - 오픈 순서: 도메인 연결 → PayApp 연동값 → `MOCK_MODE=false` → AI 키 + `READING_AI=live` → 실결제·환불 1건 확인
 
