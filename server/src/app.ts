@@ -31,7 +31,9 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
   const db = opts.db ?? (await openDb()).db;
   await seedBase(db);
   if (opts.demo) await seedDemo(db);
-  const origins = [WEB(), 'https://localhost', 'capacitor://localhost', 'http://localhost', /^http:\/\/localhost:\d+$/]; // 앱(Capacitor 안드로이드)은 https://localhost
+  // EXTRA_WEB_ORIGINS: 도메인 옮기는 동안 예전 주소(railway.app)도 함께 허용 — 쉼표로 여러 개
+  const extra = (process.env.EXTRA_WEB_ORIGINS ?? '').split(',').map((x) => x.trim().replace(/\/$/, '')).filter(Boolean);
+  const origins = [WEB(), ...extra, 'https://localhost', 'capacitor://localhost', 'http://localhost', /^http:\/\/localhost:\d+$/]; // 앱(Capacitor 안드로이드)은 https://localhost
   await app.register(cors, { origin: origins, credentials: true });
   await app.register(rateLimit, { global: false });
   // PayApp 결제 통보는 form(x-www-form-urlencoded) 으로 온다

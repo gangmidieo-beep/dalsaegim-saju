@@ -4,6 +4,9 @@
 	auto_https off
 }
 :{$PORT:8080} {
+	# www.도메인 → 도메인 으로 한 주소로 모은다(검색·공유 주소 통일)
+	@www header_regexp www Host ^www\.(.+)$
+	redir @www https://{re.www.1}{uri} 301
 	root * /srv
 	encode zstd gzip
 	@assets path /assets/* /fonts/* /img/*

@@ -10,6 +10,9 @@ const brand = JSON.parse(readFileSync(join(root, 'brand.config.json'), 'utf8'));
 const detail = JSON.parse(readFileSync(join(root, 'packages/content/data/detail.json'), 'utf8'));
 const chapters = JSON.parse(readFileSync(join(root, 'packages/content/data/reading.json'), 'utf8')).chapters;
 const SITE = brand.serviceName;
+// 실제 도메인(PUBLIC_WEB_ORIGIN)이 있으면 대표 주소·사이트맵을 그 주소로 만든다
+const ORIGIN = (process.env.PUBLIC_WEB_ORIGIN || '').replace(/\/$/, '');
+const paths = [];
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const shell = readFileSync(join(dist, 'index.html'), 'utf8');
 function page(path, title, desc, body) {
@@ -18,7 +21,9 @@ function page(path, title, desc, body) {
     .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${esc(desc)}" />`)
     .replace(/<meta property="og:title" content="[^"]*" \/>/, `<meta property="og:title" content="${esc(title)}" />`)
     .replace(/<meta property="og:description" content="[^"]*" \/>/, `<meta property="og:description" content="${esc(desc)}" />`)
+    .replace('</head>', ORIGIN ? `<link rel="canonical" href="${ORIGIN}/${path}" /><meta property="og:url" content="${ORIGIN}/${path}" /></head>` : '</head>')
     .replace('<div id="root"></div>', `<div id="root"><div class="prerender" style="display:none">${body}</div></div>`);
+  paths.push(path);
   const dir = join(dist, path);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'index.html'), html);
@@ -42,5 +47,6 @@ for (const p of visible) {
 page('terms', `이용약관 | ${SITE}`, `${SITE} 이용약관`, '<h1>이용약관</h1>');
 page('privacy', `개인정보처리방침 | ${SITE}`, `${SITE} 개인정보처리방침`, '<h1>개인정보처리방침</h1>');
 page('refund', `환불정책 | ${SITE}`, `${SITE} 환불정책`, '<h1>환불정책</h1>');
-writeFileSync(join(dist, 'robots.txt'), 'User-agent: *\nAllow: /\nDisallow: /admin\n');
+writeFileSync(join(dist, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /admin\n${ORIGIN ? `Sitemap: ${ORIGIN}/sitemap.xml\n` : ''}`);
+if (ORIGIN) writeFileSync(join(dist, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map((x) => `<url><loc>${ORIGIN}/${x}</loc></url>`).join('')}</urlset>\n`);
 console.log('prerender ok');
