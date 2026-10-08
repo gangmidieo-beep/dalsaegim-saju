@@ -85,6 +85,18 @@ describe('공개 API', () => {
     const other = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-other' } })).json().token;
     expect((await app.inject({ method: 'PATCH', url: `/memories/${m.id}`, headers: auth(other), payload: { title: '남의 기록' } })).statusCode).toBe(404);
   });
+  it('기록 사진·공개 설정: 비공개는 타임라인에서 빠지고, 이상한 사진 값은 버린다', async () => {
+    const token = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-photo' } })).json().token;
+    const photo = 'data:image/webp;base64,UklGRhIAAABXRUJQVlA4TAYAAAAvAAAAAAfQ//73/w==';
+    const p = (await app.inject({ method: 'POST', url: '/memories', headers: auth(token), payload: { kind: 'event', category: 'work', title: '사진 기록', photo, visibility: 'ai' } })).json();
+    expect(p).toMatchObject({ photo, visibility: 'ai' });
+    const bad = (await app.inject({ method: 'POST', url: '/memories', headers: auth(token), payload: { title: '숨긴 기록', photo: 'javascript:alert(1)', visibility: 'private' } })).json();
+    expect(bad).toMatchObject({ photo: null, visibility: 'private' });
+    const tl = (await app.inject({ url: '/timeline', headers: auth(token) })).json();
+    expect(tl.items.find((x: any) => x.id === p.id)?.photo).toBe(photo);
+    expect(tl.items.some((x: any) => x.id === bad.id)).toBe(false);
+    expect((await app.inject({ method: 'PATCH', url: `/memories/${p.id}`, headers: auth(token), payload: { photo: null, visibility: 'self' } })).json()).toMatchObject({ photo: null, visibility: 'self' });
+  });
   it('시장 노트: 공개된 것만', async () => {
     expect((await app.inject({ url: '/market' })).json()).toBeNull();
   });

@@ -3,7 +3,7 @@ import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import bcrypt from 'bcryptjs';
-import { and, asc, desc, eq, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, extname } from 'node:path';
@@ -317,7 +317,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     const [chat] = b.chatId ? await db.select().from(S.chats).where(and(eq(S.chats.id, b.chatId), eq(S.chats.userId, userId))) : [];
     const [u] = await db.select({ memoryAI: S.users.memoryAI }).from(S.users).where(eq(S.users.id, userId));
     const mems = u?.memoryAI ? await db.select({ happenedOn: S.memories.happenedOn, category: S.memories.category, title: S.memories.title, feedback: S.memories.feedback })
-      .from(S.memories).where(eq(S.memories.userId, userId)).orderBy(desc(S.memories.happenedOn)).limit(5) : [];
+      .from(S.memories).where(and(eq(S.memories.userId, userId), ne(S.memories.visibility, 'private'))).orderBy(desc(S.memories.happenedOn)).limit(5) : [];
     let r;
     try {
       r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: b.topic ?? chat?.topic ?? null, memories: mems, http });
@@ -352,6 +352,8 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
   /* ---------- 달새김 기록 · 타임라인 ---------- */
   const CATS = ['love', 'work', 'money', 'family', 'growth', 'health', 'etc'];
   const KINDS = ['consult', 'event', 'reading', 'path', 'choice', 'report'];
+  const VIS = ['private', 'self', 'ai'];
+  const okPhoto = (x: unknown) => (typeof x === 'string' && /^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(x) && x.length <= 160_000 ? x : null);
   const okDate = (d: unknown) => (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : kstDay(new Date()));
   app.get('/memories', async (req, rep) => {
     const userId = await needUser(req, rep);
@@ -371,6 +373,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
       id: newId('m_'), userId, profileId: b.profileId ?? null, kind, category: CATS.includes(b.category) ? b.category : 'etc', title,
       summary: b.summary ? String(b.summary).slice(0, 200) : null, happenedOn: okDate(b.happenedOn), refId: b.refId ? String(b.refId).slice(0, 40) : null,
       sajuNote: b.sajuNote ? String(b.sajuNote).slice(0, 200) : null,
+      visibility: VIS.includes(b.visibility) ? b.visibility : 'self', photo: okPhoto(b.photo),
       followupAt: ['consult', 'path', 'choice'].includes(kind) ? new Date(Date.now() + 14 * 86400000) : null,
     };
     const [m] = await db.insert(S.memories).values(v).returning();
@@ -386,6 +389,8 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     if (CATS.includes(b.category)) v.category = b.category;
     if (b.happenedOn) v.happenedOn = okDate(b.happenedOn);
     if (['good', 'same', 'changed'].includes(b.feedback)) Object.assign(v, { feedback: b.feedback, feedbackAt: new Date(), feedbackNote: b.feedbackNote ? String(b.feedbackNote).slice(0, 200) : null });
+    if (VIS.includes(b.visibility)) v.visibility = b.visibility;
+    if (b.photo !== undefined) v.photo = b.photo ? okPhoto(b.photo) : null;
     if (b.snooze) v.followupAt = new Date(Date.now() + 7 * 86400000);
     const [m] = await db.update(S.memories).set(v).where(and(eq(S.memories.id, (req.params as any).id), eq(S.memories.userId, userId))).returning();
     return m ?? rep.code(404).send({ error: '기록을 찾지 못했어요' });
@@ -400,12 +405,12 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
   app.get('/timeline', async (req, rep) => {
     const userId = await needUser(req, rep);
     if (!userId) return;
-    const mems = await db.select().from(S.memories).where(eq(S.memories.userId, userId)).orderBy(desc(S.memories.happenedOn)).limit(500);
+    const mems = (await db.select().from(S.memories).where(eq(S.memories.userId, userId)).orderBy(desc(S.memories.happenedOn)).limit(500)).filter((m) => m.visibility !== 'private');
     const ords = await db.select({ id: S.orders.id, productId: S.orders.productId, title: S.products.title, series: S.products.series, paidAt: S.orders.paidAt })
       .from(S.orders).leftJoin(S.products, eq(S.products.id, S.orders.productId)).where(and(eq(S.orders.userId, userId), eq(S.orders.status, 'paid'), eq(S.orders.kind, 'reading')));
     const items = [
-      ...mems.map((m) => ({ type: 'memory' as const, id: m.id, date: m.happenedOn, kind: m.kind, category: m.category, title: m.title, summary: m.summary, sajuNote: m.sajuNote, feedback: m.feedback })),
-      ...ords.map((o) => ({ type: 'reading' as const, id: o.id, date: kstDay(o.paidAt ?? new Date()), kind: 'reading', category: o.series === 'money' ? 'money' : o.series === 'love' ? 'love' : 'etc', title: o.title ?? o.productId, summary: '풀이를 받았어요', sajuNote: null, feedback: null })),
+      ...mems.map((m) => ({ type: 'memory' as const, id: m.id, date: m.happenedOn, kind: m.kind, category: m.category, title: m.title, summary: m.summary, sajuNote: m.sajuNote, feedback: m.feedback, photo: m.photo })),
+      ...ords.map((o) => ({ type: 'reading' as const, id: o.id, date: kstDay(o.paidAt ?? new Date()), kind: 'reading', category: o.series === 'money' ? 'money' : o.series === 'love' ? 'love' : 'etc', title: o.title ?? o.productId, summary: '풀이를 받았어요', sajuNote: null, feedback: null, photo: null })),
     ].sort((a, b) => (a.date < b.date ? 1 : -1));
     return { items };
   });

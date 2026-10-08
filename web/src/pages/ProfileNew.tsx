@@ -1,91 +1,110 @@
-// 사주 입력 — 3단계(이름·성별 → 생년월일 → 태어난 시간). 회원가입 없이 바로 시작.
-import { useState } from 'react';
+// 사주 입력 (시안 2) — 1/3 한 화면에 이름·생년월일·태어난 시간·성별 → 2/3 간편 로그인(선택) → 3/3 사주 새기는 중.
+// 회원가입 없이도 시작할 수 있다(로그인은 기록을 다른 기기에서 이어 보기용).
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { LUNAR_YEAR_MAX, LUNAR_YEAR_MIN, leapMonthOf } from '@dalsaegim/engine';
 import { newId, useApp, type Profile } from '../store/app';
 import { syncProfile } from '../lib/api';
-import { Top, useToast } from '../components/ui';
+import { Moon, Top, useToast } from '../components/ui';
+import { LoginButtons } from './Me';
 import { track } from '../lib/track';
 
 // 대표 시각: 각 시진 안의 짝수 시(자시 0시, 축시 2시 …) — 30분 경계 표기와 엔진 경계 모두에 들어간다
 const HOURS = [
-  { h: 0, n: '자시', t: '23:30~01:29' }, { h: 2, n: '축시', t: '01:30~03:29' }, { h: 4, n: '인시', t: '03:30~05:29' }, { h: 6, n: '묘시', t: '05:30~07:29' },
-  { h: 8, n: '진시', t: '07:30~09:29' }, { h: 10, n: '사시', t: '09:30~11:29' }, { h: 12, n: '오시', t: '11:30~13:29' }, { h: 14, n: '미시', t: '13:30~15:29' },
-  { h: 16, n: '신시', t: '15:30~17:29' }, { h: 18, n: '유시', t: '17:30~19:29' }, { h: 20, n: '술시', t: '19:30~21:29' }, { h: 22, n: '해시', t: '21:30~23:29' },
+  { h: 0, n: '자시', t: '밤 11:30 ~ 새벽 1:29' }, { h: 2, n: '축시', t: '새벽 1:30 ~ 3:29' }, { h: 4, n: '인시', t: '새벽 3:30 ~ 5:29' }, { h: 6, n: '묘시', t: '오전 5:30 ~ 7:29' },
+  { h: 8, n: '진시', t: '오전 7:30 ~ 9:29' }, { h: 10, n: '사시', t: '오전 9:30 ~ 11:29' }, { h: 12, n: '오시', t: '오전 11:30 ~ 오후 1:29' }, { h: 14, n: '미시', t: '오후 1:30 ~ 3:29' },
+  { h: 16, n: '신시', t: '오후 3:30 ~ 5:29' }, { h: 18, n: '유시', t: '오후 5:30 ~ 7:29' }, { h: 20, n: '술시', t: '오후 7:30 ~ 9:29' }, { h: 22, n: '해시', t: '밤 9:30 ~ 11:29' },
 ];
 const RELS = ['나', '연인', '배우자', '가족', '친구'];
+const THIS_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: Math.min(LUNAR_YEAR_MAX, THIS_YEAR) - LUNAR_YEAR_MIN + 1 }, (_, i) => Math.min(LUNAR_YEAR_MAX, THIS_YEAR) - i);
 
 export default function ProfileNew() {
   const { id } = useParams();
   const [sp] = useSearchParams();
-  const { profiles, saveProfile } = useApp();
+  const { profiles, saveProfile, account } = useApp();
   const editing = profiles.find((p) => p.id === id);
-  const first = profiles.length === 0;
+  const [first] = useState(() => profiles.length === 0); // 저장 뒤에도 첫 입력 흐름(1/3→3/3)을 유지
   const [step, setStep] = useState(0);
-  const [f, setF] = useState<Profile>(editing ?? { id: newId(), name: '', gender: 'F', year: 0, month: 0, day: 0, calendar: 'solar', leap: false, hour: null, relation: first ? '나' : sp.get('rel') ?? '연인' });
-  const [date, setDate] = useState(editing ? `${editing.year}${String(editing.month).padStart(2, '0')}${String(editing.day).padStart(2, '0')}` : '');
+  const [f, setF] = useState<Profile>(editing ?? { id: newId(), name: '', gender: 'F', year: 1997, month: 0, day: 0, calendar: 'solar', leap: false, hour: null, relation: first ? '나' : sp.get('rel') ?? '연인' });
   const [unknown, setUnknown] = useState(editing ? editing.hour == null : false);
   const toast = useToast();
   const nav = useNavigate();
   const set = (p: Partial<Profile>) => setF((x) => ({ ...x, ...p }));
+  const [next] = useState(() => sp.get('next') ?? (first ? '/map' : '/me'));
 
-  const digits = date.replace(/\D/g, '').slice(0, 8);
-  const y = +digits.slice(0, 4), m = +digits.slice(4, 6), d = +digits.slice(6, 8);
-  const dateOk = digits.length === 8 && y >= LUNAR_YEAR_MIN && y <= Math.min(LUNAR_YEAR_MAX, new Date().getFullYear()) && m >= 1 && m <= 12 && d >= 1 && d <= 31 && (f.calendar === 'lunar' || new Date(y, m - 1, d).getDate() === d);
+  const { year: y, month: m, day: d } = f;
+  const days = f.calendar === 'lunar' ? 30 : y && m ? new Date(y, m, 0).getDate() : 31;
+  const dateOk = y >= LUNAR_YEAR_MIN && m >= 1 && m <= 12 && d >= 1 && d <= days;
   const hasLeap = f.calendar === 'lunar' && dateOk && leapMonthOf(y) === m;
-  const pretty = digits.length > 4 ? `${digits.slice(0, 4)}.${digits.slice(4, 6)}${digits.length > 6 ? `.${digits.slice(6)}` : ''}` : digits;
+  const ready = !!f.name.trim() && dateOk && (unknown || f.hour != null);
 
-  const done = async () => {
-    const p: Profile = { ...f, name: f.name.trim(), year: y, month: m, day: d, leap: hasLeap && f.leap, hour: unknown ? null : f.hour };
+  const save = () => {
+    const p: Profile = { ...f, name: f.name.trim(), leap: hasLeap && f.leap, hour: unknown ? null : f.hour };
     const makeMain = first || p.relation === '나';
     saveProfile(p, makeMain);
     void syncProfile(p, makeMain);
     track('profile_saved', { rel: p.relation, timeKnown: p.hour != null });
-    toast(editing ? '사주를 고쳤어요' : `${p.name} 님의 사주를 새겼어요`);
-    nav(sp.get('next') ?? (first ? '/map' : '/me'), { replace: true });
+    return p;
   };
+  const submit = () => {
+    if (editing || !first || account) { const p = save(); toast(editing ? '사주를 고쳤어요' : `${p.name} 님의 사주를 새겼어요`); if (editing || !first) { nav(next, { replace: true }); return; } setStep(2); return; }
+    save(); setStep(1);
+  };
+  useEffect(() => {
+    if (step !== 2) return;
+    const t = setTimeout(() => nav(next, { replace: true }), 1600);
+    return () => clearTimeout(t);
+  }, [step]);
 
   return (
     <>
       <Top title={editing ? '사주 고치기' : '사주 입력'} />
       <main className="screen">
-        <div className="steps" aria-hidden>{[0, 1, 2].map((i) => <i key={i} className={i <= step ? 'on' : ''} />)}</div>
+        {!editing && first && <div className="prog" aria-label={`3단계 중 ${step + 1}단계`}><div className="bar"><i style={{ width: `${((step + 1) / 3) * 100}%` }} /></div>{step + 1}/3</div>}
         {step === 0 && (
-          <section className="fade-in">
-            <h2 className="h2">{first ? '먼저 이름을 알려 주세요' : '누구의 사주인가요?'}</h2>
-            <p className="muted small mt4">부르고 싶은 이름이면 충분해요.</p>
-            <label className="field"><span>이름</span><input className="input" value={f.name} maxLength={12} onChange={(e) => set({ name: e.target.value })} placeholder="예) 김달님" autoFocus /></label>
-            <div className="field"><span>성별</span><div className="seg">{([['F', '여성'], ['M', '남성']] as const).map(([v, l]) => <button key={v} className={f.gender === v ? 'on' : ''} onClick={() => set({ gender: v })}>{l}</button>)}</div></div>
+          <section className="fade-in mt16">
+            <h2 className="h2">{first ? <>당신의 사주를<br />입력해 주세요.</> : '누구의 사주인가요?'}</h2>
+            <p className="muted small mt8">정확한 사주 분석을 위해<br />생년월일과 태어난 시간을 입력해 주세요.</p>
+            <label className="field"><span>이름</span><input className="input" value={f.name} maxLength={12} onChange={(e) => set({ name: e.target.value })} placeholder="홍길동" /></label>
             {!first && <div className="field"><span>관계</span><div className="chips">{RELS.map((r) => <button key={r} className={`chip${f.relation === r ? ' on' : ''}`} onClick={() => set({ relation: r })}>{r}</button>)}</div></div>}
-            <button className="btn primary mt32" disabled={!f.name.trim()} onClick={() => setStep(1)}>다음</button>
+            <div className="field">
+              <div className="between" style={{ marginBottom: 6 }}><span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-2)' }}>생년월일</span>
+                <div className="seg" style={{ padding: 3, width: 130 }}>{([['solar', '양력'], ['lunar', '음력']] as const).map(([v, l]) => <button key={v} style={{ minHeight: 30, fontSize: 13 }} className={f.calendar === v ? 'on' : ''} onClick={() => set({ calendar: v })}>{l}</button>)}</div>
+              </div>
+              <div className="sel-row">
+                <select className="input" aria-label="태어난 해" value={y || ''} onChange={(e) => set({ year: +e.target.value })}>{YEARS.map((v) => <option key={v} value={v}>{v}년</option>)}</select>
+                <select className="input" aria-label="태어난 달" value={m || ''} onChange={(e) => set({ month: +e.target.value })}><option value="">월</option>{Array.from({ length: 12 }, (_, i) => <option key={i} value={i + 1}>{i + 1}월</option>)}</select>
+                <select className="input" aria-label="태어난 날" value={d || ''} onChange={(e) => set({ day: +e.target.value })}><option value="">일</option>{Array.from({ length: days }, (_, i) => <option key={i} value={i + 1}>{i + 1}일</option>)}</select>
+              </div>
+              {hasLeap && <label className="check mt8"><input type="checkbox" checked={f.leap} onChange={(e) => set({ leap: e.target.checked })} />윤달이에요</label>}
+            </div>
+            <div className="field">
+              <span>태어난 시간</span>
+              <select className="input" aria-label="태어난 시간" value={unknown ? 'x' : f.hour ?? ''} onChange={(e) => { if (e.target.value === 'x') { setUnknown(true); set({ hour: null }); } else { setUnknown(false); set({ hour: +e.target.value }); } }}>
+                <option value="">시간을 골라 주세요</option>
+                {HOURS.map((x) => <option key={x.h} value={x.h}>{x.t} ({x.n})</option>)}
+                <option value="x">태어난 시간을 몰라요</option>
+              </select>
+            </div>
+            <div className="field"><span>성별</span><div className="seg pink">{([['F', '여성'], ['M', '남성']] as const).map(([v, l]) => <button key={v} className={f.gender === v ? 'on' : ''} onClick={() => set({ gender: v })}>{l}</button>)}</div></div>
+            <p className="faint mt16">입력한 사주는 풀이와 AI 사주친구에만 쓰이고, 마이에서 언제든 지울 수 있어요.</p>
+            <button className="btn primary mt16" disabled={!ready} onClick={submit}>{editing ? '저장하기' : '다음으로'}</button>
           </section>
         )}
         {step === 1 && (
-          <section className="fade-in">
-            <h2 className="h2">생년월일을 알려 주세요</h2>
-            <div className="field"><div className="seg">{([['solar', '양력'], ['lunar', '음력']] as const).map(([v, l]) => <button key={v} className={f.calendar === v ? 'on' : ''} onClick={() => set({ calendar: v })}>{l}</button>)}</div></div>
-            <label className="field"><span>생년월일 8자리</span><input className="input" inputMode="numeric" value={pretty} onChange={(e) => setDate(e.target.value)} placeholder="예) 1996.04.02" autoFocus /></label>
-            {digits.length === 8 && !dateOk && <p className="small mt8" style={{ color: '#c0687b' }}>날짜를 다시 확인해 주세요</p>}
-            {hasLeap && <label className="check mt12"><input type="checkbox" checked={f.leap} onChange={(e) => set({ leap: e.target.checked })} />윤달이에요</label>}
-            <div className="row mt32" style={{ gap: 8 }}>
-              <button className="btn line" style={{ flex: 1 }} onClick={() => setStep(0)}>이전</button>
-              <button className="btn primary" style={{ flex: 2 }} disabled={!dateOk} onClick={() => setStep(2)}>다음</button>
-            </div>
+          <section className="fade-in mt16">
+            <h2 className="h2">기록을 잃지 않게<br />간편하게 이어 둘까요?</h2>
+            <p className="muted small mt8">로그인하면 다른 기기에서도 상담 기록과 타임라인을 그대로 볼 수 있어요. 나중에 해도 괜찮아요.</p>
+            <div className="mt24"><LoginButtons back={next} /></div>
+            <button className="btn line mt12" onClick={() => setStep(2)}>로그인 없이 시작하기</button>
           </section>
         )}
         {step === 2 && (
-          <section className="fade-in">
-            <h2 className="h2">태어난 시간을 알려 주세요</h2>
-            <p className="muted small mt4">몰라도 괜찮아요. 시간을 알면 더 정확해져요.</p>
-            <div className="hour-grid mt16" style={{ opacity: unknown ? 0.4 : 1 }}>
-              {HOURS.map((x) => <button key={x.h} className={!unknown && f.hour === x.h ? 'on' : ''} onClick={() => { setUnknown(false); set({ hour: x.h }); }}>{x.n}<small>{x.t}</small></button>)}
-            </div>
-            <label className="check mt16"><input type="checkbox" checked={unknown} onChange={(e) => setUnknown(e.target.checked)} />태어난 시간을 몰라요</label>
-            <p className="faint mt12">입력한 사주는 풀이와 AI 사주친구에만 쓰이고, 마이에서 언제든 지울 수 있어요.</p>
-            <div className="row mt24" style={{ gap: 8 }}>
-              <button className="btn line" style={{ flex: 1 }} onClick={() => setStep(1)}>이전</button>
-              <button className="btn primary" style={{ flex: 2 }} disabled={!unknown && f.hour == null} onClick={done}>{editing ? '저장하기' : '사주 새기기'}</button>
-            </div>
+          <section className="fade-in center" style={{ paddingTop: '14vh' }}>
+            <div style={{ display: 'grid', placeItems: 'center' }}><Moon size={120} /></div>
+            <h2 className="h2 mt16">{f.name} 님의 사주를<br />새기고 있어요</h2>
+            <p className="muted small mt8">타고난 기운과 올해의 흐름을 지도로 그리는 중이에요.</p>
           </section>
         )}
       </main>

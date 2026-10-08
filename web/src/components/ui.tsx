@@ -6,6 +6,11 @@ import brand from '../../../brand.config.json';
 
 export const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 
+// 3D 파스텔 아이콘(/img/ui/ic-*.webp)
+export type PicName = 'today' | 'path' | 'friend' | 'map' | 'love' | 'work' | 'money' | 'family' | 'future' | 'self' | 'health' | 'moon';
+export const Pic = ({ n, size, className = '' }: { n: PicName; size?: 's' | 'l'; className?: string }) => <img className={`pico${size ? ` ${size}` : ''} ${className}`} src={`/img/ui/ic-${n}.webp`} alt="" loading="lazy" decoding="async" />;
+export const CAT_PIC: Record<string, PicName> = { love: 'love', work: 'work', money: 'money', family: 'family', growth: 'self', health: 'health', etc: 'moon', future: 'future', self: 'self' };
+
 export function Top({ title, dark, back = true, right }: { title?: string; dark?: boolean; back?: boolean | string; right?: ReactNode }) {
   const nav = useNavigate();
   return (
@@ -158,30 +163,53 @@ export function Foot() {
 }
 
 export const CAT_LABEL: Record<string, string> = { love: '연애', work: '직장', money: '재물', family: '가족', growth: '성장', health: '건강', etc: '기타' };
-export const CAT_COLOR: Record<string, string> = { love: '#D98A9A', work: '#6C7BC4', money: '#C8A06A', family: '#6F9E8A', growth: '#8F7AE6', health: '#7FA9B8', etc: '#A7A3B5' };
+export const CAT_LONG: Record<string, string> = { love: '연애·관계', work: '직장·이직', money: '돈·재물', family: '가족·관계', growth: '나·성장', health: '건강', etc: '기타' };
+export const CAT_COLOR: Record<string, string> = { love: '#E7799C', work: '#7A86D6', money: '#C9A15E', family: '#E59A62', growth: '#9B7FE0', health: '#62B39C', etc: '#A7A3B5' };
 
-// 달새김 기억 — 요약을 [저장][수정][남기지 않기]
+// 오늘의 새김 — 요약을 [저장][수정][남기지 않기] (시안 7)
 export function MemoryCard({ draft, onSave, onSkip, saved }: { draft: { category: string; title: string; summary?: string }; onSave: (d: { category: string; title: string; summary?: string }) => void; onSkip: () => void; saved?: boolean }) {
   const [edit, setEdit] = useState(false);
   const [d, setD] = useState(draft);
   useEffect(() => setD(draft), [draft]);
-  if (saved) return <div className="memo"><b>✓ 달새김 기록에 새겼어요</b><div className="faint mt4">타임라인에서 언제든 다시 볼 수 있어요.</div></div>;
+  if (saved) return <div className="saegim"><div className="cat"><Pic n={CAT_PIC[d.category] ?? 'moon'} size="s" />달새김 기록에 새겼어요</div><p className="faint">타임라인에서 언제든 다시 볼 수 있어요. 몇 주 뒤 어떻게 됐는지 물어볼게요.</p></div>;
   return (
-    <div className="memo">
-      <div className="row" style={{ justifyContent: 'space-between' }}><b>오늘의 새김</b><span className="chip sm lav">{CAT_LABEL[d.category] ?? '기타'}</span></div>
+    <div className="saegim">
+      <div className="between"><div className="cat"><Pic n={CAT_PIC[d.category] ?? 'moon'} size="s" />{CAT_LABEL[d.category] ?? '기타'}</div><span className="faint" style={{ fontSize: 13 }}>오늘의 새김</span></div>
       {edit ? (
         <>
           <input className="input mt8" value={d.title} maxLength={60} onChange={(e) => setD({ ...d, title: e.target.value })} aria-label="기록 제목" />
+          <textarea className="input mt8" value={d.summary ?? ''} maxLength={200} onChange={(e) => setD({ ...d, summary: e.target.value })} aria-label="기록 내용" />
           <div className="chips mt8">{Object.entries(CAT_LABEL).map(([k, l]) => <button key={k} className={`chip sm${d.category === k ? ' on' : ''}`} onClick={() => setD({ ...d, category: k })}>{l}</button>)}</div>
         </>
       ) : (
-        <div className="mt4" style={{ fontSize: 15 }}>{d.summary ?? d.title}</div>
+        <p>{d.summary ?? d.title}</p>
       )}
-      <div className="row mt12" style={{ gap: 6 }}>
-        <button className="btn primary sm" style={{ flex: 1 }} onClick={() => onSave(d)}>저장</button>
-        <button className="btn line sm" style={{ flex: 1 }} onClick={() => setEdit(!edit)}>{edit ? '완료' : '수정'}</button>
-        <button className="btn line sm" style={{ flex: 1.3 }} onClick={onSkip}>남기지 않기</button>
+      <div className="acts">
+        <button className="save" onClick={() => onSave(d)}>저장</button>
+        <button onClick={() => setEdit(!edit)}>{edit ? '완료' : '수정'}</button>
+        <button onClick={onSkip}>남기지 않기</button>
       </div>
     </div>
   );
 }
+
+// 사진 1장 → 작게 줄인 webp data URL(서버 120KB 한도 안)
+export async function shrinkPhoto(file: File, max = 640): Promise<string> {
+  const bmp = await createImageBitmap(file);
+  const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height);
+  for (const q of [0.78, 0.6, 0.45]) {
+    const url = c.toDataURL('image/webp', q);
+    if (url.startsWith('data:image/webp') && url.length < 150_000) return url;
+    const j = c.toDataURL('image/jpeg', q);
+    if (j.length < 150_000) return j;
+  }
+  throw new Error('사진이 너무 커요. 다른 사진을 골라 주세요');
+}
+
+export const fullDate = (d = new Date()) => {
+  const k = new Date(d.getTime() + 9 * 3600000);
+  return `${k.getUTCFullYear()}년 ${k.getUTCMonth() + 1}월 ${k.getUTCDate()}일 (${'일월화수목금토'[k.getUTCDay()]})`;
+};

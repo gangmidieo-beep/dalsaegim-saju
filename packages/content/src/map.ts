@@ -6,6 +6,7 @@ import D from '../data/map.json' with { type: 'json' };
 type Level = 'strong' | 'normal' | 'soft';
 export const AREAS = ['love', 'money', 'work', 'family', 'growth'] as const;
 export type Area = (typeof AREAS)[number];
+const GODS = [['비겁', '비견', '겁재', '나다움·자립'], ['식상', '식신', '상관', '표현·재능'], ['재성', '편재', '정재', '재물·현실감'], ['관성', '정관', '편관', '책임·일'], ['인성', '정인', '편인', '배움·보살핌']] as const;
 const lv = (n: number): Level => (n >= 2 ? 'strong' : n >= 1 ? 'normal' : 'soft');
 
 export function sajuMap(saju: SajuResult, profileId: string, now = new Date()) {
@@ -39,6 +40,8 @@ export function sajuMap(saju: SajuResult, profileId: string, now = new Date()) {
     strongest: saju.elementRatio.strongest as string, need,
     elementAdvice: (D.element_advice as Record<string, string>)[need],
     areas,
+    // 십성 5무리(사주지도 원형 그림) — 무리마다 더 많은 쪽 이름을 대표로
+    gods: GODS.map(([group, a, b, mean]) => ({ group, label: g(b) > g(a) ? b : a, n: g(a, b), mean })),
     keywords: [...dm.keywords, ...areas.filter((a) => a.level === 'strong').map((a) => `${a.label} 기운`)].slice(0, 6),
     period: { now: curIdx >= 0 ? period(cycles[curIdx]) : null, next: curIdx >= 0 && cycles[curIdx + 1] ? period(cycles[curIdx + 1]) : null },
     pillars: saju.pillars, zodiac: saju.zodiacAnimal, timeUnknown: saju.timeUnknown,

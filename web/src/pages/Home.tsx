@@ -1,13 +1,12 @@
 // 홈 — 4개 핵심 입구(오늘의 운세 / 내 고민의 길 / AI 사주친구 / 나의 사주지도) + 지금 주목해볼 길 + 돈의 흐름. 한 화면 한 행동.
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { recommendPaths } from '@dalsaegim/content';
 import { useApp, useMain } from '../store/app';
 import { useSaju, useToday } from '../lib/fortune';
 import { apiAuth, apiGet } from '../lib/api';
-import { Foot, Moon, CAT_LABEL, useToast } from '../components/ui';
+import { Foot, Moon, CAT_LABEL, Pic, useToast, type PicName } from '../components/ui';
 import { I, Icon, type IconName } from '../components/icons';
-import { koDate, dow } from '../lib/dates';
 import { track } from '../lib/track';
 
 type Mem = { id: string; title: string; category: string; happenedOn: string };
@@ -23,7 +22,6 @@ export default function Home() {
   const [cats, setCats] = useState<string[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
   const toast = useToast();
-  const nav = useNavigate();
   useEffect(() => {
     apiGet<Banner[]>('/banners?slot=home').then(setBanners).catch(() => {});
     if (isSample) return;
@@ -39,44 +37,28 @@ export default function Home() {
 
   return (
     <>
-      <section className="hero" aria-label="오늘">
-        <div className="stars" />
-        <div className="moon-wrap"><div className="moon-glow" /><div style={{ position: 'absolute', right: 30, top: 20 }}><Moon size={120} glow={false} /></div></div>
-        <div className="between" style={{ position: 'relative' }}>
-          <div className="brand"><I.moon size={20} />달새김사주</div>
-          <Link to="/me" className="icon-btn" aria-label="마이"><I.user /></Link>
+      <section className="night home-hero" aria-label="달새김사주">
+        <div className="night-top"><span className="brand" style={{ fontSize: 16 }}><I.moon size={18} />운(運)새김</span><Link to="/me" className="icon-btn" aria-label="마이"><I.user /></Link></div>
+        <div className="home-title">
+          <h1>달새김사주</h1>
+          <p>오늘의 고민이,<br />내 인생의 흐름이 됩니다.</p>
         </div>
-        <div style={{ position: 'relative', marginTop: 28, maxWidth: 300 }}>
-          <div className="faint" style={{ color: '#c9c5dd' }}>{koDate()} {dow()}요일</div>
-          {isSample ? (
-            <>
-              <h1 className="h1 mt8">오늘의 운을 읽고,<br />나의 시간을 새기다.</h1>
-              <p className="muted mt8 small">생년월일만 알려 주면 오늘의 흐름부터 고민의 길까지 함께 봐 드려요.</p>
-            </>
-          ) : (
-            <>
-              <h1 className="h1 mt8" style={{ fontSize: 23 }}>{accountName ?? profile.name} 님,<br />{t.headline}</h1>
-              <p className="muted mt8 small">오늘의 키워드 <b style={{ color: '#F2DCCB' }}>‘{t.keyword}’</b></p>
-            </>
-          )}
-        </div>
-        <div style={{ position: 'relative', marginTop: 20 }}>
+        <Link to={isSample ? '/profile/new' : '/friend'} className="say">
           {isSample
-            ? <button className="btn moon" onClick={() => nav('/profile/new')}>내 사주 입력하고 시작하기</button>
-            : <Link to="/today" className="btn ghost-light" style={{ justifyContent: 'space-between' }}><span>오늘의 지수 <b style={{ fontSize: 20, color: '#F2DCCB' }}>{t.total}</b>점</span><span className="row small">자세히 <I.right /></span></Link>}
-        </div>
+            ? <>오늘, 무슨 일이 있으신가요?<br />당신의 이야기를 들려주세요.<div className="mt8" style={{ fontWeight: 700, color: 'var(--rose-2)' }}>내 사주 입력하고 시작하기 →</div></>
+            : <><b>{accountName ?? profile.name} 님,</b> 오늘 무슨 일이 있으신가요?<br /><span className="small muted">오늘의 키워드 ‘{t.keyword}’ · 지수 <b style={{ color: '#d0577f' }}>{t.total}</b>점</span></>}
+        </Link>
+        <nav className="doors2" aria-label="핵심 입구">
+          <Door to="/today" cls="y" pic="today" title="오늘의 운세" sub="오늘의 흐름과 키워드" />
+          <Door to="/path" cls="p" pic="path" title="내 고민의 길" sub="고민을 따라가면 답이 보여요" />
+          <Door to="/friend" cls="l" pic="friend" title="AI 사주친구" sub="내 사주를 아는 친구" />
+          <Door to="/map" cls="m" pic="map" title="나의 사주지도" sub="타고난 나와 큰 흐름" />
+        </nav>
       </section>
 
-      <main className="screen pull-up">
-        <div className="doors">
-          <Door to="/today" cls="d1" icon="sunmoon" title="오늘의 운세" sub="오늘의 흐름과 키워드" />
-          <Door to="/path" cls="d2" icon="path" title="내 고민의 길" sub="고민을 따라가면 답이 보여요" />
-          <Door to="/friend" cls="d3" icon="chat" title="AI 사주친구" sub="내 사주를 아는 친구와 대화" />
-          <Door to="/map" cls="d4" icon="map" title="나의 사주지도" sub="타고난 나와 큰 흐름" />
-        </div>
-
+      <main className="home-more">
         {due.length > 0 && (
-          <section className="card lav mt16" aria-label="지난 고민 돌아보기">
+          <section className="card lav" aria-label="지난 고민 돌아보기">
             <div className="eyebrow" style={{ color: 'var(--lav-2)' }}>달새김이 물어봐요</div>
             <h2 className="h3 mt4">지난 고민은 어떻게 됐나요?</h2>
             <p className="small mt4">{due[0].happenedOn.replace(/-/g, '.')} · {CAT_LABEL[due[0].category]} · {due[0].title}</p>
@@ -92,7 +74,7 @@ export default function Home() {
             <div className="grid2 mt12">
               {picks.map((p) => (
                 <Link key={p.id} to={`/path?cat=${p.id}`} className="card flat row" style={{ padding: 14 }}>
-                  <span className="door d2" style={{ minHeight: 0, padding: 0, boxShadow: 'none', background: 'none' }}><span className="ic" style={{ width: 36, height: 36 }}><Icon name={p.icon as IconName} size={20} /></span></span>
+                  <Pic n={p.icon as PicName} size="s" />
                   <b style={{ fontSize: 15 }}>{p.label}</b>
                 </Link>
               ))}
@@ -138,11 +120,11 @@ export default function Home() {
   );
 }
 
-function Door({ to, cls, icon, title, sub }: { to: string; cls: string; icon: IconName; title: string; sub: string }) {
+function Door({ to, cls, pic, title, sub }: { to: string; cls: string; pic: PicName; title: string; sub: string }) {
   return (
-    <Link to={to} className={`door ${cls}`}>
-      <span className="ic"><Icon name={icon} /></span>
-      <div><b>{title}</b><span>{sub}</span></div>
+    <Link to={to} className={`door2 ${cls}`}>
+      <Pic n={pic} />
+      <b>{title}</b><span>{sub}</span>
     </Link>
   );
 }

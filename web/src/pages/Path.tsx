@@ -1,100 +1,95 @@
-// 내 고민의 길 — 고민 → 세부 상황 → 궁금한 핵심(3단계) → 사주 흐름 → AI 상담·기록·관련 운세.
-// 선택할 때마다 달빛 길이 한 칸씩 이어진다(짧은 모션만).
+// 내 고민의 길 (시안 5·5-1·6-2) — 고민 고르기 → 한 화면 세 질문(어떤 고민 / 무엇이 궁금 / 언제쯤) → 사주 분석 결과(가장 좋은 시기·추천 행동)
+// → 오늘의 새김(기록) → AI 사주친구로 이어서 상담.
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { PATHS, pathResult, recommendPaths } from '@dalsaegim/content';
+import { PATHS, PATH_WHEN, pathResult, recommendPaths, type Horizon } from '@dalsaegim/content';
 import { useMain } from '../store/app';
 import { useSaju } from '../lib/fortune';
 import { apiAuth, syncProfile } from '../lib/api';
-import { FlowChart, FlowLegend, MemoryCard, Top, won, useToast } from '../components/ui';
-import { I, Icon, type IconName } from '../components/icons';
+import { FlowChart, MemoryCard, Pic, Top, won, useToast, type PicName } from '../components/ui';
+import { I } from '../components/icons';
 import { track } from '../lib/track';
 import brand from '../../../brand.config.json';
 
 const price = (id: string) => brand.products.find((p) => p.id === id);
+const HZ: Horizon[] = [3, 6, 12];
 
 export default function PathPage() {
   const [sp, setSp] = useSearchParams();
   const { profile, isSample } = useMain();
   const saju = useSaju(profile);
   const cat = sp.get('cat');
-  const sub = sp.get('sub');
-  const q = sp.get('q');
-  const step = q ? 3 : sub ? 2 : cat ? 1 : 0;
+  const done = sp.get('go') === '1';
   const C = PATHS.find((c) => c.id === cat);
-  const S = C?.sub.find((s) => s.id === sub);
-  const picks = useMemo(() => (isSample ? [] : recommendPaths(saju, profile.id).map((p) => p.id)), [saju, profile.id, isSample]);
-  const go = (p: Record<string, string>) => setSp(p);
-  useEffect(() => { if (step === 1) track('path_start', { cat }); }, [step, cat]);
+  const picks = useMemo(() => (isSample ? ['love', 'work'] : recommendPaths(saju, profile.id).map((p) => p.id)), [saju, profile.id, isSample]);
+  const [pick, setPick] = useState<string>(picks[0]);
+  useEffect(() => { if (cat) track('path_start', { cat }); }, [cat]);
 
+  if (!C) {
+    const big = PATHS.filter((c) => picks.includes(c.id));
+    const rest = PATHS.filter((c) => !picks.includes(c.id));
+    return (
+      <>
+        <Top title="내 고민의 길" />
+        <main className="screen">
+          <h2 className="h2">지금, 어떤 고민으로<br />오셨나요?</h2>
+          <p className="muted small mt8">당신의 사주 흐름을 바탕으로<br />가장 도움이 되는 길을 추천드려요.</p>
+          <div className="stack mt20">
+            {big.map((c) => (
+              <button key={c.id} className={`path-big${pick === c.id ? ' on' : ''}`} onClick={() => setPick(c.id)} aria-pressed={pick === c.id}>
+                <Pic n={c.icon as PicName} />
+                <span><b>{c.label}</b><small>(지금 주목할 길)</small></span>
+              </button>
+            ))}
+          </div>
+          <div className="path-tiles mt12">
+            {rest.map((c) => (
+              <button key={c.id} className={`path-tile${pick === c.id ? ' on' : ''}`} onClick={() => setPick(c.id)} aria-pressed={pick === c.id}>
+                <Pic n={c.icon as PicName} size="s" />{c.label}
+              </button>
+            ))}
+          </div>
+          <button className="btn blush mt24" onClick={() => setSp({ cat: pick })}>고민의 길 시작하기 →</button>
+        </main>
+      </>
+    );
+  }
+
+  return done && !isSample
+    ? <Result catId={C.id} subId={sp.get('sub')!} q={sp.get('q')!} h={(+(sp.get('h') ?? 6) as Horizon)} />
+    : <Ask key={C.id} catId={C.id} isSample={isSample} onGo={(p) => setSp({ cat: C.id, ...p, go: '1' })} />;
+}
+
+// 5-1 — 세 질문을 한 화면에
+function Ask({ catId, isSample, onGo }: { catId: string; isSample: boolean; onGo: (p: { sub: string; q: string; h: string }) => void }) {
+  const C = PATHS.find((c) => c.id === catId)!;
+  const [sub, setSub] = useState(C.sub[0].id);
+  const S = C.sub.find((s) => s.id === sub)!;
+  const [q, setQ] = useState(S.q[0]);
+  const [h, setH] = useState<Horizon>(6);
+  useEffect(() => setQ(S.q[0]), [sub]);
   return (
     <>
-      <Top title="내 고민의 길" back={step > 0 ? undefined : true} />
+      <Top title="내 고민의 길" />
       <main className="screen">
-        <div className="path-line" aria-label={`${Math.min(step + 1, 4)}단계 중 ${Math.min(step + 1, 4)}`}>
-          {[0, 1, 2, 3].map((i) => (
-            <span key={i} style={{ display: 'contents' }}>
-              <span className={`dot${step >= i ? ' on' : ''}`} />
-              {i < 3 && <span className={`seg${step > i ? ' on' : ''}`}><i /></span>}
-            </span>
-          ))}
-        </div>
-
-        {step === 0 && (
-          <section className="fade-in" key="s0">
-            <h2 className="h2">지금, 어떤 고민으로 오셨나요?</h2>
-            <p className="muted small mt4">고민을 따라가면 필요한 운세와 시기가 보여요.</p>
-            <div className="stack mt16">
-              {PATHS.map((c) => (
-                <button key={c.id} className="opt" onClick={() => go({ cat: c.id })}>
-                  <span className="ic"><Icon name={c.icon as IconName} /></span>
-                  <span className="grow" style={{ flex: 1 }}><b>{c.label}</b><div className="faint">{c.sub.map((s) => s.label).join(' · ')}</div></span>
-                  {picks.includes(c.id) && <span className="chip sm gold">지금 주목</span>}
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-        {step === 1 && C && (
-          <section className="fade-in" key="s1">
-            <p className="eyebrow">{C.label}</p>
-            <h2 className="h2 mt4">조금 더 구체적으로 알려 주세요</h2>
-            <div className="stack mt16">
-              {C.sub.map((s) => <button key={s.id} className="opt" onClick={() => go({ cat: C.id, sub: s.id })}><b style={{ flex: 1 }}>{s.label}</b><I.right className="chev" /></button>)}
-            </div>
-          </section>
-        )}
-        {step === 2 && C && S && (
-          <section className="fade-in" key="s2">
-            <p className="eyebrow">{C.label} · {S.label}</p>
-            <h2 className="h2 mt4">가장 궁금한 건 무엇인가요?</h2>
-            <div className="stack mt16">
-              {S.q.map((x) => <button key={x} className="opt" onClick={() => go({ cat: C.id, sub: S.id, q: x })}><b style={{ flex: 1 }}>{x}</b><I.right className="chev" /></button>)}
-            </div>
-          </section>
-        )}
-        {step === 3 && C && S && q && (isSample
-          ? <NeedProfile next={`/path?${sp.toString()}`} />
-          : <Result catId={C.id} subId={S.id} q={q} />)}
+        <div className="crumb row" style={{ gap: 6 }}><Pic n={C.icon as PicName} size="s" />{C.label} <I.right size={14} /> {S.label}</div>
+        <div className="qblock"><h3>1. 어떤 고민인가요?</h3><div className="qchips">{C.sub.map((s) => <button key={s.id} className={sub === s.id ? 'on' : ''} onClick={() => setSub(s.id)}>{s.label}</button>)}</div></div>
+        <div className="qblock"><h3>2. 무엇이 가장 궁금한가요?</h3><div className="qchips">{S.q.map((x) => <button key={x} className={q === x ? 'on' : ''} onClick={() => setQ(x)}>{x}</button>)}</div></div>
+        <div className="qblock"><h3>3. {S.when ?? C.when}</h3><div className="qchips">{HZ.map((x) => <button key={x} className={h === x ? 'on' : ''} onClick={() => setH(x)}>{PATH_WHEN[String(x) as '3' | '6' | '12']}</button>)}</div></div>
+        {isSample
+          ? <Link to={`/profile/new?next=${encodeURIComponent(`/path?cat=${catId}&sub=${sub}&q=${q}&h=${h}&go=1`)}`} className="btn primary mt32">사주 입력하고 분석 보기 →</Link>
+          : <button className="btn primary mt32" onClick={() => onGo({ sub, q, h: String(h) })}>사주 분석 시작하기 →</button>}
+        <p className="notice mt12">사주는 결정을 대신하지 않아요. 지금의 리듬을 살피는 참고로 봐 주세요.</p>
       </main>
     </>
   );
 }
 
-function NeedProfile({ next }: { next: string }) {
-  return (
-    <section className="card center fade-in">
-      <h2 className="h2">사주를 알아야 길이 보여요</h2>
-      <p className="muted small mt8">생년월일만 알려 주면 이 고민의 시기와 흐름을 바로 보여 드릴게요.</p>
-      <Link to={`/profile/new?next=${encodeURIComponent(next)}`} className="btn primary mt16">사주 입력하기</Link>
-    </section>
-  );
-}
-
-function Result({ catId, subId, q }: { catId: string; subId: string; q: string }) {
+// 6-2 — 분석 결과
+function Result({ catId, subId, q, h }: { catId: string; subId: string; q: string; h: Horizon }) {
   const { profile } = useMain();
   const saju = useSaju(profile);
-  const r = useMemo(() => pathResult(saju, catId, subId, q, profile.id), [saju, catId, subId, q, profile.id]);
+  const r = useMemo(() => pathResult(saju, catId, subId, q, profile.id, new Date(), h), [saju, catId, subId, q, profile.id, h]);
   const [saved, setSaved] = useState<'no' | 'saved' | 'skip'>('no');
   const toast = useToast();
   const nav = useNavigate();
@@ -109,35 +104,31 @@ function Result({ catId, subId, q }: { catId: string; subId: string; q: string }
     } catch (e: any) { toast(e.message); }
   };
   return (
-    <section className="fade-in" key="s3">
-      <p className="eyebrow">{r.cat.label} · {r.sub.label}</p>
-      <h2 className="h2 mt4">“{q}”</h2>
-      <div className="card mt16">
-        <p style={{ margin: 0, fontWeight: 600 }}>{r.headline}</p>
-        <div className="mt12"><FlowChart points={r.flow.map((f) => f.score)} labels={r.flow.map((f) => `${f.month}월`)} good={r.goodIdx} careful={r.carefulIdx} current={0} /></div>
-        <FlowLegend />
-        <div className="grid2 mt12" style={{ gap: 8 }}>
-          <div className="card lav" style={{ padding: 12 }}><div className="faint">기운이 살아나는 때</div><b className="hl-lav">{r.good}</b></div>
-          <div className="card rose" style={{ padding: 12 }}><div className="faint">한 템포 쉬어 갈 때</div><b className="hl-rose">{r.careful}</b></div>
+    <>
+      <Top title="사주 분석 결과" back={`/path?cat=${catId}`} />
+      <main className="screen fade-in">
+        <section className="card" aria-label="분석 결과">
+          <div className="center faint">달새김 사주 분석 결과<br />({r.cat.label} · {r.sub.label} · {q})</div>
+          <p className="verdict mt8">{r.verdict}</p>
+          <div className="mt12"><FlowChart points={r.chart.map((f) => f.score)} labels={r.chart.map((f) => `${f.month}월`)} good={r.bestIdx} careful={r.carefulIdx.filter((x) => x <= r.chart.length)} current={0} /></div>
+          <div className="best"><small>가장 좋은 시기</small><b>{r.best}</b></div>
+          <div className="divider" />
+          <h3 className="h3">추천 행동</h3>
+          <ol className="todo">{r.hints.map((x) => <li key={x}>{x}</li>)}</ol>
+          <p className="faint mt8" style={{ margin: '8px 0 0' }}>사주가 말하는 나 · {r.reason}</p>
+        </section>
+        <p className="notice mt8">사주는 결정을 대신하지 않아요. 지금의 리듬을 살피는 참고로 봐 주세요.</p>
+
+        <div className="mt16">
+          {saved === 'no' && <MemoryCard draft={{ category: r.memory.category, title: r.memory.title, summary: `${r.memory.summary}. 사주 흐름상 ${r.best}이 가장 좋은 시기.` }} onSave={save} onSkip={() => { setSaved('skip'); track('memory_skip', { kind: 'path' }); }} />}
+          {saved === 'saved' && <MemoryCard draft={r.memory} saved onSave={() => {}} onSkip={() => {}} />}
         </div>
-      </div>
-      <div className="card flat mt12">
-        <div className="faint">사주가 말하는 나</div>
-        <p className="small" style={{ margin: '4px 0 0' }}>{r.reason}</p>
-        <div className="divider" />
-        {r.hints.map((h) => <p key={h} className="small" style={{ margin: '6px 0' }}>· {h}</p>)}
-      </div>
-      <p className="notice mt8">사주는 결정을 대신하지 않아요. 지금의 리듬을 살피는 참고로 봐 주세요.</p>
 
-      <div className="mt16">
-        {saved === 'no' && <MemoryCard draft={{ category: r.memory.category, title: r.memory.title, summary: r.memory.summary }} onSave={save} onSkip={() => { setSaved('skip'); track('memory_skip', { kind: 'path' }); }} />}
-        {saved === 'saved' && <MemoryCard draft={r.memory} saved onSave={() => {}} onSkip={() => {}} />}
-      </div>
-
-      <button className="btn primary mt16" onClick={() => nav(`/friend?topic=${catId === 'self' ? 'growth' : catId}&q=${encodeURIComponent(r.friendPrompt)}`)}><I.chat size={20} />AI 사주친구와 이어서 이야기하기</button>
-      <Link to={`/product/path_deep?cat=${catId}&sub=${subId}&q=${encodeURIComponent(q)}`} className="btn line mt8">이 고민 심층분석 · {won(deep.price)}</Link>
-      {rel && <Link to={`/product/${rel.id}`} className="card flat mt12 between" style={{ display: 'flex' }}><div><div className="faint">이 고민과 이어지는 운세</div><b>{rel.title}</b></div><I.right /></Link>}
-      <Link to="/path" className="link mt16 center" style={{ display: 'block' }}>다른 고민 살펴보기</Link>
-    </section>
+        <button className="btn primary mt16" onClick={() => nav(`/friend?topic=${r.memory.category}&q=${encodeURIComponent(r.friendPrompt)}`)}><I.chat size={20} />AI 사주친구와 이어서 이야기하기</button>
+        <Link to={`/product/path_deep?cat=${catId}&sub=${subId}&q=${encodeURIComponent(q)}`} className="btn line mt8">이 고민 심층분석 · {won(deep.price)}</Link>
+        {rel && <Link to={`/product/${rel.id}`} className="card flat mt12 between" style={{ display: 'flex' }}><div><div className="faint">이 고민과 이어지는 운세</div><b>{rel.title}</b></div><I.right /></Link>}
+        <Link to="/path" className="link mt16 center" style={{ display: 'block' }}>다른 고민 살펴보기</Link>
+      </main>
+    </>
   );
 }

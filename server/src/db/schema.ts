@@ -215,6 +215,8 @@ export const memories = pgTable('memories', {
   feedbackNote: text(),
   feedbackAt: timestamp({ withTimezone: true }),
   followupAt: timestamp({ withTimezone: true }), // "지난 고민은 어떻게 됐나요?" 물어볼 날
+  visibility: text().notNull().default('self'), // private(보관만, 타임라인 숨김) | self(나만 보기) | ai(AI 사주친구가 참고)
+  photo: text(), // 사진 1장(작게 줄인 data:image/webp, 120KB 이하)
   createdAt: now(),
 }, (t) => [index('memories_user').on(t.userId, t.happenedOn)]);
 
