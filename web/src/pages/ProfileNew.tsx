@@ -22,7 +22,8 @@ const YEARS = Array.from({ length: Math.min(LUNAR_YEAR_MAX, THIS_YEAR) - LUNAR_Y
 export default function ProfileNew() {
   const { id } = useParams();
   const [sp] = useSearchParams();
-  const { profiles, saveProfile, account } = useApp();
+  const { profiles, saveProfile, account, setMain } = useApp();
+  const [fresh, setFresh] = useState(false); // 저장된 사주 대신 새로 입력
   const editing = profiles.find((p) => p.id === id);
   const [first] = useState(() => profiles.length === 0); // 저장 뒤에도 첫 입력 흐름(1/3→3/3)을 유지
   const [step, setStep] = useState(0);
@@ -62,7 +63,22 @@ export default function ProfileNew() {
       <Top title={editing ? '사주 고치기' : '사주 입력'} />
       <main className="screen">
         {!editing && first && <div className="prog" aria-label={`3단계 중 ${step + 1}단계`}><div className="bar"><i style={{ width: `${((step + 1) / 3) * 100}%` }} /></div>{step + 1}/3</div>}
-        {step === 0 && (
+        {step === 0 && !editing && !first && !fresh && !sp.get('rel') && (
+          <section className="fade-in mt16" aria-label="저장된 사주">
+            <h2 className="h2">저장된 사주로 볼까요?</h2>
+            <p className="muted mt8">한 번 입력한 사주는 다시 입력하지 않아도 돼요.</p>
+            <div className="stack mt16">
+              {profiles.map((p) => (
+                <button key={p.id} className="saved-p" onClick={() => { setMain(p.id); nav(sp.get('next') ?? '/', { replace: true }); }}>
+                  <span className="grow"><b>{p.name}</b> <span className="faint">· {p.relation ?? '나'}</span><span className="faint" style={{ display: 'block' }}>{p.calendar === 'lunar' ? '음력' : '양력'} {p.year}.{p.month}.{p.day} · {p.hour == null ? '시간 모름' : `${p.hour}시경`} · {p.gender === 'F' ? '여성' : '남성'}</span></span>
+                  <span className="link">이 사주로</span>
+                </button>
+              ))}
+            </div>
+            <button className="btn line mt16" onClick={() => setFresh(true)}>다른 사람 사주 새로 입력하기</button>
+          </section>
+        )}
+        {step === 0 && (editing || first || fresh || !!sp.get('rel')) && (
           <section className="fade-in mt16">
             <h2 className="h2">{first ? <>당신의 사주를<br />입력해 주세요.</> : '누구의 사주인가요?'}</h2>
             <p className="muted small mt8">정확한 사주 분석을 위해<br />생년월일과 태어난 시간을 입력해 주세요.</p>

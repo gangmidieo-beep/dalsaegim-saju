@@ -53,6 +53,7 @@ export default function SajuMap() {
               <h2 className="h2 mt4">{m.dayMaster.title}</h2>
             </div>
             <GodMap gods={m.gods} />
+            <p className="explain">원 하나는 사주 여덟 글자에서 같은 성질의 기운을 묶은 것이에요. 원이 클수록 그 기운이 많아 {profile.name} 님을 이끄는 힘이 커요. (예: 식신·상관 = 표현·재능, 재성 = 재물·현실감)</p>
             <h3 className="h3 mt8">한눈에 보는 핵심 키워드</h3>
             <div className="chips mt8">{m.keywords.map((k) => <span key={k} className="chip sm lav">{k}</span>)}<span className="chip sm rose">{flow[bi].month}월 주목</span></div>
           </section>
@@ -68,7 +69,8 @@ export default function SajuMap() {
         <section className="card mt12" aria-label="운의 흐름 요약">
           <div className="row"><Pic n="today" size="s" /><h3 className="h3">운의 흐름 요약</h3></div>
           <div className="mt8"><FlowChart points={flow.map((x) => x.score)} labels={flow.map((x) => `${x.month}월`)} good={[bi + 1]} /></div>
-          <p className="center" style={{ margin: '6px 0 0', padding: '10px 12px', borderRadius: 12, background: 'var(--ivory)', fontWeight: 600 }}>{flow[bi].month}월{bi === 0 ? '부터' : ' 이후'} 새로운 기회가 열려요.</p>
+          <p className="center" style={{ margin: '6px 0 0', padding: '10px 12px', borderRadius: 12, background: '#fdeef3', fontWeight: 700, color: '#9c2f58' }}>{flow[bi].month}월{bi === 0 ? '부터' : ' 이후'} 새로운 기회가 열려요.</p>
+          <p className="explain">{tab === 'all' ? '연애·직장·재물·가족·성장 다섯 분야의 기운을 합쳐' : '이 분야의 기운을'} 앞으로 넉 달 동안 0~100점으로 나타냈어요. 보라색 점(●)이 가장 기운이 좋은 달이에요.</p>
           {tab === 'all' && <><h3 className="h3 mt16">올해의 핵심 키워드</h3><div className="chips mt8">{yearKw.map((k) => <span key={k} className="chip sm">{k}</span>)}</div></>}
         </section>
 

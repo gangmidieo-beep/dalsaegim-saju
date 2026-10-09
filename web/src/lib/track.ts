@@ -2,7 +2,7 @@
 // 첫 방문의 utm·referrer 는 기억해 두었다가 모든 이벤트에 붙인다(유입 경로 통계).
 import { API } from './api';
 export type EventName = 'product_view' | 'checkout_open' | 'pay_start' | 'pay_success' | 'pay_cancel' | 'pay_fail' | 'share' | 'page_view'
-  | 'share_click' | 'share_link_open' | 'content_view' | 'login' | 'profile_saved' | 'path_start' | 'path_done' | 'friend_send' | 'memory_save' | 'memory_skip' | 'memory_feedback' | 'lucky_reroll';
+  | 'share_click' | 'share_link_open' | 'content_view' | 'login' | 'profile_saved' | 'path_start' | 'path_done' | 'friend_send' | 'memory_save' | 'memory_skip' | 'memory_feedback' | 'lucky_reroll' | 'persona_pick';
 const KEY = 'dalsaegim-events';
 const MOCK = !API;
 

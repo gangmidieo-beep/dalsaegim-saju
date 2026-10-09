@@ -162,8 +162,11 @@ export function Foot() {
   );
 }
 
-export const CAT_LABEL: Record<string, string> = { love: '연애', work: '직장', money: '재물', family: '가족', growth: '성장', health: '건강', etc: '기타' };
-export const CAT_LONG: Record<string, string> = { love: '연애·관계', work: '직장·이직', money: '돈·재물', family: '가족·관계', growth: '나·성장', health: '건강', etc: '기타' };
+export const CAT_LABEL: Record<string, string> = { love: '연애', work: '직장', money: '재물', family: '가족', growth: '나', health: '나', etc: '나' };
+export const CAT_LONG: Record<string, string> = { love: '연애·관계', work: '직장·이직', money: '돈·재물', family: '가족·관계', growth: '나·성장' };
+// 기록 분야는 다섯 개로 단순화 — 예전 건강·기타 기록은 '나'로 묶어 보여 준다
+export const CAT_FILTER: [string, string][] = [['all', '전체'], ['love', '연애'], ['work', '직장'], ['money', '재물'], ['family', '가족'], ['growth', '나']];
+export const inCat = (c: string, f: string) => f === 'all' || c === f || (f === 'growth' && ['health', 'etc'].includes(c));
 export const CAT_COLOR: Record<string, string> = { love: '#E7799C', work: '#7A86D6', money: '#C9A15E', family: '#E59A62', growth: '#9B7FE0', health: '#62B39C', etc: '#A7A3B5' };
 
 // 오늘의 새김 — 요약을 [저장][수정][남기지 않기] (시안 7)
@@ -179,7 +182,7 @@ export function MemoryCard({ draft, onSave, onSkip, saved }: { draft: { category
         <>
           <input className="input mt8" value={d.title} maxLength={60} onChange={(e) => setD({ ...d, title: e.target.value })} aria-label="기록 제목" />
           <textarea className="input mt8" value={d.summary ?? ''} maxLength={200} onChange={(e) => setD({ ...d, summary: e.target.value })} aria-label="기록 내용" />
-          <div className="chips mt8">{Object.entries(CAT_LABEL).map(([k, l]) => <button key={k} className={`chip sm${d.category === k ? ' on' : ''}`} onClick={() => setD({ ...d, category: k })}>{l}</button>)}</div>
+          <div className="chips mt8">{Object.entries(CAT_LONG).map(([k, l]) => <button key={k} className={`chip sm${d.category === k ? ' on' : ''}`} onClick={() => setD({ ...d, category: k })}>{l}</button>)}</div>
         </>
       ) : (
         <p>{d.summary ?? d.title}</p>

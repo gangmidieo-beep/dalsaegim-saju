@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiAuth } from '../lib/api';
 import { useMain } from '../store/app';
-import { CAT_COLOR, CAT_LABEL, CAT_LONG, CAT_PIC, Pic, Sheet, Skeleton, Top, fullDate, shrinkPhoto, useToast } from '../components/ui';
+import { CAT_COLOR, CAT_FILTER, CAT_LABEL, CAT_LONG, CAT_PIC, inCat, Pic, Sheet, Skeleton, Top, fullDate, shrinkPhoto, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { kstToday, dotDate } from '../lib/dates';
 import { track } from '../lib/track';
@@ -69,7 +69,7 @@ export default function Records() {
   const load = () => apiAuth<{ list: Memory[]; due: Memory[] }>('/memories').then((r) => { setList(r.list); setDue(r.due); }).catch(() => setList([]));
   useEffect(() => { void load(); }, []);
   const fb = async (id: string, f: string) => { await apiAuth(`/memories/${id}`, { method: 'PATCH', json: { feedback: f } }).catch(() => {}); track('memory_feedback', { fb: f }); toast('타임라인에 새겼어요'); void load(); };
-  const shown = (list ?? []).filter((m) => cat === 'all' || m.category === cat);
+  const shown = (list ?? []).filter((m) => inCat(m.category, cat));
   const latest = list?.[0];
   const ask = due[0] ?? (latest && !latest.feedback && latest.kind !== 'event' ? latest : undefined);
   const months = [...new Set(shown.map((m) => m.happenedOn.slice(0, 7)))];
@@ -81,8 +81,8 @@ export default function Records() {
           <div className="center"><h2 className="h2">오늘의 새김</h2><div className="faint">{fullDate()}</div></div>
           {latest ? (
             <button className="saegim mt12" style={{ display: 'block', width: '100%', textAlign: 'left' }} onClick={() => setEdit(latest)}>
-              <div className="between"><div className="cat"><Pic n={CAT_PIC[latest.category] ?? 'moon'} size="s" />{CAT_LONG[latest.category]}</div><span className="faint" style={{ fontSize: 13 }}>{dotDate(latest.happenedOn)}</span></div>
-              <p><b>{latest.title}</b>{latest.summary ? <><br />{latest.summary}</> : null}</p>
+              <div className="between"><div className="cat"><Pic n={CAT_PIC[latest.category] ?? 'moon'} size="s" />{CAT_LONG[latest.category] ?? '나·성장'}</div><span className="faint" style={{ fontSize: 13 }}>{dotDate(latest.happenedOn)}</span></div>
+              <p><b>{latest.title}</b>{latest.summary && !latest.summary.includes(latest.title) ? <><br />{latest.summary}</> : null}</p>
               {latest.sajuNote && <p className="small" style={{ color: 'var(--lav-2)' }}>사주 흐름 · {latest.sajuNote}</p>}
             </button>
           ) : list && (
@@ -99,7 +99,7 @@ export default function Records() {
             {due.length > 0 && <button className="link mt8 center" style={{ display: 'block', width: '100%' }} onClick={() => apiAuth(`/memories/${ask.id}`, { method: 'PATCH', json: { snooze: true } }).then(load)}>나중에 알려 줄게요</button>}
           </section>
         )}
-        <div className="chips mt16">{[['all', '전체'], ...Object.entries(CAT_LABEL)].map(([k, l]) => <button key={k} className={`chip sm${cat === k ? ' on' : ''}`} onClick={() => setCat(k)}>{l}</button>)}</div>
+        <div className="chips mt16">{CAT_FILTER.map(([k, l]) => <button key={k} className={`chip sm${cat === k ? ' on' : ''}`} onClick={() => setCat(k)}>{l}</button>)}</div>
         {list === null && <div className="stack mt16"><Skeleton /><Skeleton /></div>}
         {list?.length === 0 && (
           <section className="card center mt16">

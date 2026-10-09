@@ -5,6 +5,8 @@ import { track } from './lib/track';
 import Home from './pages/Home';
 import ProfileNew from './pages/ProfileNew';
 import Today from './pages/Today';
+import Love from './pages/Love';
+import All from './pages/All';
 import SajuMap from './pages/SajuMap';
 import PathPage from './pages/Path';
 import Friend from './pages/Friend';
@@ -38,6 +40,8 @@ export function App() {
           <Route path="/profile/new" element={<ProfileNew />} />
           <Route path="/profile/:id/edit" element={<ProfileNew />} />
           <Route path="/today" element={<Today />} />
+          <Route path="/love" element={<Love />} />
+          <Route path="/all" element={<All />} />
           <Route path="/map" element={<SajuMap />} />
           <Route path="/path" element={<PathPage />} />
           <Route path="/friend" element={<Friend />} />

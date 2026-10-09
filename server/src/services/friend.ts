@@ -2,8 +2,8 @@
 // 답할 때 참고: 사주지도 요약 · 오늘/이번 달 흐름 · 고민 분야의 앞으로 흐름 · (동의 시) 최근 기록 5개.
 // 매 답변과 함께 "달새김 기억" 요약 초안을 만든다 → 화면에서 [저장][수정][남기지 않기].
 // AI 키가 없으면(또는 FRIEND_AI 가 live 가 아니면) 계산 결과로 짧은 답을 만든다(흐름 확인·시연용).
-import { calcSaju, kstParts, type SajuResult } from '@dalsaegim/engine';
-import { sajuMap, todayFortune, monthFortune, nextMonths, toRanges, pick, type Dim } from '@dalsaegim/content';
+import { calcSaju, type SajuResult } from '@dalsaegim/engine';
+import { sajuMap, todayFortune, monthFortune, nextMonths, toRanges, pick, personaOf, type Dim } from '@dalsaegim/content';
 import { callClaude, costKrwOf, parseJson } from './reading/generate.ts';
 
 export type ChatMsg = { role: 'user' | 'friend'; text: string; at: string };
@@ -26,7 +26,6 @@ export function topicOf(text: string, fallback?: string | null) {
   return f ? { id: f[0], dim: f[2], label: f[3] } : { id: 'growth', dim: 'growth' as Dim, label: '나 자신' };
 }
 const sajuOfRow = (p: ProfileRow): SajuResult => calcSaju({ year: p.birthYear, month: p.birthMonth, day: p.birthDay, hour: p.birthHour, calendar: p.calendar as 'solar' | 'lunar', leapMonth: p.leap, gender: p.gender as 'M' | 'F', timeUnknown: p.birthHour == null });
-const ymdDot = (d: Date) => { const k = kstParts(d); return `${k.year}.${String(k.month).padStart(2, '0')}.${String(k.day).padStart(2, '0')}`; };
 
 export function sajuBrief(p: ProfileRow, dim: Dim, now = new Date()) {
   const s = sajuOfRow(p);
@@ -50,24 +49,29 @@ export function sajuBrief(p: ProfileRow, dim: Dim, now = new Date()) {
 
 export async function friendReply(o: {
   profile: ProfileRow; history: ChatMsg[]; text: string; topicHint?: string | null; memories: { happenedOn: string; category: string; title: string; feedback: string | null }[];
-  http?: typeof fetch; now?: Date;
+  persona?: string | null; http?: typeof fetch; now?: Date;
 }) {
   const now = o.now ?? new Date();
+  const pe = personaOf(o.persona);
   const topic = topicOf(o.text, o.topicHint);
   const b = sajuBrief(o.profile, topic.dim, now);
   const draft: MemoryDraft = {
     category: topic.id,
     title: o.text.replace(/\s+/g, ' ').slice(0, 40),
-    summary: `${ymdDot(now)} · ${topic.label} · ${o.text.replace(/\s+/g, ' ').slice(0, 60)}`,
+    summary: `${topic.label} 고민을 AI 사주친구와 나눔. 사주 흐름상 ${b.good}에 기운이 살아나고, ${b.careful}에는 쉬어 가면 좋은 시기.`,
     sajuNote: `좋은 시기 ${b.good} / 신중한 시기 ${b.careful}`,
   };
   if (!friendLive()) {
-    const empathy = pick(['이야기 들려줘서 고마워요.', '그런 마음이 드는 게 당연해요.', '많이 고민했겠어요.', '천천히 같이 볼게요.'], `${o.text}:e`);
+    const empathy = pick(pe.empathy, `${o.text}:e`);
     const area = b.map.areas.find((a) => a.id === (topic.id === 'money' ? 'money' : topic.id === 'work' ? 'work' : topic.id === 'family' ? 'family' : topic.id === 'love' ? 'love' : 'growth'));
-    const reply = `${empathy} ${o.profile.name} 님 사주에서 보면, ${area?.line ?? b.map.dayMaster.line}\n\n앞으로 ${topic.label} 흐름은 ${b.good}에 기운이 살아나고, ${b.careful}에는 한 템포 쉬어 가면 좋아요. 오늘은 '${b.today.keyword}'가 열쇠예요.\n\n지금 가장 마음에 걸리는 건 어떤 부분이에요?`;
+    const FB: Record<string, string> = { good: '잘 풀렸다고', same: '비슷하다고', changed: '달라졌다고' };
+    const last = o.memories[0];
+    const recall = last && o.history.length === 0 ? `지난 ${last.happenedOn.replace(/-/g, '.')}에 남긴 '${last.title}' 기록${last.feedback ? `(결과는 ${FB[last.feedback] ?? '남겨 주셨다고'} 하셨죠)` : ''}도 함께 떠올리며 볼게요.\n\n` : '';
+    const fieldScore = topic.id === 'love' ? `오늘 연애 지수는 ${b.today.fields.love.score}점이에요.` : topic.id === 'work' ? `오늘 직장 지수는 ${b.today.fields.work.score}점이에요.` : topic.id === 'money' ? `오늘 재물 지수는 ${b.today.fields.wealth.score}점이에요.` : `오늘 컨디션 지수는 ${b.today.fields.health.score}점이에요.`;
+    const reply = `${empathy} ${recall}${o.profile.name} 님 사주에서 보면, ${area?.line ?? b.map.dayMaster.line}\n\n앞으로 ${topic.label} 흐름은 ${b.good}에 기운이 살아나고, ${b.careful}에는 한 템포 쉬어 가면 좋아요. ${fieldScore}\n\n${pe.close}`;
     return { reply, draft, topic: topic.id, tokensIn: 0, tokensOut: 0, costKrw: 0, ai: false };
   }
-  const system = `너는 사주 서비스 "달새김사주"의 AI 사주친구 "달새김"이다. 다정한 친구 같은 해요체로, 3~6문장(최대 400자)으로 답한다.
+  const system = `너는 사주 서비스 "달새김사주"의 AI 사주친구 상담사 "${pe.name}"(${pe.title})이다. 말투: ${pe.tone} 3~6문장(최대 400자)으로 답한다.
 역할: 사주 결과를 쉽게 설명하고 사용자의 실제 상황과 연결해 주는 안내자. 일반 심리상담·의료·법률·투자 자문을 하지 않는다.
 원칙: 사주는 결정을 대신하지 않는 참고 정보다. 단정·공포 표현 금지. 종목·매수·매도 금지. 자해·위기 신호가 보이면 공감하고 전문 상담(자살예방 상담전화 109)을 안내한다.
 아래 사주 정보의 숫자·시기와 어긋나지 않게 말한다. 마지막에 대화를 이어 갈 질문을 하나 한다.
@@ -81,7 +85,7 @@ export async function friendReply(o: {
   try {
     const j = parseJson(c.text);
     reply = String(j.reply ?? reply);
-    if (j.memory?.title) Object.assign(draft, { category: String(j.memory.category ?? draft.category), title: String(j.memory.title).slice(0, 40), summary: `${ymdDot(now)} · ${String(j.memory.summary ?? j.memory.title).slice(0, 80)}` });
+    if (j.memory?.title) Object.assign(draft, { category: String(j.memory.category ?? draft.category), title: String(j.memory.title).slice(0, 40), summary: String(j.memory.summary ?? j.memory.title).slice(0, 120) });
   } catch { /* JSON 이 아니면 본문 그대로 */ }
   return { reply, draft, topic: topic.id, tokensIn: c.tokensIn, tokensOut: c.tokensOut, costKrw: costKrwOf(c.tokensIn, c.tokensOut), ai: true };
 }

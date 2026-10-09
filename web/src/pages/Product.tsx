@@ -13,6 +13,16 @@ import { saveImage, shareLink, shortLink } from '../lib/share';
 import brand from '../../../brand.config.json';
 
 type Prod = (typeof brand.products)[number];
+// 무료로 이미 볼 수 있는 것 vs 결제 후 받는 것(대표님 요청: 범위를 분명하게)
+const FREE: Record<string, string[]> = {
+  love: ['오늘의 연애 지수', '연애·재회 운세의 12달 흐름 그래프', '연애 고민의 길(사랑의 갈림길) 결과'],
+  money: ['돈의 흐름 4종 요약 지수', '좋은 달·신중한 달 요약', '오늘의 행운번호'],
+  year: ['2027 신년운세 미리보기(총운·좋은 달)', '이번 달 흐름 한 줄'],
+  life: ['사주 여덟 글자·오행 균형', '분야별로 보는 나', '지금 지나는 큰 흐름(대운) 한 줄'],
+  worry: ['고민의 길 결과(가장 좋은 시기·추천 행동 3가지)'],
+  mbti: ['사주 × MBTI 일치도와 한 줄 요약'],
+  friend: [`AI 사주친구 하루 ${brand.friend.freePerDay}번 무료 상담`],
+};
 const findP = (id?: string) => brand.products.find((p) => p.id === id) as Prod | undefined;
 
 export function ProductDetail() {
@@ -51,6 +61,18 @@ export function ProductDetail() {
             <p className="faint mt8">무료로 본 지수·좋은 달과 같은 계산을 바탕으로, 내 사주에 맞춰 새로 써요.</p>
           </section>
         )}
+        <section className="card mt12" aria-label="무료와 유료 비교">
+          <h3 className="h3">무료와 결제 후, 무엇이 다른가요?</h3>
+          <div className="cmp mt12">
+            <div><small>무료로 보는 것</small>{(FREE[p.series] ?? ['오늘의 운세', '나의 사주지도 요약']).map((x) => <p key={x}>· {x}</p>)}</div>
+            <div className="paid"><small>결제 후 받는 것</small>
+              {p.kind === 'pass'
+                ? <><p>· 30일 동안 횟수 제한 없이 상담</p><p>· 상담 기록을 이어서 기억하는 상담</p><p>· 기간이 끝나면 자동 결제되지 않아요</p></>
+                : <><p>· 내 사주 맞춤 상세 풀이 {ch?.length ?? ''}장</p><p>· 좋은 시기·조심할 시기와 그 이유</p><p>· 바로 할 수 있는 조언</p><p>· 언제든 다시 보기(마이 &gt; 구매한 풀이)</p></>}
+            </div>
+          </div>
+          <Link to="/refund" className="link mt8" style={{ display: 'inline-block', fontSize: 14 }}>환불정책 보기</Link>
+        </section>
         <p className="notice mt12">결제 후 바로 이 사이트에서 열려요 · 회원가입 없이 결제 가능 · 풀이는 마이 &gt; 구매한 풀이에서 다시 볼 수 있어요</p>
         <Link to={`/checkout/${p.id}${q ? `?${q}` : ''}`} className="btn primary mt16">{p.kind === 'pass' ? '이용권 시작하기' : '풀이 받기'} · {won(p.price)}</Link>
       </main>
@@ -169,7 +191,7 @@ export function ReadingPage() {
   }, [orderId]);
   const keep = async () => {
     if (!r?.content) return;
-    await apiAuth('/memories', { method: 'POST', json: { kind: 'reading', category: r.productId.startsWith('money') ? 'money' : ['love_flow', 'gunghap'].includes(r.productId) ? 'love' : 'growth', title: `${r.content.title} 풀이를 받음`, summary: r.content.chapters[0]?.highlight, refId: orderId, profileId: isSample ? null : profile.id } }).catch(() => {});
+    await apiAuth('/memories', { method: 'POST', json: { kind: 'reading', category: r.productId.startsWith('money') ? 'money' : ['love_flow', 'gunghap', 'reunion'].includes(r.productId) ? 'love' : 'growth', title: `${r.content.title} 풀이를 받음`, summary: r.content.chapters[0]?.highlight, refId: orderId, profileId: isSample ? null : profile.id } }).catch(() => {});
     setSaved(true); toast('타임라인에 새겼어요');
   };
   const share = async (text: string) => {

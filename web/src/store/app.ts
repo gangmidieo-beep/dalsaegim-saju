@@ -27,6 +27,7 @@ type State = {
   account: Account | null;
   lucky: { date: string; round: number };
   friendChatId: string | null;
+  persona: string | null; // 고른 상담사(없으면 고르는 화면부터)
   pass: boolean; // AI 사주친구 이용권
   setIntroSeen: () => void;
   saveProfile: (p: Profile, makeMain?: boolean) => void;
@@ -35,6 +36,7 @@ type State = {
   setAccount: (a: Account | null) => void;
   rerollLucky: (date: string) => void;
   setFriendChat: (id: string | null) => void;
+  setPersona: (id: string | null) => void;
   setPass: (on: boolean) => void;
 };
 
@@ -47,6 +49,7 @@ export const useApp = create<State>()(
       account: null,
       lucky: { date: '', round: 0 },
       friendChatId: null,
+      persona: null,
       pass: false,
       setIntroSeen: () => set({ introSeen: true }),
       saveProfile: (p, makeMain) =>
@@ -63,6 +66,7 @@ export const useApp = create<State>()(
       setAccount: (account) => set({ account }),
       rerollLucky: (date) => set((s) => ({ lucky: { date, round: s.lucky.date === date ? Math.min(1, s.lucky.round + 1) : 1 } })),
       setFriendChat: (friendChatId) => set({ friendChatId }),
+      setPersona: (persona) => set({ persona }),
       setPass: (pass) => set({ pass }),
     }),
     { name: 'dalsaegim', version: 1 },

@@ -100,7 +100,38 @@ export function buildFacts(productId: string, people: Person[], sajus: SajuResul
       paras.push(mf.line, `이번 달 기운이 좋은 날은 ${best.join(', ')}일, 속도를 늦추면 좋은 날은 ${low.join(', ')}일이에요.`);
       keywords = [mf.keyword, ...keywords];
     }
-  } else if (productId === 'love_flow' || productId === 'gunghap' || productId === 'adult_gunghap') {
+  } else if (productId === 'love_flow' || productId === 'reunion') {
+    // 연애·재회 — 사랑을 깊게(대표님 요청: 2030 여성 타깃, 사랑 상품 특히 신경)
+    const nm = nextMonths(s, 'love', id, now);
+    const pm = nextMonths(s, 'partner', id, now);
+    const top = (xs: typeof nm, n: number) => [...xs].sort((a, b) => b.score - a.score).slice(0, n).map((x) => x.month);
+    const low = (xs: typeof nm, n: number) => [...xs].sort((a, b) => a.score - b.score).slice(0, n).map((x) => x.month);
+    const good = toRanges(top(nm, 3)), careful = toRanges(low(nm, 2));
+    const meet = toRanges(top(pm, 2)), rest = toRanges(low(pm, 2));
+    const now3 = nm.slice(0, 3);
+    const trend = now3[2].score > now3[0].score + 4 ? '조금씩 올라가는' : now3[2].score < now3[0].score - 4 ? '잠시 숨을 고르는' : '잔잔하게 이어지는';
+    const loveArea = map.areas.find((a) => a.id === 'love')!.line;
+    const EL: Record<string, string> = { 목: '따뜻하게 이끌어 주고 성장을 응원하는', 화: '밝고 표현이 솔직한', 토: '듬직하고 약속을 잘 지키는', 금: '단정하고 기준이 분명한', 수: '깊이 들어 주고 마음을 잘 읽는' };
+    lines.push(`연애 흐름(앞으로 12달): 좋은 달 ${good} / 신중한 달 ${careful} / 관계가 가까워지는 달 ${meet} / 거리를 두면 좋은 달 ${rest} / 이번 석 달 ${trend} 흐름`);
+    if (productId === 'love_flow') {
+      sectionsOut = [
+        [map.dayMaster.love, loveArea, `${p0.name} 님은 마음을 정하면 깊어지는 편이라, 시작의 속도보다 '편안함'을 먼저 확인할 때 연애가 오래가요.`],
+        [`앞으로 석 달, ${p0.name} 님의 연애 흐름은 ${trend} 모습이에요. 이번 달 연애 지수는 ${nm[0].score}점, 석 달 뒤에는 ${now3[2].score}점이에요.`, `지금 만나는 사람이 있다면 큰 결정보다 일상의 대화를 늘리고, 혼자라면 새로운 자리에 한 번씩 나가 보는 것만으로 충분해요.`],
+        [`앞으로 열두 달 중 마음이 닿기 쉬운 달은 ${good}이에요. 고백·관계를 정리하는 대화·소개처럼 중요한 순간은 이 달에 두면 좋아요.`, `${careful}에는 마음이 쉽게 흔들리거나 오해가 생기기 쉬워요. 이때는 결론을 미루고 듣는 쪽을 맡아 보세요.`],
+        [`관계를 지키는 열쇠는 '${map.need}' 기운이에요. ${map.elementAdvice}`, `서운함은 쌓아 두기보다 좋은 달에 짧고 부드럽게 꺼내 보세요. 다툼이 있었다면 '누가 맞나'보다 '어떻게 하고 싶나'를 먼저 말하는 게 좋아요.`],
+        [`${p0.name} 님에게 잘 맞는 사람은 ${EL[map.need] ?? '마음을 잘 알아주는'} 사람이에요. 부족한 ${map.need} 기운을 채워 주는 사람 곁에서 ${p0.name} 님이 가장 편안해져요.`, `새로운 인연이 들어오기 좋은 달은 ${meet}이에요. 이 시기에는 지인의 소개나 오래 알던 사람에게서 인연이 시작되기 쉬워요.`],
+      ];
+    } else {
+      sectionsOut = [
+        [map.dayMaster.love, `사주로 보면 ${p0.name} 님은 관계에서 '${map.strongest}' 기운이 강하게 드러나요. 그래서 마음이 깊은 만큼, 서운함도 오래 남는 편이에요.`, loveArea],
+        [`두 사람의 흐름이 다시 가까워지기 쉬운 달은 ${meet}이고, 연애 기운 전체가 살아나는 달은 ${good}이에요. 다시 연락해 보고 싶다면 이 시기가 가장 자연스러워요.`, `${rest}에는 관계의 기운이 잠시 낮아져요. 이때 보내는 연락은 마음과 다르게 전해지기 쉬워요.`],
+        [`연락하기 전에 '다시 만나서 무엇을 다르게 하고 싶은지' 한 줄로 적어 보세요. 그 한 줄이 분명할수록 대화가 다시 이어지기 쉬워요.`, `첫 연락은 긴 고백보다 짧은 안부가 좋아요. 답이 늦어도 ${careful}에는 재촉하지 말고 기다려 주세요.`],
+        [`같은 이유로 세 번 이상 헤어졌거나, 만나는 동안 내가 계속 작아졌다면 그건 '때'보다 '관계'의 문제일 수 있어요.`, `${careful}에 마음이 유난히 무겁다면 정리의 신호일 수 있어요. 정리도 사랑의 한 방식이에요.`],
+        [`어떤 선택을 하든 먼저 ${p0.name} 님을 지켜 주세요. 채우면 좋은 기운은 '${map.need}'이에요. ${map.elementAdvice}`, `좋은 달(${good})에는 나를 위한 시간을 먼저 쓰세요. 나를 아끼는 사람에게 좋은 인연이 다시 찾아와요.`],
+      ];
+    }
+    keywords = ['연애', '인연', ...keywords];
+  } else if (productId === 'gunghap' || productId === 'adult_gunghap') {
     const nm = nextMonths(s, 'love', id, now);
     const good = [...nm].sort((a, b) => b.score - a.score).slice(0, 3).map((x) => x.month);
     lines.push(`연애 흐름(앞으로 12달): 좋은 달 ${toRanges(good)}`);

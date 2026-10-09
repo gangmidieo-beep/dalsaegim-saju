@@ -57,13 +57,13 @@ export default function PathPage() {
 
   return done && !isSample
     ? <Result catId={C.id} subId={sp.get('sub')!} q={sp.get('q')!} h={(+(sp.get('h') ?? 6) as Horizon)} />
-    : <Ask key={C.id} catId={C.id} isSample={isSample} onGo={(p) => setSp({ cat: C.id, ...p, go: '1' })} />;
+    : <Ask key={C.id} catId={C.id} initSub={sp.get('sub')} isSample={isSample} onGo={(p) => setSp({ cat: C.id, ...p, go: '1' })} />;
 }
 
 // 5-1 — 세 질문을 한 화면에
-function Ask({ catId, isSample, onGo }: { catId: string; isSample: boolean; onGo: (p: { sub: string; q: string; h: string }) => void }) {
+function Ask({ catId, initSub, isSample, onGo }: { catId: string; initSub: string | null; isSample: boolean; onGo: (p: { sub: string; q: string; h: string }) => void }) {
   const C = PATHS.find((c) => c.id === catId)!;
-  const [sub, setSub] = useState(C.sub[0].id);
+  const [sub, setSub] = useState(C.sub.some((s) => s.id === initSub) ? initSub! : C.sub[0].id);
   const S = C.sub.find((s) => s.id === sub)!;
   const [q, setQ] = useState(S.q[0]);
   const [h, setH] = useState<Horizon>(6);

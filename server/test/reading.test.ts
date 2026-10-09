@@ -93,7 +93,7 @@ describe('AI 사주친구(키 없음 → 계산 답변)', () => {
     const r = await friendReply({ profile: { id: 'p1', name: '김서윤', gender: 'F', birthYear: 1996, birthMonth: 4, birthDay: 2, calendar: 'solar', leap: false, birthHour: 9 }, history: [], text: '남자친구와 계속 만나도 될까요', memories: [], now: NOW });
     expect(r.ai).toBe(false);
     expect(r.reply).toContain('김서윤 님');
-    expect(r.draft.summary).toContain('2026.10.07 · 연애·관계');
+    expect(r.draft.summary).toContain('연애·관계 고민');
     expect(r.costKrw).toBe(0);
   });
 });

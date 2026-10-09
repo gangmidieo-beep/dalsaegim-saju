@@ -17,6 +17,7 @@ import { fulfillOrder, revokeOrder } from './services/payments/fulfill.ts';
 import { normalizePhone, parsePayappFeedback, payappCancel, payappEnv, payappRequest } from './services/payments/payapp.ts';
 import { latestMarket, liveAI } from './services/reading/generate.ts';
 import { friendReply, friendLive, type ChatMsg } from './services/friend.ts';
+import { personaOf } from '@dalsaegim/content';
 import { SITE } from './services/seed.ts';
 import brand from '../../brand.config.json' with { type: 'json' };
 
@@ -307,7 +308,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
   app.post('/friend/chat', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, rep) => {
     const userId = await needUser(req, rep);
     if (!userId) return;
-    const b = (req.body ?? {}) as { chatId?: string; profileId?: string; text?: string; topic?: string; source?: string };
+    const b = (req.body ?? {}) as { chatId?: string; profileId?: string; text?: string; topic?: string; source?: string; persona?: string };
     const text = String(b.text ?? '').trim().slice(0, 500);
     if (!text) return rep.code(400).send({ error: '하고 싶은 이야기를 적어 주세요' });
     const [profile] = b.profileId ? await db.select().from(S.profiles).where(and(eq(S.profiles.id, b.profileId), eq(S.profiles.userId, userId))) : [];
@@ -320,7 +321,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
       .from(S.memories).where(and(eq(S.memories.userId, userId), ne(S.memories.visibility, 'private'))).orderBy(desc(S.memories.happenedOn)).limit(5) : [];
     let r;
     try {
-      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: b.topic ?? chat?.topic ?? null, memories: mems, http });
+      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: b.topic ?? chat?.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http });
     } catch (e: any) {
       req.log.warn(`[friend] ${e.message}`);
       return rep.code(502).send({ error: '달새김이 잠시 생각에 잠겼어요. 조금 뒤에 다시 말을 걸어 주세요.' });
@@ -330,7 +331,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     const v = { messages, turns: (chat?.turns ?? 0) + 1, tokensIn: (chat?.tokensIn ?? 0) + r.tokensIn, tokensOut: (chat?.tokensOut ?? 0) + r.tokensOut, costKrw: (chat?.costKrw ?? 0) + r.costKrw, updatedAt: new Date() };
     let id = chat?.id;
     if (chat) await db.update(S.chats).set(v).where(eq(S.chats.id, chat.id));
-    else { id = newId('c_'); await db.insert(S.chats).values({ id, userId, profileId: profile.id, topic: r.topic, source: b.source ?? null, ...v }); }
+    else { id = newId('c_'); await db.insert(S.chats).values({ id, userId, profileId: profile.id, topic: r.topic, source: b.source ?? null, persona: personaOf(b.persona).id, ...v }); }
     const used = await turnsToday(userId);
     return { chatId: id, reply: r.reply, draft: r.draft, topic: r.topic, remaining: pass ? null : Math.max(0, FREE_PER_DAY - used), pass, ai: r.ai };
   });
@@ -338,7 +339,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     const userId = await needUser(req, rep);
     if (!userId) return;
     const list = await db.select().from(S.chats).where(eq(S.chats.userId, userId)).orderBy(desc(S.chats.updatedAt)).limit(30);
-    return list.map((c) => ({ id: c.id, topic: c.topic, turns: c.turns, updatedAt: c.updatedAt, preview: c.messages.find((m) => m.role === 'user')?.text.slice(0, 40) ?? '' }));
+    return list.map((c) => ({ id: c.id, topic: c.topic, persona: c.persona, turns: c.turns, updatedAt: c.updatedAt, preview: c.messages.find((m) => m.role === 'user')?.text.slice(0, 40) ?? '' }));
   });
   app.get('/friend/chats/:id', async (req, rep) => {
     const userId = await needUser(req, rep);

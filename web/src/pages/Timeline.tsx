@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { apiAuth } from '../lib/api';
-import { CAT_COLOR, CAT_LABEL, Skeleton, Top } from '../components/ui';
+import { CAT_COLOR, CAT_FILTER, CAT_LABEL, Skeleton, Top, inCat } from '../components/ui';
 import { I } from '../components/icons';
 import { EditSheet, type Memory } from './Records';
 import { dotDate } from '../lib/dates';
@@ -11,7 +11,6 @@ import { dotDate } from '../lib/dates';
 type Item = { type: 'memory' | 'reading'; id: string; date: string; kind: string; category: string; title: string; summary: string | null; sajuNote: string | null; feedback: string | null; photo?: string | null };
 const FB: Record<string, [string, string]> = { good: ['잘 풀렸어요', '#6F9E8A'], same: ['비슷해요', '#8A8CA0'], changed: ['달라졌어요', '#C0687B'] };
 const KIND: Record<string, string> = { consult: 'AI 상담', path: '사주 분석', reading: '받은 풀이' };
-const TABS = [['all', '전체'], ['love', '연애'], ['work', '직장'], ['money', '재물'], ['family', '가족'], ['growth', '성장']];
 
 export default function Timeline() {
   const [sp, setSp] = useSearchParams();
@@ -21,7 +20,7 @@ export default function Timeline() {
   const [edit, setEdit] = useState<Partial<Memory> | null>(null);
   const load = () => apiAuth<{ items: Item[] }>('/timeline').then((r) => setItems(r.items)).catch(() => setItems([]));
   useEffect(() => { void load(); }, []);
-  const shown = (items ?? []).filter((x) => cat === 'all' || x.category === cat);
+  const shown = (items ?? []).filter((x) => inCat(x.category, cat));
   const years = [...new Set(shown.map((x) => x.date.slice(0, 4)))];
   const compared = (items ?? []).filter((x) => x.sajuNote && x.feedback).length;
   const open = (x: Item) => (x.type === 'memory' ? setEdit(x as any) : undefined);
@@ -31,7 +30,7 @@ export default function Timeline() {
     <>
       <Top title={`${years[0] ?? new Date().getFullYear()}년 나의 인생 타임라인`} back="/timeline" />
       <main className="screen tl-detail">
-        <div className="tabs" role="tablist">{TABS.map(([k, l]) => <button key={k} className={cat === k ? 'on' : ''} onClick={() => setCat(k)}>{l}</button>)}</div>
+        <div className="tabs" role="tablist">{CAT_FILTER.map(([k, l]) => <button key={k} className={cat === k ? 'on' : ''} onClick={() => setCat(k)}>{l}</button>)}</div>
         <div className="card mt12" style={{ padding: '4px 16px' }}>
           {shown.length === 0 && <p className="faint center" style={{ padding: 20 }}>아직 새겨진 순간이 없어요.</p>}
           {shown.map((x) => {
@@ -64,7 +63,7 @@ export default function Timeline() {
     <div className="night tl-night">
       <div className="night-top"><span style={{ width: 40 }} /><h1>나의 인생 타임라인</h1><button className="icon-btn" aria-label="순간 추가" onClick={() => setEdit({})}><I.plus /></button></div>
       <main style={{ padding: '4px 20px 0' }}>
-        <div className="tabs dark" role="tablist">{TABS.map(([k, l]) => <button key={k} className={cat === k ? 'on' : ''} onClick={() => setCat(k)}>{l}</button>)}</div>
+        <div className="tabs dark" role="tablist">{CAT_FILTER.map(([k, l]) => <button key={k} className={cat === k ? 'on' : ''} onClick={() => setCat(k)}>{l}</button>)}</div>
         <p className="faint center mt12" style={{ fontSize: 13 }}>새겨진 순간 <b style={{ color: '#F2D8E3' }}>{items?.length ?? 0}</b>개 · 사주와 실제를 비교한 순간 <b style={{ color: '#F2D8E3' }}>{compared}</b>개</p>
         {items === null && <div className="stack mt16"><Skeleton /><Skeleton /></div>}
         {items?.length === 0 && (

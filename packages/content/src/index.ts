@@ -5,3 +5,4 @@ export * from './map';
 export * from './mbti';
 export * from './path';
 export * from './newyear';
+export * from './persona';

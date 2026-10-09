@@ -5,7 +5,7 @@ import { newId } from '../auth.ts';
 
 type Order = typeof S.orders.$inferSelect;
 const DAY = 86_400_000;
-export const passDays = (_productId: string) => 30; // AI 사주친구 30일 이용권
+export const passDays = (productId: string) => (productId ? 30 : 30); // AI 사주친구 30일 이용권
 
 export async function fulfillOrder(db: Db, order: Order, opts: { ref?: string; method?: string; expiresAt?: Date; subStatus?: string } = {}): Promise<Order> {
   if (order.status === 'paid') return order;
