@@ -28,7 +28,7 @@ export function EditSheet({ m, onClose, onDone }: { m: Partial<Memory> | null; o
       toast(isNew ? '타임라인에 새겼어요' : '고쳤어요'); onDone();
     } catch (e: any) { toast(e.message); }
   };
-  const del = async () => { await apiAuth(`/memories/${m.id}`, { method: 'DELETE' }).catch(() => {}); toast('지웠어요'); onDone(); };
+  const del = async () => { try { await apiAuth(`/memories/${m.id}`, { method: 'DELETE' }); toast('지웠어요'); onDone(); } catch (e: any) { toast(e.message); } };
   const addPhoto = async (file?: File) => {
     if (!file) return;
     try { setF((x) => ({ ...x, photo: null })); const url = await shrinkPhoto(file); setF((x) => ({ ...x, photo: url })); } catch (e: any) { toast(e.message); }

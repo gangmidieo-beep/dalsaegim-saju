@@ -27,7 +27,7 @@ export async function apiAuth<T>(path: string, init: RequestInit & { json?: unkn
   const r = await fetch(`${API}${path}`, {
     ...init,
     body: init.json !== undefined ? JSON.stringify(init.json) : init.body,
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}`, ...init.headers },
+    headers: { ...(init.json !== undefined || init.body ? { 'content-type': 'application/json' } : {}), authorization: `Bearer ${token}`, ...init.headers },
   });
   const j = await r.json().catch(() => ({}));
   if (r.status === 401 && j.code === 'deleted') { useApp.getState().setAccount(null); clearGuest(); }

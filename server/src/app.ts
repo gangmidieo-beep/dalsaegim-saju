@@ -36,6 +36,13 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
   const extra = (process.env.EXTRA_WEB_ORIGINS ?? '').split(',').map((x) => x.trim().replace(/\/$/, '')).filter(Boolean);
   const origins = [WEB(), ...extra, 'https://localhost', 'capacitor://localhost', 'http://localhost', /^http:\/\/localhost:\d+$/]; // 앱(Capacitor 안드로이드)은 https://localhost
   await app.register(cors, { origin: origins, credentials: true });
+  // 본문 없는 DELETE·POST 에 content-type: application/json 이 붙어 와도 400 이 나지 않게(기록 삭제·탈퇴 버튼)
+  app.removeContentTypeParser('application/json');
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+    const t = String(body ?? '').trim();
+    if (!t) return done(null, {});
+    try { done(null, JSON.parse(t)); } catch (e: any) { e.statusCode = 400; done(e, undefined); }
+  });
   await app.register(rateLimit, { global: false });
   // PayApp 결제 통보는 form(x-www-form-urlencoded) 으로 온다
   app.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string' }, (_req, body, done) => {

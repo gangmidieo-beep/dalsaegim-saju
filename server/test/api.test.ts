@@ -93,7 +93,8 @@ describe('공개 API', () => {
     const tl = (await app.inject({ url: '/timeline', headers: auth(token) })).json();
     expect(tl.items.some((x: any) => x.type === 'reading')).toBe(true);
     expect(tl.items.filter((x: any) => x.type === 'memory')).toHaveLength(2);
-    expect((await app.inject({ method: 'DELETE', url: `/memories/${ev.id}`, headers: auth(token) })).json().ok).toBe(true);
+    // 브라우저처럼 본문 없이 content-type: application/json 을 붙여도 지워져야 한다
+    expect((await app.inject({ method: 'DELETE', url: `/memories/${ev.id}`, headers: { ...auth(token), 'content-type': 'application/json' } })).json().ok).toBe(true);
     const other = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-other' } })).json().token;
     expect((await app.inject({ method: 'PATCH', url: `/memories/${m.id}`, headers: auth(other), payload: { title: '남의 기록' } })).statusCode).toBe(404);
   });
