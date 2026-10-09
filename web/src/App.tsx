@@ -17,6 +17,8 @@ import Mbti from './pages/Mbti';
 import { Checkout, PayReturn, ProductDetail, ReadingPage } from './pages/Product';
 import Me, { AuthCallback } from './pages/Me';
 import { Privacy, Refund, Terms } from './pages/Legal';
+import { Mailbox, NewLetter, TodayLetter } from './pages/Letter';
+import CharmPage from './pages/Charm';
 
 const Admin = lazy(() => import('./admin/Admin')); // 관리자는 따로 불러온다
 
@@ -54,6 +56,11 @@ export function App() {
           <Route path="/checkout/:id" element={<Checkout />} />
           <Route path="/pay/return" element={<PayReturn />} />
           <Route path="/reading/:orderId" element={<ReadingPage />} />
+          <Route path="/letter" element={<TodayLetter />} />
+          <Route path="/letter/new" element={<NewLetter />} />
+          <Route path="/mailbox" element={<Mailbox />} />
+          <Route path="/mailbox/:id" element={<Mailbox />} />
+          <Route path="/charm" element={<CharmPage />} />
           <Route path="/me" element={<Me />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/terms" element={<Terms />} />

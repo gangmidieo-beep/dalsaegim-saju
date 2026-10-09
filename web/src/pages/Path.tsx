@@ -8,6 +8,7 @@ import { useSaju } from '../lib/fortune';
 import { apiAuth, syncProfile } from '../lib/api';
 import { FlowChart, MemoryCard, Pic, Top, won, useToast, type PicName } from '../components/ui';
 import { I } from '../components/icons';
+import { CharmLink } from './Charm';
 import { track } from '../lib/track';
 import brand from '../../../brand.config.json';
 
@@ -127,8 +128,17 @@ function Result({ catId, subId, q, h }: { catId: string; subId: string; q: strin
         <button className="btn primary mt16" onClick={() => nav(`/friend?topic=${r.memory.category}&q=${encodeURIComponent(r.friendPrompt)}`)}><I.chat size={20} />AI 사주친구와 이어서 이야기하기</button>
         <Link to={`/product/path_deep?cat=${catId}&sub=${subId}&q=${encodeURIComponent(q)}`} className="btn line mt8">이 고민 심층분석 · {won(deep.price)}</Link>
         {rel && <Link to={`/product/${rel.id}`} className="card flat mt12 between" style={{ display: 'flex' }}><div><div className="faint">이 고민과 이어지는 운세</div><b>{rel.title}</b></div><I.right /></Link>}
+        {charmFor(catId, subId) && <CharmLink type={charmFor(catId, subId)!} />}
         <Link to="/path" className="link mt16 center" style={{ display: 'block' }}>다른 고민 살펴보기</Link>
       </main>
     </>
   );
+}
+
+// 고민 결과에서 이어지는 황금 부적(투자 고민에는 붙이지 않는다 — 수익 기원으로 읽히지 않게)
+function charmFor(cat: string, sub: string): 'business' | 'wealth' | 'estate' | 'work' | 'goal' | null {
+  if (cat === 'work') return sub === 'biz' ? 'business' : 'work';
+  if (cat === 'money') return sub === 'home' ? 'estate' : sub === 'invest' ? null : 'wealth';
+  if (cat === 'future') return 'goal';
+  return null;
 }

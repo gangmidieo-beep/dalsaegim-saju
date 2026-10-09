@@ -10,6 +10,7 @@ import { kstMonth, kstToday, kstYear } from '../lib/dates';
 import { Bars, FlowChart, FlowLegend, Moon, Ring, Top, won, useToast } from '../components/ui';
 import { I, Icon, type IconName } from '../components/icons';
 import { saveImage, shareLink, shortLink } from '../lib/share';
+import { CharmLink } from './Charm';
 import { track } from '../lib/track';
 import brand from '../../../brand.config.json';
 
@@ -147,6 +148,7 @@ export function MoneyResult() {
         {kind === 'invest' && <p className="notice mt8">사주로 투자 결과를 예측하지 않아요. 시장 정보와 나의 흐름을 함께 보는 참고 콘텐츠예요.</p>}
 
         <Link to={`/product/${p.id}?y=${Y.year}`} className="btn primary mt16">상세 해석 보기 · {won(p.price)}</Link>
+        {kind !== 'invest' && <CharmLink type={kind as 'wealth' | 'business' | 'estate'} />}
         <Link to="/money" className="btn line mt8">다른 돈의 흐름 보기</Link>
         <LuckyCard />
       </main>

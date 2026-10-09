@@ -95,6 +95,14 @@ export default function Me() {
         </section>
 
         <section className="mt20">
+          <h2 className="h3">나의 달빛 우체통</h2>
+          <div className="list mt12">
+            <Link to="/mailbox" className="li"><div className="grow"><div className="t">받은 달빛 편지·황금 부적</div><div className="s">다시 읽고, 다시 듣고, 다시 저장해요 · 카카오톡 도착 알림 설정</div></div><I.right className="chev" /></Link>
+            <Link to="/letter/new" className="li"><div className="grow"><div className="t">나만의 달빛 편지 받기</div><div className="s">상담사가 이름을 불러 주며 쓰는 편지</div></div><I.right className="chev" /></Link>
+          </div>
+        </section>
+
+        <section className="mt20">
           <h2 className="h3">구매한 풀이</h2>
           <div className="list mt12">
             {orders.length === 0 && <div className="li faint">아직 받은 풀이가 없어요</div>}

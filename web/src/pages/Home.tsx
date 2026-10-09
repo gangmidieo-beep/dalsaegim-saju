@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp, useMain } from '../store/app';
 import { useToday } from '../lib/fortune';
-import { apiAuth } from '../lib/api';
+import { apiAuth, apiGet } from '../lib/api';
 import { Foot, CAT_LABEL, Pic, useToast, type PicName } from '../components/ui';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
@@ -21,7 +21,9 @@ export default function Home() {
   const t = useToday(profile);
   const [due, setDue] = useState<Mem[]>([]);
   const [count, setCount] = useState(0);
+  const [letter, setLetter] = useState<{ title: string; body: string } | null>(null);
   const toast = useToast();
+  useEffect(() => { apiGet<{ title: string; body: string }>('/letters/today').then(setLetter).catch(() => {}); }, []);
   useEffect(() => {
     if (isSample) return;
     apiAuth<{ list: Mem[]; due: Mem[] }>('/memories').then((r) => { setDue(r.due); setCount(r.list.length); }).catch(() => {});
@@ -61,6 +63,12 @@ export default function Home() {
           <Door to="/friend" cls="l" pic="friend" title="AI 사주친구" sub="고민을 말로 털어놓기" />
           <Door to="/map" cls="m" pic="map" title="나의 사주지도" sub="타고난 나와 큰 흐름" />
         </nav>
+        <Link to="/letter" className="home-letter mt16" aria-label="오늘의 달빛 편지 읽기" onClick={() => track('letter_today_open')}>
+          <small>오늘의 달빛 편지</small>
+          <b>{letter?.title ?? '오늘 밤, 당신에게 온 편지'}</b>
+          <p>{letter?.body ?? '달빛이 조용히 전하는 한 통의 편지를 열어 보세요.'}</p>
+          <span className="go">편지 열어보기 →</span>
+        </Link>
         <Link to="/path?cat=love" className="love-banner" aria-label="사랑의 갈림길 — 연애 고민의 길">
           <span><small>연애 고민의 길</small><b>사랑의 갈림길</b><span>지금 그 마음, 사주로 길을 찾아 드려요</span></span>
           <I.right />
@@ -68,6 +76,11 @@ export default function Home() {
         <nav className="quick" aria-label="운세 바로가기">
           {QUICK.map(([to, l, ic]) => <Link key={to} to={to}><Pic n={ic} size="s" /><span>{l}</span></Link>)}
         </nav>
+        <Link to="/charm" className="home-charm mt12" aria-label="나만의 황금 달빛 부적 만들기">
+          <span className="ct-thumb" style={{ backgroundImage: 'url(/img/ui/charm-wealth.jpg)' }} />
+          <span className="grow"><b>나만의 황금 달빛 부적</b><span>이름과 소망을 새긴 배경화면 만들기</span></span>
+          <I.right />
+        </Link>
       </section>
 
       {(due.length > 0 || count >= 3) && (

@@ -224,5 +224,9 @@
     "email": "",
     "kakao": ""
   },
-  "newYear": 2027
+  "newYear": 2027,
+  "letters": {
+    "freePerDay": 2,
+    "passUnlimited": true
+  }
 }

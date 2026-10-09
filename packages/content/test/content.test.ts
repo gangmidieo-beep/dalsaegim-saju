@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calcSaju } from '@dalsaegim/engine';
 import { todayFortune, monthFortune, FIELDS, moneyFlow, MONEY_KINDS, luckyNumbers, sajuMap, sajuMbti, mbtiFromQuiz, MBTI_TYPES, MBTI_QUIZ, PATHS, pathResult, recommendPaths, newYearPreview, toRanges, investStyle } from '../src/index';
+import { composeLetter, defaultTodayLetter, LETTER_FEELINGS, LETTER_TOPICS, PERSONAS, CHARMS } from '../src/index';
 
 const A = calcSaju({ year: 1995, month: 5, day: 15, hour: 14, calendar: 'solar', gender: 'F' });
 const B = calcSaju({ year: 1990, month: 11, day: 2, calendar: 'solar', gender: 'M', timeUnknown: true });
@@ -76,4 +77,23 @@ describe('사주지도·MBTI·고민의 길·신년', () => {
     expect(recommendPaths(A, 'p1', [], D)).toHaveLength(2);
   });
   it('신년 미리보기', () => { const n = newYearPreview(A, 2027, 'p1'); expect(n.months).toHaveLength(12); expect(n.fields).toHaveLength(4); expect(n.yearPillar.text).toBe('정미'); });
+});
+
+describe('시그니처 콘텐츠 — 달빛 편지·황금 부적', () => {
+  it('맞춤 편지: 150~250자, 이름을 부르고, 예측·겁주는 말 없음, 상담사 서명', () => {
+    for (const f of LETTER_FEELINGS) for (const p of PERSONAS) for (const t of [null, ...LETTER_TOPICS.map((x) => x.id)]) {
+      const l = composeLetter({ name: '김하늘', persona: p.id, feeling: f.id, topic: t, input: '연락이 올까요', trait: '단단한 바위', seed: f.id + p.id + t });
+      expect(l.body.length).toBeGreaterThanOrEqual(150);
+      expect(l.body.length).toBeLessThanOrEqual(250);
+      expect(l.body).toContain('김하늘');
+      expect(l.body).not.toMatch(/반드시|무조건|틀림없이|큰일|불행|위험해/);
+      expect(l.to).toBe('TO. 김하늘 고객님');
+      expect(l.from).toContain(p.name);
+    }
+  });
+  it('오늘의 편지는 날짜마다 같은 편지, 부적은 5종이고 보장 표현 없음', () => {
+    expect(defaultTodayLetter('2026-10-09')).toEqual(defaultTodayLetter('2026-10-09'));
+    expect(CHARMS.map((c) => c.id)).toEqual(['business', 'wealth', 'estate', 'work', 'goal']);
+    for (const c of CHARMS) expect([c.name, c.bless, ...c.wishes].join(' ')).not.toMatch(/보장|확실|반드시|대박|수익률/);
+  });
 });

@@ -437,3 +437,46 @@ export function Market() {
     </>
   );
 }
+
+// 달빛 편지 — 메인 ‘오늘의 달빛 편지’ 카드에 날짜별로 나가는 짧은 편지(공지와 별도). 등록이 없는 날은 기본 편지 10편이 돌아가며 나간다.
+const THEMES = ['사랑', '그리움', '희망', '위로'];
+export function MoonLetters() {
+  const { data, err, reload } = useLoad(() => adminApi<any[]>('/moon-letters'), []);
+  const [edit, setEdit] = useState<any | null>(null);
+  const [msg, setMsg] = useState('');
+  const save = async () => {
+    try { await adminApi('/moon-letters', { method: 'POST', json: edit }); setEdit(null); setMsg('저장했어요 — 해당 날짜 메인에 바로 반영돼요'); reload(); } catch (e) { setMsg((e as Error).message); }
+  };
+  const del = async (id: number) => {
+    if (!confirm('이 편지를 지울까요?')) return;
+    try { await adminApi(`/moon-letters/${id}`, { method: 'DELETE' }); reload(); } catch (e) { setMsg((e as Error).message); }
+  };
+  const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+  return (
+    <>
+      <Head title="달빛 편지"><button className="ad-btn gold" onClick={() => setEdit({ date: today, theme: '위로', title: '', body: '', published: true })}>+ 새 편지</button></Head>
+      <p className="ad-muted">메인 화면 ‘오늘의 달빛 편지’ 카드에 나가는 3~5문장 편지예요(공지사항과 별도). 날짜를 정하면 그날 공개되고, 등록이 없는 날은 기본 편지가 돌아가며 나가요. 예측·불안을 주는 표현 없이 공감과 응원 위주로 써 주세요.</p>
+      {msg && <p className="ad-ok">{msg}</p>}
+      {err && <p className="ad-err">{err}</p>}
+      <table className="ad-table"><thead><tr><th>공개일</th><th>주제</th><th>제목·본문</th><th>공개</th><th /></tr></thead>
+        <tbody>
+          {data?.length === 0 && <tr><td colSpan={5} className="ad-muted">아직 등록한 편지가 없어요 — 기본 편지가 나가고 있어요</td></tr>}
+          {data?.map((n) => <tr key={n.id}><td>{n.date ?? '날짜 없음'}{n.date === today ? ' (오늘)' : ''}</td><td>{n.theme}</td><td><b>{n.title}</b><br /><span className="ad-muted">{String(n.body).slice(0, 60)}…</span></td><td>{n.published ? '공개' : '숨김'}</td>
+            <td style={{ whiteSpace: 'nowrap' }}><button className="ad-btn line sm" onClick={() => setEdit({ ...n })}>수정</button> <button className="ad-btn line sm" onClick={() => del(n.id)}>삭제</button></td></tr>)}
+        </tbody></table>
+      {edit && (
+        <section className="ad-drawer">
+          <button className="ad-x" onClick={() => setEdit(null)} aria-label="닫기">×</button>
+          <h3>{edit.id ? '달빛 편지 수정' : '새 달빛 편지'}</h3>
+          <div className="ad-row2"><label>공개일<input type="date" value={edit.date ?? ''} onChange={(e) => setEdit({ ...edit, date: e.target.value })} /></label>
+            <label>주제<select value={edit.theme} onChange={(e) => setEdit({ ...edit, theme: e.target.value })}>{THEMES.map((t) => <option key={t}>{t}</option>)}</select></label></div>
+          <label>제목 (40자 이내)<input maxLength={40} value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} placeholder="예) 오늘 하루도 잘 견뎌 준 당신에게" /></label>
+          <label>본문 (3~5문장, 600자 이내)<textarea rows={7} maxLength={600} value={edit.body} onChange={(e) => setEdit({ ...edit, body: e.target.value })} /></label>
+          <p className="ad-muted">{String(edit.body ?? '').length}자</p>
+          <label className="ad-check"><input type="checkbox" checked={!!edit.published} onChange={(e) => setEdit({ ...edit, published: e.target.checked })} />공개</label>
+          <button className="ad-btn gold" onClick={save} disabled={!edit.title || !edit.body}>저장</button>
+        </section>
+      )}
+    </>
+  );
+}

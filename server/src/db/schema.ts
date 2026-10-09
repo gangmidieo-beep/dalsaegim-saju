@@ -16,6 +16,7 @@ export const users = pgTable('users', {
   platform: text(), // web | android
   marketing: boolean(), // 이벤트·혜택 알림 수신 동의
   memoryAI: boolean().default(true).notNull(), // AI 사주친구가 내 기록을 참고해도 되는지
+  letterNotifyAt: timestamp({ withTimezone: true }), // 카카오톡 '달빛 편지 도착' 안내 수신 동의 시각(철회하면 null)
   mergedInto: text(), // 게스트 → 로그인 계정으로 합쳐지면 대상 id
   createdAt: now(),
   lastSeenAt: now(),
@@ -234,3 +235,43 @@ export const marketNotes = pgTable('market_notes', {
   published: boolean().default(false).notNull(),
   updatedAt: now(),
 });
+
+// 오늘의 달빛 편지 — 관리자가 날짜별로 올리는 감성 글(공지사항과 별도). date 가 없으면 기본 순환 편지
+export const moonLetters = pgTable('moon_letters', {
+  id: serial().primaryKey(),
+  siteId: site(),
+  date: text(), // YYYY-MM-DD 게시일
+  theme: text().notNull(), // 사랑 · 그리움 · 희망 · 위로
+  title: text().notNull(),
+  body: text().notNull(),
+  published: boolean().default(true).notNull(),
+  updatedAt: now(),
+}, (t) => [index('moon_letters_date').on(t.date)]);
+
+// 나의 달빛 우체통 — AI 맞춤 편지(본인만 열람, 삭제 가능)
+export const letters = pgTable('letters', {
+  id: text().primaryKey(),
+  siteId: site(),
+  userId: text().notNull(),
+  profileId: text(),
+  persona: text().notNull(),
+  feeling: text().notNull(),
+  topic: text(),
+  input: text(),
+  title: text().notNull(),
+  body: text().notNull(),
+  ai: boolean().default(false).notNull(),
+  costKrw: integer().default(0).notNull(),
+  createdAt: now(),
+}, (t) => [index('letters_user').on(t.userId, t.createdAt)]);
+
+// 나만의 황금 달빛 부적 — 다시 저장할 수 있게 기록만(이미지는 화면에서 그린다)
+export const charms = pgTable('charms', {
+  id: text().primaryKey(),
+  siteId: site(),
+  userId: text().notNull(),
+  type: text().notNull(), // business | wealth | estate | work | goal
+  name: text().notNull(),
+  wish: text().notNull(),
+  createdAt: now(),
+}, (t) => [index('charms_user').on(t.userId)]);

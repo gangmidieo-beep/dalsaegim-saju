@@ -110,6 +110,52 @@ describe('공개 API', () => {
     expect(tl.items.some((x: any) => x.id === bad.id)).toBe(false);
     expect((await app.inject({ method: 'PATCH', url: `/memories/${p.id}`, headers: auth(token), payload: { photo: null, visibility: 'self' } })).json()).toMatchObject({ photo: null, visibility: 'self' });
   });
+  it('달빛 편지: 오늘의 편지(기본) → 맞춤 편지(이름·상담사 서명) → 하루 2통 → 우체통 → 남은 못 봄 → 삭제 → 카카오 알림 동의', async () => {
+    const today = (await app.inject({ url: '/letters/today' })).json();
+    expect(today.title.length).toBeGreaterThan(2);
+    expect(today.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const g = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-letter' } })).json().token;
+    const prof = { id: 'p_letter', ...profile('하늘'), main: true };
+    await app.inject({ method: 'POST', url: '/profiles', headers: auth(g), payload: prof });
+    expect((await app.inject({ method: 'POST', url: '/letters', headers: auth(g), payload: { profileId: prof.id, feeling: 'lonely' } })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: '/letters', headers: auth(g), payload: { profileId: prof.id, feeling: 'nope' } })).statusCode).toBe(400);
+    const l = (await app.inject({ method: 'POST', url: '/letters', headers: auth(g), payload: { profileId: prof.id, persona: 'doryeong', feeling: 'hope', topic: 'reunion', input: '다시 연락이 올까요' } })).json();
+    expect(l.body).toContain('하늘');
+    expect(l.to).toBe('TO. 하늘 고객님');
+    expect(l.from).toContain('사주도령');
+    expect(l.persona).toBe('doryeong');
+    expect(l).not.toHaveProperty('costKrw');
+    expect(l.body).not.toMatch(/반드시|무조건|큰일|불행/);
+    const over = await app.inject({ method: 'POST', url: '/letters', headers: auth(g), payload: { profileId: prof.id, feeling: 'tired' } });
+    expect(over.statusCode).toBe(402);
+    expect(over.json().code).toBe('letter_limit');
+    expect((await app.inject({ url: '/letters/status', headers: auth(g) })).json()).toMatchObject({ remaining: 0, freePerDay: 2, notify: false });
+    const box = (await app.inject({ url: '/letters', headers: auth(g) })).json() as any[];
+    expect(box).toHaveLength(2);
+    const other = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-letter-2' } })).json().token;
+    expect((await app.inject({ url: '/letters', headers: auth(other) })).json()).toHaveLength(0);
+    await app.inject({ method: 'DELETE', url: `/letters/${l.id}`, headers: auth(other) });
+    expect((await app.inject({ url: '/letters', headers: auth(g) })).json()).toHaveLength(2);
+    expect((await app.inject({ method: 'DELETE', url: `/letters/${l.id}`, headers: auth(g) })).json().ok).toBe(true);
+    expect((await app.inject({ url: '/letters', headers: auth(g) })).json()).toHaveLength(1);
+    expect((await app.inject({ method: 'POST', url: '/letters/notify', headers: auth(g), payload: { on: true } })).json().notify).toBe(true);
+    expect((await app.inject({ url: '/letters/status', headers: auth(g) })).json().notify).toBe(true);
+    await app.inject({ method: 'POST', url: '/letters/notify', headers: auth(g), payload: { on: false } });
+    expect((await app.inject({ url: '/letters/status', headers: auth(g) })).json().notify).toBe(false);
+    expect((await app.inject({ url: '/letters' })).statusCode).toBe(401);
+  });
+  it('황금 달빛 부적: 5종만, 이름·소망 필수, 내 것만 보이고 지울 수 있음', async () => {
+    const g = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-charm' } })).json().token;
+    expect((await app.inject({ method: 'POST', url: '/charms', headers: auth(g), payload: { type: 'lotto', name: '가', wish: '나' } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: '/charms', headers: auth(g), payload: { type: 'wealth', name: ' ', wish: '나' } })).statusCode).toBe(400);
+    for (const type of ['business', 'wealth', 'estate', 'work', 'goal']) expect((await app.inject({ method: 'POST', url: '/charms', headers: auth(g), payload: { type, name: '하늘', wish: '좋은 기운이 머물기를' } })).statusCode).toBe(200);
+    const list = (await app.inject({ url: '/charms', headers: auth(g) })).json() as any[];
+    expect(list).toHaveLength(5);
+    const other = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-charm-2' } })).json().token;
+    expect((await app.inject({ url: '/charms', headers: auth(other) })).json()).toHaveLength(0);
+    await app.inject({ method: 'DELETE', url: `/charms/${list[0].id}`, headers: auth(g) });
+    expect((await app.inject({ url: '/charms', headers: auth(g) })).json()).toHaveLength(4);
+  });
   it('시장 노트: 공개된 것만', async () => {
     expect((await app.inject({ url: '/market' })).json()).toBeNull();
   });
@@ -177,6 +223,18 @@ describe('관리자 API', () => {
     const pub = (await app.inject({ url: '/market' })).json();
     expect(pub.title).toBe('올해 시장 이야기');
     expect((await app.inject({ method: 'DELETE', url: `/admin/api/market/${n.id}`, headers: auth(staff) })).statusCode).toBe(403);
+  });
+  it('달빛 편지 관리: 날짜 지정 등록 → 메인 오늘의 편지에 반영 → 숨김 → 삭제', async () => {
+    const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+    expect((await app.inject({ method: 'POST', url: '/admin/api/moon-letters', headers: auth(boss), payload: { title: 'x' } })).statusCode).toBe(400);
+    const n = (await app.inject({ method: 'POST', url: '/admin/api/moon-letters', headers: auth(boss), payload: { date: today, theme: '희망', title: '오늘의 관리자 편지', body: '오늘도 잘 버텨 준 당신에게 달빛을 보내요.' } })).json();
+    expect((await app.inject({ url: '/letters/today' })).json()).toMatchObject({ title: '오늘의 관리자 편지', theme: '희망', date: today });
+    await app.inject({ method: 'POST', url: '/admin/api/moon-letters', headers: auth(boss), payload: { ...n, published: false } });
+    expect((await app.inject({ url: '/letters/today' })).json().title).not.toBe('오늘의 관리자 편지');
+    expect(((await app.inject({ url: '/admin/api/moon-letters', headers: auth(boss) })).json() as any[]).some((x) => x.id === n.id)).toBe(true);
+    await app.inject({ method: 'DELETE', url: `/admin/api/moon-letters/${n.id}`, headers: auth(boss) });
+    expect((await app.inject({ url: '/admin/api/moon-letters', headers: auth(boss) })).json()).toHaveLength(0);
+    expect((await app.inject({ url: '/admin/api/moon-letters' })).statusCode).toBe(401);
   });
   it('관리자 5회 실패 잠금', async () => {
     for (let i = 0; i < 5; i++) await app.inject({ method: 'POST', url: '/admin/api/login', payload: { email: 'staff@test.kr', password: 'wrong' } });

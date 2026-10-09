@@ -17,7 +17,8 @@ import { fulfillOrder, revokeOrder } from './services/payments/fulfill.ts';
 import { normalizePhone, parsePayappFeedback, payappCancel, payappEnv, payappRequest } from './services/payments/payapp.ts';
 import { latestMarket, liveAI } from './services/reading/generate.ts';
 import { friendReply, friendLive, type ChatMsg } from './services/friend.ts';
-import { personaOf } from '@dalsaegim/content';
+import { personaOf, defaultTodayLetter, LETTER_FEELINGS, LETTER_TOPICS, LETTER_KAKAO, CHARMS } from '@dalsaegim/content';
+import { writeLetter } from './services/letter.ts';
 import { SITE } from './services/seed.ts';
 import brand from '../../brand.config.json' with { type: 'json' };
 
@@ -115,7 +116,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     if (!g || g.sub === userId) return { merged: 0 };
     const guestId = g.sub;
     let merged = 0;
-    for (const t of [S.profiles, S.orders, S.subscriptions, S.chats, S.memories] as const) {
+    for (const t of [S.profiles, S.orders, S.subscriptions, S.chats, S.memories, S.letters, S.charms] as const) {
       const r = await db.update(t as any).set({ userId }).where(eq((t as any).userId, guestId)).returning();
       merged += r.length;
     }
@@ -143,9 +144,11 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     await db.delete(S.profiles).where(inArray(S.profiles.userId, ids));
     await db.delete(S.chats).where(inArray(S.chats.userId, ids));
     await db.delete(S.memories).where(inArray(S.memories.userId, ids));
+    await db.delete(S.letters).where(inArray(S.letters.userId, ids));
+    await db.delete(S.charms).where(inArray(S.charms.userId, ids));
     await db.delete(S.shareLinks).where(inArray(S.shareLinks.userId, ids));
     await db.update(S.events).set({ userId: null }).where(inArray(S.events.userId, ids));
-    await db.update(S.users).set({ deletedAt: new Date(), deviceId: null, provider: null, providerId: null, email: null, name: null, marketing: false })
+    await db.update(S.users).set({ deletedAt: new Date(), deviceId: null, provider: null, providerId: null, email: null, name: null, marketing: false, letterNotifyAt: null })
       .where(inArray(S.users.id, ids));
     return { ok: true };
   });
@@ -426,6 +429,89 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
   /* ---------- 시장 노트(투자운) ---------- */
   app.get('/market', async () => (await latestMarket(db)) ?? null);
 
+  /* ---------- 달빛 편지 · 나의 달빛 우체통 ---------- */
+  // 오늘의 달빛 편지 — 오늘 날짜로 올린 편지 → 없으면 가장 최근 게시 편지 → 없으면 기본 순환 편지
+  app.get('/letters/today', async () => {
+    const today = kstDay(new Date());
+    const [n] = await db.select().from(S.moonLetters).where(and(eq(S.moonLetters.published, true), lte(S.moonLetters.date, today))).orderBy(desc(S.moonLetters.date)).limit(1);
+    if (n && n.date === today) return { date: today, theme: n.theme, title: n.title, body: n.body };
+    const d = defaultTodayLetter(today);
+    return n && n.date && n.date >= kstDay(new Date(Date.now() - 2 * 86400000)) ? { date: n.date, theme: n.theme, title: n.title, body: n.body } : { date: today, ...d };
+  });
+  const LETTER_FREE = (brand as any).letters?.freePerDay ?? 2;
+  const lettersToday = async (userId: string) => (await db.select({ c: sql<number>`count(*)` }).from(S.letters).where(and(eq(S.letters.userId, userId), gt(S.letters.createdAt, new Date(new Date(kstDay(new Date()) + 'T00:00:00+09:00').getTime()))))).at(0)?.c ?? 0;
+  app.get('/letters/status', async (req, rep) => {
+    const userId = await needUser(req, rep);
+    if (!userId) return;
+    const [u] = await db.select({ at: S.users.letterNotifyAt }).from(S.users).where(eq(S.users.id, userId));
+    const pass = await isPremium(userId);
+    const used = Number(await lettersToday(userId));
+    return { remaining: pass ? null : Math.max(0, LETTER_FREE - used), freePerDay: LETTER_FREE, notify: !!u?.at, kakao: LETTER_KAKAO };
+  });
+  app.post('/letters', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, rep) => {
+    const userId = await needUser(req, rep);
+    if (!userId) return;
+    const b = (req.body ?? {}) as { profileId?: string; persona?: string; feeling?: string; topic?: string; input?: string };
+    const [profile] = b.profileId ? await db.select().from(S.profiles).where(and(eq(S.profiles.id, b.profileId), eq(S.profiles.userId, userId))) : [];
+    if (!profile) return rep.code(400).send({ error: '사주 정보를 먼저 입력해 주세요', code: 'profile' });
+    if (!LETTER_FEELINGS.some((f) => f.id === b.feeling)) return rep.code(400).send({ error: '지금의 마음을 하나 골라 주세요' });
+    if (!(await isPremium(userId)) && Number(await lettersToday(userId)) >= LETTER_FREE) return rep.code(402).send({ error: `오늘 받을 수 있는 편지 ${LETTER_FREE}통을 모두 받았어요. 내일 다시 보내 드릴게요`, code: 'letter_limit' });
+    const persona = personaOf(b.persona).id;
+    const topic = LETTER_TOPICS.some((t) => t.id === b.topic) ? b.topic! : null;
+    const input = b.input ? String(b.input).trim().slice(0, 100) : null;
+    let w;
+    try { w = await writeLetter({ profile: profile as any, persona, feeling: b.feeling!, topic, input, http }); } catch (e: any) {
+      req.log.warn(`[letter] ${e.message}`);
+      return rep.code(502).send({ error: '편지를 쓰는 중에 잠시 문제가 생겼어요. 조금 뒤에 다시 받아 주세요.' });
+    }
+    const [l] = await db.insert(S.letters).values({ id: newId('l_'), userId, profileId: profile.id, persona, feeling: b.feeling!, topic, input, title: w.title, body: w.body, ai: w.ai, costKrw: w.costKrw }).returning();
+    const { costKrw, ...pub } = l; void costKrw;
+    return { ...pub, to: w.to, from: w.from };
+  });
+  app.get('/letters', async (req, rep) => {
+    const userId = await needUser(req, rep);
+    if (!userId) return;
+    const list = await db.select().from(S.letters).where(eq(S.letters.userId, userId)).orderBy(desc(S.letters.createdAt)).limit(200);
+    return list.map(({ costKrw, ...x }) => { void costKrw; return x; });
+  });
+  app.delete('/letters/:id', async (req, rep) => {
+    const userId = await needUser(req, rep);
+    if (!userId) return;
+    await db.delete(S.letters).where(and(eq(S.letters.id, (req.params as any).id), eq(S.letters.userId, userId)));
+    return { ok: true };
+  });
+  // 카카오톡 '달빛 편지 도착' 안내 — 따로 신청·동의한 고객만. 발송은 카카오 비즈니스 채널(알림톡) 연결 후
+  app.post('/letters/notify', async (req, rep) => {
+    const userId = await needUser(req, rep);
+    if (!userId) return;
+    const on = !!((req.body ?? {}) as { on?: boolean }).on;
+    await db.update(S.users).set({ letterNotifyAt: on ? new Date() : null }).where(eq(S.users.id, userId));
+    return { notify: on };
+  });
+
+  /* ---------- 나만의 황금 달빛 부적 ---------- */
+  app.post('/charms', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, rep) => {
+    const userId = await needUser(req, rep);
+    if (!userId) return;
+    const b = (req.body ?? {}) as { type?: string; name?: string; wish?: string };
+    if (!CHARMS.some((c) => c.id === b.type)) return rep.code(400).send({ error: '소망을 하나 골라 주세요' });
+    const name = String(b.name ?? '').trim().slice(0, 12), wish = String(b.wish ?? '').trim().slice(0, 60);
+    if (!name || !wish) return rep.code(400).send({ error: '이름과 소망을 적어 주세요' });
+    const [c] = await db.insert(S.charms).values({ id: newId('ch_'), userId, type: b.type!, name, wish }).returning();
+    return c;
+  });
+  app.get('/charms', async (req, rep) => {
+    const userId = await needUser(req, rep);
+    if (!userId) return;
+    return db.select().from(S.charms).where(eq(S.charms.userId, userId)).orderBy(desc(S.charms.createdAt)).limit(100);
+  });
+  app.delete('/charms/:id', async (req, rep) => {
+    const userId = await needUser(req, rep);
+    if (!userId) return;
+    await db.delete(S.charms).where(and(eq(S.charms.id, (req.params as any).id), eq(S.charms.userId, userId)));
+    return { ok: true };
+  });
+
   /* ---------- 이벤트 추적 ---------- */
   app.post('/events', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (req) => {
     const userId = await userOf(req);
@@ -639,6 +725,22 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
   app.delete(`${A}/market/:id`, { preHandler: guard('super') }, async (req: Req) => {
     await db.delete(S.marketNotes).where(eq(S.marketNotes.id, +(req.params as any).id));
     await audit(req, 'market.delete', (req.params as any).id);
+    return { ok: true };
+  });
+  // 6-2 오늘의 달빛 편지 — 날짜별 게시(공지사항과 별도)
+  app.get(`${A}/moon-letters`, { preHandler: guard() }, async () => db.select().from(S.moonLetters).orderBy(desc(S.moonLetters.date), desc(S.moonLetters.updatedAt)).limit(300));
+  app.post(`${A}/moon-letters`, { preHandler: guard() }, async (req: Req, rep) => {
+    const b = (req.body ?? {}) as Record<string, any>;
+    if (!b.title || !b.body) return rep.code(400).send({ error: '제목과 본문을 적어 주세요' });
+    const date = typeof b.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(b.date) ? b.date : null;
+    const v = { date, theme: ['사랑', '그리움', '희망', '위로'].includes(b.theme) ? b.theme : '위로', title: String(b.title).slice(0, 40), body: String(b.body).slice(0, 600), published: b.published !== false, updatedAt: new Date() };
+    const [n] = b.id ? await db.update(S.moonLetters).set(v).where(eq(S.moonLetters.id, +b.id)).returning() : await db.insert(S.moonLetters).values(v).returning();
+    await audit(req, 'moonletter.save', String(n.id), { date: v.date, title: v.title });
+    return n;
+  });
+  app.delete(`${A}/moon-letters/:id`, { preHandler: guard() }, async (req: Req) => {
+    await db.delete(S.moonLetters).where(eq(S.moonLetters.id, +(req.params as any).id));
+    await audit(req, 'moonletter.delete', (req.params as any).id);
     return { ok: true };
   });
   // 7 운영 핵심지표(기획안 13)

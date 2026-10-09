@@ -2,12 +2,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { adminApi, saveSession, session } from './api';
-import { Account, Banners, Dashboard, Kpi, Market, Members, Payments, Products, Stats } from './pages';
+import { Account, Banners, Dashboard, Kpi, Market, Members, MoonLetters, Payments, Products, Stats } from './pages';
 import './admin.css';
 
 const MENU = [
   ['dashboard', '대시보드'], ['kpi', '운영 핵심지표'], ['members', '회원관리'], ['products', '상품·가격'], ['banners', '배너·팝업'],
-  ['payments', '결제·이용권'], ['market', '시장 노트'], ['stats', '통계 분석'], ['account', '관리자 계정'],
+  ['payments', '결제·이용권'], ['market', '시장 노트'], ['letters', '달빛 편지'], ['stats', '통계 분석'], ['account', '관리자 계정'],
 ] as const;
 
 function Login() {
@@ -68,6 +68,7 @@ export default function Admin() {
       <Route path="payments" element={<Shell><Payments /></Shell>} />
       <Route path="kpi" element={<Shell><Kpi /></Shell>} />
       <Route path="market" element={<Shell><Market /></Shell>} />
+      <Route path="letters" element={<Shell><MoonLetters /></Shell>} />
       <Route path="stats" element={<Shell><Stats /></Shell>} />
       <Route path="account" element={<Shell><Account /></Shell>} />
       <Route path="*" element={<Navigate to={session() ? '/admin/dashboard' : '/admin/login'} replace />} />
