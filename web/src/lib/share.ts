@@ -70,7 +70,7 @@ export async function kakaoShare(o: { title: string; text: string; url: string; 
   const K = await loadKakao(key);
   K.Share.sendDefault({
     objectType: 'feed',
-    content: { title: o.title, description: o.text, imageUrl: o.imageUrl ?? `${location.origin}/img/og.png`, link: { mobileWebUrl: o.url, webUrl: o.url } },
+    content: { title: o.title, description: o.text, imageUrl: o.imageUrl ?? `${location.origin}/img/og.jpg?v=2`, link: { mobileWebUrl: o.url, webUrl: o.url } },
     buttons: [{ title: '달새김에서 보기', link: { mobileWebUrl: o.url, webUrl: o.url } }],
   });
   return 'shared';

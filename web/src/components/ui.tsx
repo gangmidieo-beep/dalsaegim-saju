@@ -6,9 +6,9 @@ import brand from '../../../brand.config.json';
 
 export const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 
-// 3D 파스텔 아이콘(/img/ui/ic-*.webp)
+// 펄 라벤더·샴페인 골드 아이콘(/img/ui/ic-*.webp) — 이미지는 1년 캐시라 바꾸면 ?v= 를 올린다
 export type PicName = 'today' | 'path' | 'friend' | 'map' | 'love' | 'work' | 'money' | 'family' | 'future' | 'self' | 'health' | 'moon';
-export const Pic = ({ n, size, className = '' }: { n: PicName; size?: 's' | 'l'; className?: string }) => <img className={`pico${size ? ` ${size}` : ''} ${className}`} src={`/img/ui/ic-${n}.webp`} alt="" loading="lazy" decoding="async" />;
+export const Pic = ({ n, size, className = '' }: { n: PicName; size?: 's' | 'l'; className?: string }) => <img className={`pico${size ? ` ${size}` : ''} ${className}`} src={`/img/ui/ic-${n}.webp?v=2`} alt="" loading="lazy" decoding="async" />;
 export const CAT_PIC: Record<string, PicName> = { love: 'love', work: 'work', money: 'money', family: 'family', growth: 'self', health: 'health', etc: 'moon', future: 'future', self: 'self' };
 
 export function Top({ title, dark, back = true, right }: { title?: string; dark?: boolean; back?: boolean | string; right?: ReactNode }) {
