@@ -3,7 +3,7 @@ import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import bcrypt from 'bcryptjs';
-import { and, asc, desc, eq, gt, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, extname } from 'node:path';
@@ -36,7 +36,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
   // EXTRA_WEB_ORIGINS: 도메인 옮기는 동안 예전 주소(railway.app)도 함께 허용 — 쉼표로 여러 개
   const extra = (process.env.EXTRA_WEB_ORIGINS ?? '').split(',').map((x) => x.trim().replace(/\/$/, '')).filter(Boolean);
   const origins = [WEB(), ...extra, 'https://localhost', 'capacitor://localhost', 'http://localhost', /^http:\/\/localhost:\d+$/]; // 앱(Capacitor 안드로이드)은 https://localhost
-  await app.register(cors, { origin: origins, credentials: true });
+  await app.register(cors, { origin: origins, credentials: true, methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'] }); // 기본값에 PATCH 가 빠져 있어 기록 수정·소망 진행 상황이 브라우저에서 막혔음
   // 본문 없는 DELETE·POST 에 content-type: application/json 이 붙어 와도 400 이 나지 않게(기록 삭제·탈퇴 버튼)
   app.removeContentTypeParser('application/json');
   app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
@@ -95,7 +95,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     const back = (() => { try { const u = new URL(redirect); return u.pathname + u.search; } catch { return '/box'; } })();
     if (!isConfigured(provider)) {
       if (!MOCK) return rep.code(503).send({ error: `${provider} 로그인 키가 아직 없어요` });
-      return finishLogin(rep, provider, { providerId: `mock-${provider}`, name: `${provider} 테스트 계정`, email: null }, back);
+      return finishLogin(rep, provider, { providerId: `mock-${provider}`, name: '', email: null }, back);
     }
     return rep.redirect(startUrl(provider, `${API()}/auth/${provider}/callback`, back));
   });
@@ -362,7 +362,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
 
   /* ---------- 달새김 기록 · 타임라인 ---------- */
   const CATS = ['love', 'work', 'money', 'family', 'growth', 'health', 'etc'];
-  const KINDS = ['consult', 'event', 'reading', 'path', 'choice', 'report'];
+  const KINDS = ['consult', 'event', 'reading', 'path', 'choice', 'report', 'letter', 'wish'];
   const VIS = ['private', 'self', 'ai'];
   const okPhoto = (x: unknown) => (typeof x === 'string' && /^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(x) && x.length <= 160_000 ? x : null);
   const okDate = (d: unknown) => (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : kstDay(new Date()));
@@ -438,6 +438,39 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     const d = defaultTodayLetter(today);
     return n && n.date && n.date >= kstDay(new Date(Date.now() - 2 * 86400000)) ? { date: n.date, theme: n.theme, title: n.title, body: n.body } : { date: today, ...d };
   });
+  // 편지가 떠올릴 '지난 고민' — 고객이 AI 참고를 허락했고(마이 설정), 숨기지 않은 기록·지난 편지·새긴 소망 중 하루 이상 지난 가장 최근 것
+  const mdKo = (d: string) => `${+d.slice(5, 7)}월 ${+d.slice(8, 10)}일`;
+  async function recallFor(userId: string): Promise<{ when: string; what: string; kind: 'memory' | 'letter' | 'wish' } | null> {
+    const [u] = await db.select({ ok: S.users.memoryAI }).from(S.users).where(eq(S.users.id, userId));
+    if (!u?.ok) return null;
+    const before = new Date(Date.now() - 86400000);
+    const [m] = await db.select().from(S.memories).where(and(eq(S.memories.userId, userId), sql`${S.memories.visibility} <> 'private'`, inArray(S.memories.kind, ['consult', 'path', 'choice', 'event', 'letter']), lt(S.memories.createdAt, before))).orderBy(desc(S.memories.createdAt)).limit(1);
+    const [l] = await db.select().from(S.letters).where(and(eq(S.letters.userId, userId), lt(S.letters.createdAt, before))).orderBy(desc(S.letters.createdAt)).limit(1);
+    const lWhat = l ? (l.input || (LETTER_TOPICS.find((t) => t.id === l.topic)?.label ?? '')) : '';
+    const cand = [
+      m && { at: m.createdAt, when: mdKo(m.happenedOn), what: m.title, kind: 'memory' as const },
+      l && lWhat && { at: l.createdAt, when: mdKo(kstDay(l.createdAt)), what: lWhat, kind: 'letter' as const },
+    ].filter(Boolean) as { at: Date; when: string; what: string; kind: 'memory' | 'letter' }[];
+    cand.sort((a, b) => +b.at - +a.at);
+    if (cand[0]) return { when: cand[0].when, what: cand[0].what, kind: cand[0].kind };
+    const [c] = await db.select().from(S.charms).where(and(eq(S.charms.userId, userId), sql`${S.charms.status} <> 'done'`, lt(S.charms.createdAt, before))).orderBy(desc(S.charms.createdAt)).limit(1);
+    return c ? { when: mdKo(kstDay(c.createdAt)), what: c.goal || c.wish, kind: 'wish' } : null;
+  }
+  const LETTER_CAT: Record<string, string> = { love: 'love', reunion: 'love', breakup: 'love', people: 'family', self: 'growth', life: 'growth' };
+  // [타임라인에 새기기] — 고객이 고른 편지만 기록으로 남는다(2주 뒤 "그 마음은 어떻게 됐나요?")
+  app.post('/letters/:id/keep', async (req, rep) => {
+    const userId = await needUser(req, rep);
+    if (!userId) return;
+    const [l] = await db.select().from(S.letters).where(and(eq(S.letters.id, (req.params as any).id), eq(S.letters.userId, userId)));
+    if (!l) return rep.code(404).send({ error: '편지를 찾지 못했어요' });
+    if (l.memoryId) return { memoryId: l.memoryId };
+    const feel = LETTER_FEELINGS.find((f) => f.id === l.feeling)?.label ?? '마음';
+    const topic = LETTER_TOPICS.find((t) => t.id === l.topic)?.label;
+    const title = (l.input || `${topic ? `${topic.endsWith('고민') ? topic : `${topic} 고민`}, ` : ''}${feel}의 마음`).slice(0, 60);
+    const [m] = await db.insert(S.memories).values({ id: newId('m_'), userId, profileId: l.profileId, kind: 'letter', category: LETTER_CAT[l.topic ?? ''] ?? 'growth', title, summary: `달빛 편지 「${l.title}」를 받았어요`, happenedOn: kstDay(l.createdAt), refId: l.id, visibility: 'self', followupAt: new Date(Date.now() + 14 * 86400000) }).returning();
+    await db.update(S.letters).set({ memoryId: m.id }).where(eq(S.letters.id, l.id));
+    return { memoryId: m.id };
+  });
   const LETTER_FREE = (brand as any).letters?.freePerDay ?? 2;
   const lettersToday = async (userId: string) => (await db.select({ c: sql<number>`count(*)` }).from(S.letters).where(and(eq(S.letters.userId, userId), gt(S.letters.createdAt, new Date(new Date(kstDay(new Date()) + 'T00:00:00+09:00').getTime()))))).at(0)?.c ?? 0;
   app.get('/letters/status', async (req, rep) => {
@@ -451,7 +484,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
   app.post('/letters', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, rep) => {
     const userId = await needUser(req, rep);
     if (!userId) return;
-    const b = (req.body ?? {}) as { profileId?: string; persona?: string; feeling?: string; topic?: string; input?: string };
+    const b = (req.body ?? {}) as { profileId?: string; persona?: string; feeling?: string; topic?: string; input?: string; remember?: boolean };
     const [profile] = b.profileId ? await db.select().from(S.profiles).where(and(eq(S.profiles.id, b.profileId), eq(S.profiles.userId, userId))) : [];
     if (!profile) return rep.code(400).send({ error: '사주 정보를 먼저 입력해 주세요', code: 'profile' });
     if (!LETTER_FEELINGS.some((f) => f.id === b.feeling)) return rep.code(400).send({ error: '지금의 마음을 하나 골라 주세요' });
@@ -459,12 +492,13 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     const persona = personaOf(b.persona).id;
     const topic = LETTER_TOPICS.some((t) => t.id === b.topic) ? b.topic! : null;
     const input = b.input ? String(b.input).trim().slice(0, 100) : null;
+    const recall = b.remember === false ? null : await recallFor(userId);
     let w;
-    try { w = await writeLetter({ profile: profile as any, persona, feeling: b.feeling!, topic, input, http }); } catch (e: any) {
+    try { w = await writeLetter({ profile: profile as any, persona, feeling: b.feeling!, topic, input, recall, http }); } catch (e: any) {
       req.log.warn(`[letter] ${e.message}`);
       return rep.code(502).send({ error: '편지를 쓰는 중에 잠시 문제가 생겼어요. 조금 뒤에 다시 받아 주세요.' });
     }
-    const [l] = await db.insert(S.letters).values({ id: newId('l_'), userId, profileId: profile.id, persona, feeling: b.feeling!, topic, input, title: w.title, body: w.body, ai: w.ai, costKrw: w.costKrw }).returning();
+    const [l] = await db.insert(S.letters).values({ id: newId('l_'), userId, profileId: profile.id, persona, feeling: b.feeling!, topic, input, title: w.title, body: w.body, ai: w.ai, costKrw: w.costKrw, recall: recall ? `${recall.when} · ${recall.what}` : null }).returning();
     const { costKrw, ...pub } = l; void costKrw;
     return { ...pub, to: w.to, from: w.from };
   });
@@ -490,14 +524,44 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
   });
 
   /* ---------- 나만의 황금 달빛 부적 ---------- */
+  const CHARM_CAT: Record<string, string> = { business: 'money', wealth: 'money', estate: 'money', work: 'work', goal: 'growth' };
   app.post('/charms', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, rep) => {
     const userId = await needUser(req, rep);
     if (!userId) return;
-    const b = (req.body ?? {}) as { type?: string; name?: string; wish?: string };
+    const b = (req.body ?? {}) as { type?: string; name?: string; wish?: string; goal?: string; keep?: boolean };
     if (!CHARMS.some((c) => c.id === b.type)) return rep.code(400).send({ error: '소망을 하나 골라 주세요' });
     const name = String(b.name ?? '').trim().slice(0, 12), wish = String(b.wish ?? '').trim().slice(0, 60);
     if (!name || !wish) return rep.code(400).send({ error: '이름과 소망을 적어 주세요' });
-    const [c] = await db.insert(S.charms).values({ id: newId('ch_'), userId, type: b.type!, name, wish }).returning();
+    const goal = b.goal ? String(b.goal).trim().slice(0, 40) || null : null;
+    const id = newId('ch_');
+    let memoryId: string | null = null;
+    if (b.keep !== false) {
+      const charm = CHARMS.find((c) => c.id === b.type)!;
+      const [m] = await db.insert(S.memories).values({ id: newId('m_'), userId, kind: 'wish', category: CHARM_CAT[b.type!] ?? 'growth', title: (goal ?? wish).slice(0, 60), summary: `${charm.name}에 새긴 소망 — "${wish}"`, happenedOn: kstDay(new Date()), refId: id, visibility: 'self' }).returning();
+      memoryId = m.id;
+    }
+    const [c] = await db.insert(S.charms).values({ id, userId, type: b.type!, name, wish, goal, memoryId }).returning();
+    return c;
+  });
+  // 소망 진행 상황 — 고객이 직접 적고 고친다. 타임라인 기록에도 같이 남는다.
+  const STATUS: Record<string, string> = { start: '막 새겼어요', doing: '진행 중이에요', done: '이루었어요' };
+  app.patch('/charms/:id', async (req, rep) => {
+    const userId = await needUser(req, rep);
+    if (!userId) return;
+    const b = (req.body ?? {}) as { status?: string; note?: string | null; goal?: string | null; snooze?: boolean };
+    const v: Record<string, unknown> = { progressAt: new Date() };
+    if (b.status && STATUS[b.status]) v.status = b.status;
+    if (b.note !== undefined) v.note = b.note ? String(b.note).trim().slice(0, 80) || null : null;
+    if (b.goal !== undefined) v.goal = b.goal ? String(b.goal).trim().slice(0, 40) || null : null;
+    const [c] = await db.update(S.charms).set(v).where(and(eq(S.charms.id, (req.params as any).id), eq(S.charms.userId, userId))).returning();
+    if (!c) return rep.code(404).send({ error: '부적을 찾지 못했어요' });
+    if (c.memoryId && !b.snooze) {
+      await db.update(S.memories).set({
+        title: (c.goal ?? c.wish).slice(0, 60),
+        feedback: c.status === 'done' ? 'good' : c.status === 'doing' ? 'same' : null,
+        feedbackNote: c.note, feedbackAt: c.status === 'start' ? null : new Date(),
+      }).where(and(eq(S.memories.id, c.memoryId), eq(S.memories.userId, userId)));
+    }
     return c;
   });
   app.get('/charms', async (req, rep) => {

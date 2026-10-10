@@ -21,6 +21,7 @@ function page(path, title, desc, body) {
     .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${esc(desc)}" />`)
     .replace(/<meta property="og:title" content="[^"]*" \/>/, `<meta property="og:title" content="${esc(title)}" />`)
     .replace(/<meta property="og:description" content="[^"]*" \/>/, `<meta property="og:description" content="${esc(desc)}" />`)
+    .replace(/<meta property="og:image" content="[^"]*" \/>/, (m) => (ORIGIN ? `<meta property="og:image" content="${ORIGIN}/img/og.jpg?v=2" />` : m))
     .replace('</head>', ORIGIN ? `<link rel="canonical" href="${ORIGIN}/${path}" /><meta property="og:url" content="${ORIGIN}/${path}" /></head>` : '</head>')
     .replace('<div id="root"></div>', `<div id="root"><div class="prerender" style="display:none">${body}</div></div>`);
   paths.push(path);
@@ -30,12 +31,14 @@ function page(path, title, desc, body) {
 }
 const won = (n) => `${n.toLocaleString('ko-KR')}원`;
 const visible = brand.products.filter((p) => p.visible !== false && !p.adult);
-page('', SITE, `${brand.slogan} 오늘의 운세·내 고민의 길·AI 사주친구·돈의 흐름.`,
+page('', SITE, '사랑의 흐름부터 인생의 중요한 순간까지, 당신의 운명을 달빛에 새깁니다.',
   `<h1>${SITE}</h1><p>${esc(brand.slogan)}</p><ul>${visible.map((p) => `<li><a href="/product/${p.id}">${esc(p.title)}</a> — ${esc(p.cardCopy)}</li>`).join('')}</ul>`);
 page('today', `오늘의 운세 | ${SITE}`, '오늘의 지수, 연애·재물·직장·건강운과 오늘의 키워드를 무료로.', '<h1>오늘의 운세</h1>');
 page('money', `돈의 흐름 | ${SITE}`, '재물·사업·투자·부동산 — 달새김 재물 시리즈. 시장의 큰 흐름과 나의 흐름을 함께.', '<h1>돈의 흐름</h1>');
 page('path', `내 고민의 길 | ${SITE}`, '고민을 따라가면 필요한 운세와 시기가 보여요.', '<h1>내 고민의 길</h1>');
 page('friend', `AI 사주친구 | ${SITE}`, '내 사주와 기록을 아는 친구와 이야기해요.', '<h1>AI 사주친구</h1>');
+page('letter', `오늘의 달빛 편지 | ${SITE}`, '오늘 밤, 당신에게 도착한 한 통의 달빛 편지. 상담사가 이름을 불러 주며 쓰는 나만의 편지도 받아 보세요.', '<h1>오늘의 달빛 편지</h1>');
+page('charm', `나만의 황금 달빛 부적 | ${SITE}`, '이름과 소망을 황금빛 달에 새긴 나만의 부적 배경화면. 사업·재물·안택·승진·합격.', '<h1>나만의 황금 달빛 부적</h1>');
 page('mbti', `사주 × MBTI | ${SITE}`, '타고난 기운과 지금의 성향이 만나는 방식.', '<h1>사주 × MBTI</h1>');
 for (const p of visible) {
   const d = detail[p.id];

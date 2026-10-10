@@ -2,7 +2,8 @@
 // 실제 금전적 성과나 수익을 보장하지 않는다(행운을 비는 디지털 카드).
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CHARMS, charmOf, type CharmType } from '@dalsaegim/content';
+import { CHARMS, CHARM_GOAL_HINT, CHARM_LINK, CHARM_STATUS, charmOf, type CharmType } from '@dalsaegim/content';
+import { useShare } from '../components/share';
 import { useMain } from '../store/app';
 import { apiAuth } from '../lib/api';
 import { Top, useToast } from '../components/ui';
@@ -11,7 +12,7 @@ import { track } from '../lib/track';
 
 const W = 1080, H = 1920;
 const imgOf = (t: CharmType) => `/img/ui/charm-${t}.jpg`;
-type Saved = { id: string; type: CharmType; name: string; wish: string; createdAt: string };
+export type Saved = { id: string; type: CharmType; name: string; wish: string; goal: string | null; status: 'start' | 'doing' | 'done'; note: string | null; progressAt: string | null; createdAt: string };
 
 // 부적 그리기(고화질 1080×1920) — 템플릿 위에 부적 이름·이름·소망·축원을 새긴다
 export async function drawCharm(type: CharmType, name: string, wish: string): Promise<string> {
@@ -68,13 +69,15 @@ function useSound() {
 export default function CharmPage() {
   const [sp] = useSearchParams();
   const { profile, isSample } = useMain();
-  const toast = useToast();
   const [type, setType] = useState<CharmType>((CHARMS.find((c) => c.id === sp.get('type'))?.id ?? 'wealth') as CharmType);
   const c = charmOf(type);
   const [name, setName] = useState(isSample ? '' : profile.name);
   const [wi, setWi] = useState(0);
   const [wish, setWish] = useState(c.wishes[0]);
   const [sound, setSound] = useState(false);
+  const [goal, setGoal] = useState('');
+  const [keep, setKeep] = useState(true); // 인생 타임라인에 소망 새기기
+  const openShare = useShare();
   const [phase, setPhase] = useState<'form' | 'anim' | 'done'>('form');
   const [png, setPng] = useState<string | null>(null);
   const timers = useRef<number[]>([]);
@@ -90,18 +93,18 @@ export default function CharmPage() {
     const p = drawCharm(type, n, w).then((u) => { setPng(u); return u; });
     if (sound) { snd.shimmer(); snd.chime(3.2); }
     timers.current.push(window.setTimeout(async () => { await p; setPhase('done'); }, 4300));
-    if (!isSample) apiAuth('/charms', { method: 'POST', json: { type, name: n, wish: w } }).catch(() => {});
+    if (!isSample) apiAuth('/charms', { method: 'POST', json: { type, name: n, wish: w, goal: goal.trim() || null, keep } }).catch(() => {});
   };
   const skip = async () => { timers.current.forEach(clearTimeout); snd.stop(); if (!png) setPng(await drawCharm(type, name.trim(), wish.trim())); setPhase('done'); };
   const save = () => { if (!png) return; track('charm_save', { type }); const a = document.createElement('a'); a.href = png; a.download = `달새김_${c.name}_${name.trim()}.png`; a.click(); };
-  const share = async () => {
+  // 공유 — 부적 이미지(이름·소망이 보임)를 고객이 고를 때만
+  const share = () => {
     if (!png) return;
-    try {
-      const blob = await (await fetch(png)).blob();
-      const file = new File([blob], `달새김_${c.name}.png`, { type: 'image/png' });
-      if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: c.name, text: '달새김사주에서 받은 나만의 황금 달빛 부적' });
-      else { save(); toast('이미지를 저장했어요'); }
-    } catch { /* 공유 취소 */ }
+    openShare({
+      title: `달새김사주 ${c.name}`, text: '이름과 소망을 황금빛 달에 새긴 나만의 부적', path: `/charm?type=${type}`, contentId: `charm_${type}`,
+      filename: `dalsaegim_charm_${type}.png`, note: '부적 이미지에는 이름과 소망이 보여요. 목표 한 줄은 담기지 않아요.',
+      image: async () => (await fetch(png)).blob(),
+    });
   };
 
   if (phase === 'anim') return (
@@ -131,7 +134,18 @@ export default function CharmPage() {
           <button className="btn line sm on-dark" style={{ width: '100%' }} onClick={share}><I.share size={18} />공유하기</button>
           <button className="btn line sm on-dark" style={{ width: '100%' }} onClick={() => { setPhase('form'); setPng(null); }}>다른 소망 새기기</button>
         </div>
-        <p className="notice mt12" style={{ color: '#a99f8c' }}>{isSample ? '사주를 입력하면 우체통에 보관돼요.' : '나의 달빛 우체통 › 황금 부적에서 다시 저장할 수 있어요.'} 이 부적은 행운을 비는 마음을 담은 디지털 카드이며, 금전적 결과를 보장하지 않아요.</p>
+        <section className="wish-record mt16">
+          <p className="wr-eyebrow">나의 소망 기록</p>
+          <b>{name.trim()}님의 {c.name}</b>
+          <p>소망 · {wish.trim()}</p>
+          {goal.trim() && <p>목표 · {goal.trim()}</p>}
+          <small>{isSample ? '사주를 입력하면 소망이 보관되고, 진행 상황을 적을 수 있어요.' : `${keep ? '인생 타임라인에도 새겼어요. ' : ''}우체통 › 황금 부적에서 진행 상황을 언제든 적을 수 있고, 다음에 오시면 "그 소망은 어떻게 되고 있나요?" 여쭤볼게요.`}</small>
+          <div className="wr-links">
+            <Link to={CHARM_LINK[type].to}>{CHARM_LINK[type].label} →</Link>
+            <Link to="/today?focus=month">이번 달 나의 흐름 →</Link>
+          </div>
+        </section>
+        <p className="notice mt12" style={{ color: '#a99f8c' }}>이 부적은 행운을 비는 마음을 담은 디지털 카드이며, 금전적 성공·투자 수익·부동산 가치 상승을 보장하지 않아요.</p>
       </main>
     </>
   );
@@ -166,6 +180,12 @@ export default function CharmPage() {
           <textarea className="input dark mt8" rows={2} maxLength={40} value={wish} onChange={(e) => { setWish(e.target.value); setWi(-1); }} aria-label="소망 직접 고치기" />
           <p className="faint mt4" style={{ color: '#a99f8c' }}>골라도 되고, 직접 고쳐도 돼요(40자 이내).</p>
         </section>
+        <section className="qblock">
+          <h3 className="gold-h">4. 이 소망을 위한 나의 목표 <span style={{ color: '#a99f8c', fontWeight: 500 }}>(선택)</span></h3>
+          <input className="input dark" maxLength={40} value={goal} onChange={(e) => setGoal(e.target.value)} placeholder={CHARM_GOAL_HINT[type]} />
+          <p className="faint mt4" style={{ color: '#a99f8c' }}>목표는 부적 이미지에 넣지 않고, 나만 보는 소망 기록에만 남아요.</p>
+          {!isSample && <label className="check mt8" style={{ color: '#e9dfcb' }}><input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} />인생 타임라인에 소망 새기기</label>}
+        </section>
         <div className="sound-row mt16"><span><I.speaker size={18} /> 완성 효과음</span><button className={`switch${sound ? ' on' : ''}`} role="switch" aria-checked={sound} onClick={() => setSound(!sound)}><i /></button></div>
         <button className="btn gold-lux mt20" disabled={!name.trim() || !wish.trim()} onClick={start}>나만의 부적 받기</button>
         <p className="notice mt8" style={{ color: '#a99f8c' }}>무료 · 휴대폰 배경화면 크기(1080×1920)로 저장돼요</p>
@@ -174,31 +194,56 @@ export default function CharmPage() {
   );
 }
 
-// 우체통 › 황금 부적 — 받은 부적 다시 저장
+// 우체통 › 황금 부적 = 나의 소망 기록 — 다시 저장 · 진행 상황(막 새겼어요/진행 중/이루었어요) 직접 적고 고치기
 export function CharmList() {
   const [list, setList] = useState<Saved[] | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
   const toast = useToast();
   useEffect(() => { apiAuth<Saved[]>('/charms').then(setList).catch(() => setList([])); }, []);
-  const again = async (s: Saved) => { const u = await drawCharm(s.type, s.name, s.wish); const a = document.createElement('a'); a.href = u; a.download = `달새김_${charmOf(s.type).name}_${s.name}.png`; a.click(); toast('다시 저장했어요'); };
+  const again = async (s: Saved) => { const u = await drawCharm(s.type, s.name, s.wish); const a = document.createElement('a'); a.href = u; a.download = `dalsaegim_charm_${s.type}.png`; a.click(); toast('다시 저장했어요'); };
   const del = async (id: string) => { try { await apiAuth(`/charms/${id}`, { method: 'DELETE' }); setList((l) => l?.filter((x) => x.id !== id) ?? null); } catch (e: any) { toast(e.message); } };
+  const save = async (s: Saved, patch: Partial<Pick<Saved, 'status' | 'note' | 'goal'>>) => {
+    try { const c = await apiAuth<Saved>(`/charms/${s.id}`, { method: 'PATCH', json: patch }); setList((l) => l?.map((x) => (x.id === s.id ? c : x)) ?? null); toast(patch.status === 'done' ? '축하해요! 이룬 소망을 타임라인에 새겼어요' : '소망 기록을 고쳤어요'); } catch (e: any) { toast(e.message); }
+  };
   if (list && list.length === 0) return (
     <section className="card center mt16">
-      <h3 className="h3">아직 받은 부적이 없어요</h3>
-      <p className="muted mt8">이름과 소망을 황금빛 달에 새겨 보세요.</p>
+      <h3 className="h3">아직 새긴 소망이 없어요</h3>
+      <p className="muted mt8">이름과 소망을 황금빛 달에 새기고, 이루어 가는 과정을 기록해 보세요.</p>
       <Link to="/charm" className="btn gold-lux mt12">나만의 황금 부적 받기</Link>
     </section>
   );
   return (
     <div className="stack mt16">
       {list?.map((s) => (
-        <div key={s.id} className="mail-row">
-          <span className="ct-thumb" style={{ backgroundImage: `url(${imgOf(s.type)})` }} />
-          <span className="grow"><small>{s.createdAt.slice(0, 10).replace(/-/g, '.')}</small><b>{charmOf(s.type).name}</b><span>{s.name}님 · “{s.wish}”</span></span>
-          <button className="icon-btn" aria-label="다시 저장" onClick={() => again(s)}><I.download size={18} /></button>
-          <button className="icon-btn" aria-label="지우기" onClick={() => del(s.id)}><I.close size={18} /></button>
+        <div key={s.id} className={`wish-card${s.status === 'done' ? ' done' : ''}`}>
+          <button className="wc-head" onClick={() => setOpen(open === s.id ? null : s.id)} aria-expanded={open === s.id}>
+            <span className="ct-thumb" style={{ backgroundImage: `url(${imgOf(s.type)})` }} />
+            <span className="grow"><small>{s.createdAt.slice(0, 10).replace(/-/g, '.')} · <em className={`st ${s.status}`}>{CHARM_STATUS[s.status]}</em></small><b>{charmOf(s.type).name}</b><span>“{s.wish}”</span>{s.goal && <span className="goal">목표 · {s.goal}</span>}</span>
+            <I.right className="chev" style={{ transform: open === s.id ? 'rotate(90deg)' : undefined }} />
+          </button>
+          {open === s.id && <WishEdit s={s} onSave={(p) => save(s, p)} onAgain={() => again(s)} onDelete={() => del(s.id)} />}
         </div>
       ))}
-      {list && list.length > 0 && <Link to="/charm" className="btn gold-lux mt8">새 부적 받기</Link>}
+      {list && list.length > 0 && <Link to="/charm" className="btn gold-lux mt8">새 소망 새기기</Link>}
+    </div>
+  );
+}
+function WishEdit({ s, onSave, onAgain, onDelete }: { s: Saved; onSave: (p: Partial<Pick<Saved, 'status' | 'note' | 'goal'>>) => void; onAgain: () => void; onDelete: () => void }) {
+  const [status, setStatus] = useState(s.status);
+  const [note, setNote] = useState(s.note ?? '');
+  const [goal, setGoal] = useState(s.goal ?? '');
+  return (
+    <div className="wc-body">
+      <p className="wc-q">이 소망은 지금 어디쯤 와 있나요?</p>
+      <div className="seg" role="radiogroup">{(Object.keys(CHARM_STATUS) as Saved['status'][]).map((k) => <button key={k} className={status === k ? 'on' : ''} onClick={() => setStatus(k)} aria-pressed={status === k}>{CHARM_STATUS[k]}</button>)}</div>
+      <label className="field"><span>나의 목표</span><input className="input" maxLength={40} value={goal} onChange={(e) => setGoal(e.target.value)} placeholder={CHARM_GOAL_HINT[s.type]} /></label>
+      <label className="field"><span>진행 상황 한 줄</span><input className="input" maxLength={80} value={note} onChange={(e) => setNote(e.target.value)} placeholder="예) 거래처 1곳과 첫 계약을 했어요" /></label>
+      <button className="btn primary mt12" onClick={() => onSave({ status, note: note.trim() || null, goal: goal.trim() || null })}>소망 기록 저장</button>
+      <div className="row mt8" style={{ gap: 8 }}>
+        <button className="btn line sm" style={{ flex: 1 }} onClick={onAgain}><I.download size={16} />부적 다시 저장</button>
+        <Link to={CHARM_LINK[s.type].to} className="btn line sm" style={{ flex: 1 }}>관련 운세</Link>
+      </div>
+      <button className="link mt12 center" style={{ display: 'block', width: '100%', color: '#9a9cb0' }} onClick={onDelete}>이 부적 지우기</button>
     </div>
   );
 }

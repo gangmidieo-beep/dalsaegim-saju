@@ -91,6 +91,16 @@ describe('시그니처 콘텐츠 — 달빛 편지·황금 부적', () => {
       expect(l.from).toContain(p.name);
     }
   });
+  it('후속 편지: 지난 고민을 이름과 함께 묻고, 사주 흐름을 넣어도 250자 이내', () => {
+    for (const f of LETTER_FEELINGS) for (const kind of ['memory', 'letter', 'wish'] as const) {
+      const l = composeLetter({ name: '미선', persona: 'wolhwa', feeling: f.id, topic: 'life', input: '요즘 일이 너무 많아서 아무것도 손에 안 잡혀요', trait: '단단한 바위', flow: '이번 달은 기회가 자주 보이는 달이에요.', recall: { when: '9월 20일', what: kind === 'wish' ? '신규 거래처 3곳 확보' : '이직을 앞두고 고민함', kind }, seed: f.id + kind });
+      expect(l.body.startsWith('미선님, 9월 20일에')).toBe(true);
+      expect(l.body).not.toContain('고민함');
+      expect(l.body.length).toBeGreaterThanOrEqual(150);
+      expect(l.body.length).toBeLessThanOrEqual(250);
+      expect(l.recalled).toBe(true);
+    }
+  });
   it('오늘의 편지는 날짜마다 같은 편지, 부적은 5종이고 보장 표현 없음', () => {
     expect(defaultTodayLetter('2026-10-09')).toEqual(defaultTodayLetter('2026-10-09'));
     expect(CHARMS.map((c) => c.id)).toEqual(['business', 'wealth', 'estate', 'work', 'goal']);

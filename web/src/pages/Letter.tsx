@@ -9,11 +9,14 @@ import { Sheet, Skeleton, Top, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { CharmList } from './Charm';
 import { track } from '../lib/track';
+import { useShare } from '../components/share';
+import { toBlob } from 'html-to-image';
 
-export type Letter = { id: string; persona: string; feeling: string; topic: string | null; title: string; body: string; createdAt: string; to?: string; from?: string };
+export type Letter = { id: string; persona: string; feeling: string; topic: string | null; input?: string | null; title: string; body: string; createdAt: string; to?: string; from?: string; recall?: string | null; memoryId?: string | null };
 type Today = { date: string; theme: string; title: string; body: string };
 // 받침 있으면 '이', 없으면 '가' (사주도령이 / 달하가)
-const withJosa = (n: string) => { const c = n.charCodeAt(n.length - 1) - 0xac00; return n + (c >= 0 && c < 11172 && c % 28 ? '이' : '가'); };
+const josa = (n: string, withB: string, noB: string) => { const c = n.charCodeAt(n.length - 1) - 0xac00; return n + (c >= 0 && c < 11172 && c % 28 ? withB : noB); };
+const withJosa = (n: string) => josa(n, '이', '가');
 const dot = (s: string) => s.slice(0, 10).replace(/-/g, '.');
 
 // 상담사 목소리로 읽기 — 여성 상담사는 부드러운 여성 음성, 남성 상담사는 낮은 남성 음성(없으면 음높이를 낮춤)
@@ -54,7 +57,8 @@ export function LetterView({ l, name, onDelete }: { l: Letter; name: string; onD
         <span className="lv-glow" />
         <span className="lv-who">{pe.name} · {pe.title}</span>
       </div>
-      <article className="paper">
+      {l.recall && <p className="recall-chip">지난 마음을 기억해 쓴 편지 · {l.recall}</p>}
+      <article className="paper" id="letter-paper">
         <p className="to">{l.to ?? `TO. ${name} 고객님`}</p>
         <h2>{l.title}</h2>
         {l.body.split('\n').map((x, i) => <p key={i}>{x}</p>)}
@@ -73,9 +77,57 @@ export function LetterView({ l, name, onDelete }: { l: Letter; name: string; onD
   );
 }
 
+// 편지를 받은 뒤 — 타임라인에 새기기 / 이번 달 흐름 / 상담사와 이어서 이야기 / 공유(기본 비공개, 고객이 고를 때만)
+export function LetterAfter({ l, onKept }: { l: Letter; onKept?: (memoryId: string) => void }) {
+  const pe = personaOf(l.persona);
+  const setPersona = useApp((s) => s.setPersona);
+  const nav = useNavigate();
+  const toast = useToast();
+  const openShare = useShare();
+  const [kept, setKept] = useState(!!l.memoryId);
+  const [ask, setAsk] = useState(false);
+  const topic = LETTER_TOPICS.find((t) => t.id === l.topic)?.label;
+  const keep = async () => {
+    try { const r = await apiAuth<{ memoryId: string }>(`/letters/${l.id}/keep`, { method: 'POST' }); setKept(true); onKept?.(r.memoryId); toast('타임라인에 새겼어요. 2주 뒤에 그 마음이 어떻게 됐는지 여쭤볼게요'); } catch (e: any) { toast(e.message); }
+  };
+  const talk = () => {
+    setPersona(pe.id);
+    const about = l.input?.trim() || (topic ? `${topic} 고민` : '요즘 마음');
+    nav(`/friend?q=${encodeURIComponent(`편지 잘 받았어요. ${about}에 대해 조금 더 이야기하고 싶어요.`)}`);
+  };
+  const shareLinkOnly = () => { setAsk(false); openShare({ title: '달새김사주 달빛 편지', text: '나에게만 쓰는 달빛 편지를 받아 보세요. 상담사가 이름을 불러 주며 편지를 써 줘요.', path: '/letter', contentId: 'letter_invite', note: '편지 내용은 보내지 않고, 달빛 편지 받는 곳 링크만 보내요.' }); };
+  const shareImage = () => {
+    setAsk(false);
+    openShare({
+      title: '달새김사주 달빛 편지', text: '달빛 편지가 도착했어요', path: '/letter', contentId: 'letter_image', filename: 'dalsaegim_letter.png',
+      note: '편지 내용이 이미지로 보여요. 받는 분이 읽을 수 있어요.',
+      image: async () => { const n = document.getElementById('letter-paper'); return n ? toBlob(n, { pixelRatio: 2, backgroundColor: '#fffaf3' }) : null; },
+    });
+  };
+  return (
+    <section className="letter-after">
+      {!kept
+        ? <button className="btn line" onClick={keep}><I.edit size={18} />이 마음을 타임라인에 새기기</button>
+        : <p className="saved-note" style={{ marginTop: 0 }}>✓ 타임라인에 새겼어요 · <Link to="/timeline" className="link">보러 가기</Link></p>}
+      <div className="la-links">
+        <Link to="/today?focus=month"><b>이번 달 나의 흐름</b><span>편지와 이어지는 이번 달 사주 흐름 보기</span><I.right /></Link>
+        <button onClick={talk}><b>{josa(pe.name, '과', '와')} 이어서 이야기하기</b><span>편지에 담긴 고민을 AI 사주친구로 이어 가요</span><I.right /></button>
+      </div>
+      <button className="link center" style={{ display: 'block', width: '100%' }} onClick={() => setAsk(true)}>편지 공유하기</button>
+      <Sheet open={ask} onClose={() => setAsk(false)} label="편지 공유 방법">
+        <h2 className="h3">어떻게 공유할까요?</h2>
+        <p className="faint mt4" style={{ margin: '4px 0 0' }}>편지는 기본으로 나만 볼 수 있어요. 고르신 방법으로만 공유돼요.</p>
+        <button className="btn primary mt16" onClick={shareLinkOnly}>링크만 보내기 (편지 내용 비공개)</button>
+        <button className="btn line mt8" onClick={shareImage}>편지 이미지로 보내기 (내용이 보여요)</button>
+      </Sheet>
+    </section>
+  );
+}
+
 // ① 오늘의 달빛 편지
 export function TodayLetter() {
   const [t, setT] = useState<Today | null>(null);
+  const openShare = useShare();
   useEffect(() => { apiGet<Today>('/letters/today').then(setT).catch(() => {}); }, []);
   return (
     <>
@@ -89,6 +141,7 @@ export function TodayLetter() {
             <p className="from">FROM. 달새김사주, 달빛 편지</p>
           </article>
         )}
+        {t && <button className="btn line sm mt12" style={{ width: '100%' }} onClick={() => openShare({ title: `오늘의 달빛 편지 — ${t.title}`, text: t.body.slice(0, 60) + (t.body.length > 60 ? '…' : ''), path: '/letter', contentId: 'letter_today' })}><I.share size={18} />오늘의 편지 나누기</button>}
         <section className="card mt16 center">
           <h3 className="h3">나에게만 쓰는 편지를 받아 볼까요?</h3>
           <p className="muted mt8">고른 상담사가 지금 마음과 고민을 읽고, 이름을 불러 주며 편지를 써요. 목소리로도 들을 수 있어요.</p>
@@ -114,6 +167,7 @@ export function NewLetter() {
   const [phase, setPhase] = useState<'form' | 'open' | 'done'>('form');
   const [letter, setLetter] = useState<Letter | null>(null);
   const [left, setLeft] = useState<number | null>(null);
+  const [remember, setRemember] = useState(true); // 지난 고민·편지를 기억해서 써 주기(마이 설정 'AI가 내 기록 참고'가 꺼져 있으면 서버가 쓰지 않음)
   const top = useRef<HTMLDivElement>(null);
   useEffect(() => { if (!isSample) apiAuth<{ remaining: number | null }>('/letters/status').then((s) => setLeft(s.remaining)).catch(() => {}); }, [isSample]);
   const list = PERSONAS.filter((p) => p.gender === g);
@@ -123,7 +177,7 @@ export function NewLetter() {
     const started = Date.now();
     try {
       await syncProfile(profile, true);
-      const l = await apiAuth<Letter>('/letters', { method: 'POST', json: { profileId: profile.id, persona: pid, feeling, topic, input } });
+      const l = await apiAuth<Letter>('/letters', { method: 'POST', json: { profileId: profile.id, persona: pid, feeling, topic, input, remember } });
       await new Promise((r) => setTimeout(r, Math.max(0, 1700 - (Date.now() - started)))); // 봉투가 열리는 1~2초
       track('letter_make', { persona: pid, feeling, topic });
       setLetter(l); setPhase('done'); scrollTo({ top: 0 });
@@ -141,6 +195,7 @@ export function NewLetter() {
       <main className="screen letter-bg">
         <LetterView l={letter} name={profile.name} />
         <p className="saved-note">✓ 나의 달빛 우체통에 저장했어요</p>
+        <LetterAfter l={letter} />
         <div className="grid2 mt12"><Link to="/mailbox" className="btn line sm" style={{ width: '100%' }}>우체통 열기</Link><button className="btn line sm" style={{ width: '100%' }} onClick={() => { setPhase('form'); setLetter(null); }}>다른 편지 받기</button></div>
       </main>
     </>
@@ -170,6 +225,12 @@ export function NewLetter() {
           <div className="qchips">{LETTER_TOPICS.map((t) => <button key={t.id} className={topic === t.id ? 'on' : ''} onClick={() => setTopic(topic === t.id ? null : t.id)}>{t.label}</button>)}</div>
           <input className="input mt12" maxLength={60} value={input} onChange={(e) => setInput(e.target.value)} placeholder="한 줄로 적어도 좋아요 (예: 연락이 기다려져요)" />
         </section>
+        {!isSample && (
+          <div className="remember-row mt16">
+            <span><b>지난 고민을 기억해서 써 주기</b><small>남겨 둔 기록·지난 편지가 있으면 그때 마음을 이어서 물어봐요. 숨긴 기록은 쓰지 않아요.</small></span>
+            <button className={`switch${remember ? ' on' : ''}`} role="switch" aria-checked={remember} aria-label="지난 고민 기억하기" onClick={() => setRemember(!remember)}><i /></button>
+          </div>
+        )}
         <button className="btn blush mt24" disabled={!feeling} onClick={submit}>{isSample ? '사주 입력하고 편지 받기 →' : '달빛 편지 받기 →'}</button>
         {left != null && <p className="notice mt8">오늘 받을 수 있는 편지 {left}통 남았어요</p>}
         <p className="notice mt4">편지는 나만 볼 수 있는 우체통에 보관되고, 언제든 지울 수 있어요.</p>
@@ -205,7 +266,7 @@ export function Mailbox() {
   if (id && open) return (
     <>
       <Top title="나의 달빛 우체통" back="/mailbox" />
-      <main className="screen letter-bg"><LetterView l={open} name={profile.name} onDelete={() => del(open.id)} /></main>
+      <main className="screen letter-bg"><LetterView l={open} name={profile.name} /><LetterAfter l={open} onKept={() => void load()} /><button className="link mt16 center" style={{ display: 'block', width: '100%', color: '#9a9cb0' }} onClick={() => del(open.id)}>이 편지 지우기</button></main>
     </>
   );
   return (

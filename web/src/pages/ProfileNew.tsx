@@ -16,6 +16,21 @@ const HOURS = [
   { h: 16, n: '신시', t: '오후 3:30 ~ 5:29' }, { h: 18, n: '유시', t: '오후 5:30 ~ 7:29' }, { h: 20, n: '술시', t: '오후 7:30 ~ 9:29' }, { h: 22, n: '해시', t: '밤 9:30 ~ 11:29' },
 ];
 const RELS = ['나', '연인', '배우자', '가족', '친구'];
+// 해외 출생 — 현지 시각을 한국 시각(엔진 기준)으로 바꿔 넣는다. 값 = 한국과의 시차가 아닌 현지 UTC 기준 시간.
+const ZONES: [number, string][] = [
+  [-10, '하와이'], [-8, '미국 서부 (LA·시애틀)'], [-7, '미국 산악 (덴버)'], [-6, '미국 중부 (시카고)'], [-5, '미국 동부 (뉴욕)·캐나다 동부'], [-3, '브라질·아르헨티나'],
+  [0, '영국·포르투갈'], [1, '유럽 중부 (파리·베를린)'], [2, '유럽 동부·이집트'], [3, '러시아 (모스크바)·튀르키예'], [4, '두바이'], [5.5, '인도'],
+  [7, '베트남·태국·인도네시아 (자카르타)'], [8, '중국·대만·싱가포르·필리핀'], [9, '일본'], [10, '호주 동부 (시드니)'], [12, '뉴질랜드'],
+];
+// 대표 시각 h(현지) → 한국 시각, 날짜가 바뀌면 같이 바꾼다
+function toKst(y: number, m: number, d: number, h: number, utc: number) {
+  const t = new Date(Date.UTC(y, m - 1, d, 0, 0) + (h - utc + 9) * 3600e3);
+  const hh = t.getUTCHours() + t.getUTCMinutes() / 60;
+  const idx = Math.floor(((hh + 0.5) % 24) / 2); // 23:30~1:29 자시, 1:30~3:29 축시 …
+  // 밤 11:30 이후는 다음 날 자시로 본다(입력 화면의 자시 = 그날 0시 기준과 맞춤)
+  const n = hh >= 23.5 ? new Date(t.getTime() + 86400e3) : t;
+  return { year: n.getUTCFullYear(), month: n.getUTCMonth() + 1, day: n.getUTCDate(), hour: idx * 2 };
+}
 const THIS_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: Math.min(LUNAR_YEAR_MAX, THIS_YEAR) - LUNAR_YEAR_MIN + 1 }, (_, i) => Math.min(LUNAR_YEAR_MAX, THIS_YEAR) - i);
 
@@ -29,6 +44,10 @@ export default function ProfileNew() {
   const [step, setStep] = useState(0);
   const [f, setF] = useState<Profile>(editing ?? { id: newId(), name: '', gender: 'F', year: 1997, month: 0, day: 0, calendar: 'solar', leap: false, hour: null, relation: first ? '나' : sp.get('rel') ?? '연인' });
   const [unknown, setUnknown] = useState(editing ? editing.hour == null : false);
+  const [abroad, setAbroad] = useState(false);
+  const [zone, setZone] = useState(-5);
+  const [dst, setDst] = useState(false);
+  const [tried, setTried] = useState(false);
   const toast = useToast();
   const nav = useNavigate();
   const set = (p: Partial<Profile>) => setF((x) => ({ ...x, ...p }));
@@ -39,9 +58,13 @@ export default function ProfileNew() {
   const dateOk = y >= LUNAR_YEAR_MIN && m >= 1 && m <= 12 && d >= 1 && d <= days;
   const hasLeap = f.calendar === 'lunar' && dateOk && leapMonthOf(y) === m;
   const ready = !!f.name.trim() && dateOk && (unknown || f.hour != null);
+  // 무엇이 빠졌는지 알려 주기(버튼이 왜 안 눌리는지)
+  const missing = [!f.name.trim() && '이름', !(y >= LUNAR_YEAR_MIN) && '태어난 해', !(m >= 1) && '태어난 달', !(d >= 1 && d <= days) && (d > days ? `날짜(${m}월은 ${days}일까지)` : '태어난 날'), !unknown && f.hour == null && '태어난 시간(모르면 “몰라요”)'].filter(Boolean) as string[];
+  const kst = abroad && f.calendar === 'solar' && dateOk && f.hour != null && !unknown ? toKst(y, m, d, f.hour, zone + (dst ? 1 : 0)) : null;
+  const HN = (h: number) => HOURS.find((x) => x.h === h)?.n ?? '';
 
   const save = () => {
-    const p: Profile = { ...f, name: f.name.trim(), leap: hasLeap && f.leap, hour: unknown ? null : f.hour };
+    const p: Profile = { ...f, ...(kst ?? {}), name: f.name.trim(), leap: hasLeap && f.leap, hour: unknown ? null : kst ? kst.hour : f.hour };
     const makeMain = first || p.relation === '나';
     saveProfile(p, makeMain);
     void syncProfile(p, makeMain);
@@ -103,9 +126,24 @@ export default function ProfileNew() {
                 <option value="x">태어난 시간을 몰라요</option>
               </select>
             </div>
+            <div className="field">
+              <div className="between" style={{ marginBottom: 6 }}><span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink-2)' }}>태어난 곳</span>
+                <div className="seg" style={{ padding: 3, width: 150 }}>{([[false, '한국'], [true, '해외']] as const).map(([v, l]) => <button key={l} style={{ minHeight: 30, fontSize: 13 }} className={abroad === v ? 'on' : ''} onClick={() => setAbroad(v)}>{l}</button>)}</div>
+              </div>
+              {abroad && (
+                <div className="abroad">
+                  <select className="input" aria-label="태어난 지역 시간대" value={zone} onChange={(e) => setZone(+e.target.value)}>{ZONES.map(([z, l]) => <option key={z} value={z}>{l} (UTC{z >= 0 ? '+' : ''}{z})</option>)}</select>
+                  <label className="check mt8"><input type="checkbox" checked={dst} onChange={(e) => setDst(e.target.checked)} />서머타임(일광절약시간) 기간에 태어났어요</label>
+                  {f.calendar === 'lunar' && <p className="faint mt4">해외 출생은 양력 날짜로 입력하면 시차를 정확히 맞춰 드려요.</p>}
+                  {kst && <p className="kst-note">현지 {f.year}.{f.month}.{f.day} {HN(f.hour!)} → 한국 시각 <b>{kst.year}.{kst.month}.{kst.day} {HN(kst.hour)}</b>로 계산해요</p>}
+                  {!kst && f.calendar === 'solar' && <p className="faint mt4">태어난 현지 시각을 그대로 고르면 한국 시각으로 바꿔 계산해요.</p>}
+                </div>
+              )}
+            </div>
             <div className="field"><span>성별</span><div className="seg pink">{([['F', '여성'], ['M', '남성']] as const).map(([v, l]) => <button key={v} className={f.gender === v ? 'on' : ''} onClick={() => set({ gender: v })}>{l}</button>)}</div></div>
             <p className="faint mt16">입력한 사주는 풀이와 AI 사주친구에만 쓰이고, 마이에서 언제든 지울 수 있어요.</p>
-            <button className="btn primary mt16" disabled={!ready} onClick={submit}>{editing ? '저장하기' : '다음으로'}</button>
+            {tried && missing.length > 0 && <p className="form-err" role="alert">{missing.join(', ')}을(를) 확인해 주세요</p>}
+            <button className={`btn primary mt16${ready ? '' : ' soft-off'}`} aria-disabled={!ready} onClick={() => (ready ? submit() : setTried(true))}>{editing ? '저장하기' : '다음으로'}</button>
           </section>
         )}
         {step === 1 && (

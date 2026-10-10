@@ -18,3 +18,15 @@ export const CHARMS: { id: CharmType; label: string; name: string; symbol: strin
     bless: '별빛이 당신의 목표를 끝까지 비추기를 기원합니다' },
 ];
 export const charmOf = (id?: string | null) => CHARMS.find((c) => c.id === id) ?? CHARMS[0];
+
+// 부적과 함께 적는 '실제 목표 한 줄' 예시와, 소망과 이어지는 운세(재물·사업·부동산·직장·미래)
+export const CHARM_GOAL_HINT: Record<CharmType, string> = {
+  business: '예) 올해 신규 거래처 3곳 확보', wealth: '예) 연말까지 비상금 통장 채우기', estate: '예) 내년 봄, 마음에 드는 집으로 이사',
+  work: '예) 올해 안에 맡은 프로젝트 잘 마무리', goal: '예) 11월 자격증 시험 합격',
+};
+export const CHARM_LINK: Record<CharmType, { to: string; label: string }> = {
+  business: { to: '/money/business', label: '나의 사업운 흐름 보기' }, wealth: { to: '/money/wealth', label: '나의 재물운 흐름 보기' },
+  estate: { to: '/money/estate', label: '나의 부동산운 흐름 보기' }, work: { to: '/path?cat=work', label: '직장·이직 고민의 길 보기' },
+  goal: { to: '/path?cat=future', label: '미래·학업 고민의 길 보기' },
+};
+export const CHARM_STATUS: Record<'start' | 'doing' | 'done', string> = { start: '막 새겼어요', doing: '진행 중이에요', done: '이루었어요' };

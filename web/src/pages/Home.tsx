@@ -2,12 +2,14 @@
 // + 사랑의 갈림길(연애 고민의 길) + 카테고리 바로가기. 안내 문구는 최소로.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useApp, useMain } from '../store/app';
+import { useMain } from '../store/app';
 import { useToday } from '../lib/fortune';
 import { apiAuth, apiGet } from '../lib/api';
 import { Foot, CAT_LABEL, Pic, useToast, type PicName } from '../components/ui';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
+import { charmOf } from '@dalsaegim/content';
+import type { Saved } from './Charm';
 
 type Mem = { id: string; title: string; category: string; happenedOn: string };
 const QUICK: [string, string, PicName][] = [
@@ -17,17 +19,25 @@ const QUICK: [string, string, PicName][] = [
 
 export default function Home() {
   const { profile, isSample } = useMain();
-  const accountName = useApp((s) => s.account?.name);
   const t = useToday(profile);
   const [due, setDue] = useState<Mem[]>([]);
   const [count, setCount] = useState(0);
   const [letter, setLetter] = useState<{ title: string; body: string } | null>(null);
+  const [wish, setWish] = useState<Saved | null>(null); // 지난번 새긴 소망 — 7일이 지나면 진행 상황을 묻는다
   const toast = useToast();
   useEffect(() => { apiGet<{ title: string; body: string }>('/letters/today').then(setLetter).catch(() => {}); }, []);
   useEffect(() => {
     if (isSample) return;
     apiAuth<{ list: Mem[]; due: Mem[] }>('/memories').then((r) => { setDue(r.due); setCount(r.list.length); }).catch(() => {});
+    const WEEK = 7 * 86400000;
+    apiAuth<Saved[]>('/charms').then((l) => setWish(l.find((c) => c.status !== 'done' && Date.now() - +new Date(c.progressAt ?? c.createdAt) > WEEK) ?? null)).catch(() => {});
   }, [isSample]);
+  const wishStep = async (st: 'doing' | 'done' | 'later') => {
+    if (!wish) return;
+    await apiAuth(`/charms/${wish.id}`, { method: 'PATCH', json: st === 'later' ? { snooze: true } : { status: st } }).catch(() => {});
+    setWish(null);
+    toast(st === 'done' ? '축하해요! 이룬 소망을 타임라인에 새겼어요' : st === 'doing' ? '응원할게요. 우체통에서 진행 상황을 더 적을 수 있어요' : '다음에 다시 여쭤볼게요');
+  };
   const feedback = async (id: string, fb: 'good' | 'same' | 'changed') => {
     await apiAuth(`/memories/${id}`, { method: 'PATCH', json: { feedback: fb } }).catch(() => {});
     track('memory_feedback', { fb });
@@ -51,7 +61,7 @@ export default function Home() {
             </>
           ) : (
             <>
-              <div className="between"><b style={{ fontSize: 17 }}>{accountName ?? profile.name} 님의 오늘</b><span className="score-pill">{t.total}<small>점</small></span></div>
+              <div className="between"><b style={{ fontSize: 17 }}>{profile.name} 님의 오늘</b><span className="score-pill">{t.total}<small>점</small></span></div>
               <p className="small" style={{ margin: '6px 0 0', color: '#4a4f6e' }}>{t.headline} · 연애 <b style={{ color: '#d0577f' }}>{t.fields.love.score}</b> · 직장 {t.fields.work.score} · 재물 {t.fields.wealth.score}</p>
               <Link to="/today" className="btn blush mt12">오늘의 운세 보기 →</Link>
             </>
@@ -83,8 +93,21 @@ export default function Home() {
         </Link>
       </section>
 
-      {(due.length > 0 || count >= 3) && (
+      {(due.length > 0 || count >= 3 || wish) && (
         <main className="home-more">
+          {wish && (
+            <section className="card wish-ask" aria-label="지난번 새긴 소망">
+              <span className="ct-thumb" style={{ backgroundImage: `url(/img/ui/charm-${wish.type}.jpg)` }} />
+              <div className="grow">
+                <small>{charmOf(wish.type).name}</small>
+                <h2 className="h3">지난번 새긴 소망은 어떻게 진행되고 있나요?</h2>
+                <p className="small" style={{ margin: '4px 0 0' }}>“{wish.goal ?? wish.wish}”</p>
+                <div className="row mt12" style={{ gap: 6 }}>
+                  {([['doing', '진행 중이에요'], ['done', '이루었어요'], ['later', '다음에']] as const).map(([k, l]) => <button key={k} className="btn line sm" style={{ flex: 1, background: 'var(--paper)' }} onClick={() => wishStep(k)}>{l}</button>)}
+                </div>
+              </div>
+            </section>
+          )}
           {due.length > 0 && (
             <section className="card lav" aria-label="지난 고민 돌아보기">
               <h2 className="h3">지난 고민은 어떻게 됐나요?</h2>

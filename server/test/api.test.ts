@@ -3,12 +3,16 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { openDb } from '../src/db/index.ts';
 import { buildApp } from '../src/app.ts';
 import { createAdmin } from '../src/services/seed.ts';
+import * as S from '../src/db/schema.ts';
+import { eq } from 'drizzle-orm';
 
 let app: Awaited<ReturnType<typeof buildApp>>['app'];
 let close: () => Promise<void>;
+let db: any;
 beforeAll(async () => {
   const o = await openDb({ dir: 'memory' });
   close = o.close;
+  db = o.db;
   await createAdmin(o.db, 'boss@test.kr', 'super-secret-1', 'super');
   await createAdmin(o.db, 'staff@test.kr', 'staff-secret-1', 'operator');
   ({ app } = await buildApp({ db: o.db, demo: true }));
@@ -155,6 +159,64 @@ describe('공개 API', () => {
     expect((await app.inject({ url: '/charms', headers: auth(other) })).json()).toHaveLength(0);
     await app.inject({ method: 'DELETE', url: `/charms/${list[0].id}`, headers: auth(g) });
     expect((await app.inject({ url: '/charms', headers: auth(g) })).json()).toHaveLength(4);
+  });
+  it('달빛 편지가 지난 고민을 기억한다(동의한 기록만) → 타임라인에 새기기 → 기억 끄기', async () => {
+    const g = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-recall' } })).json().token;
+    const prof = { id: 'p_recall', ...profile('미선'), main: true };
+    await app.inject({ method: 'POST', url: '/profiles', headers: auth(g), payload: prof });
+    const hidden = (await app.inject({ method: 'POST', url: '/memories', headers: auth(g), payload: { kind: 'consult', category: 'work', title: '숨긴 고민', visibility: 'private', happenedOn: '2026-09-01' } })).json();
+    const m = (await app.inject({ method: 'POST', url: '/memories', headers: auth(g), payload: { kind: 'consult', category: 'work', title: '이직을 앞두고 고민함', happenedOn: '2026-09-20' } })).json();
+    const old = new Date(Date.now() - 3 * 86400000);
+    await db.update(S.memories).set({ createdAt: old }).where(eq(S.memories.id, m.id));
+    await db.update(S.memories).set({ createdAt: new Date(Date.now() - 2 * 86400000) }).where(eq(S.memories.id, hidden.id));
+    const l = (await app.inject({ method: 'POST', url: '/letters', headers: auth(g), payload: { profileId: prof.id, feeling: 'anxious' } })).json();
+    expect(l.body).toContain('9월 20일');
+    expect(l.body).toContain('이직을 앞두고');
+    expect(l.body).not.toContain('숨긴 고민');
+    expect(l.recall).toContain('이직을 앞두고');
+    expect(l.body.length).toBeLessThanOrEqual(250);
+    // 기억 끄기 → 지난 고민을 쓰지 않음
+    const n = (await app.inject({ method: 'POST', url: '/letters', headers: auth(g), payload: { profileId: prof.id, feeling: 'hope', remember: false } })).json();
+    expect(n.recall).toBeNull();
+    expect(n.body).not.toContain('9월 20일');
+    // 타임라인에 새기기(고객이 고를 때만) → 기록 kind=letter, 다시 눌러도 하나
+    const k = (await app.inject({ method: 'POST', url: `/letters/${l.id}/keep`, headers: auth(g) })).json();
+    expect((await app.inject({ method: 'POST', url: `/letters/${l.id}/keep`, headers: auth(g) })).json().memoryId).toBe(k.memoryId);
+    const tl = (await app.inject({ url: '/timeline', headers: auth(g) })).json();
+    expect(tl.items.some((x: any) => x.id === k.memoryId && x.kind === 'letter')).toBe(true);
+    const other = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-recall-2' } })).json().token;
+    expect((await app.inject({ method: 'POST', url: `/letters/${l.id}/keep`, headers: auth(other) })).statusCode).toBe(404);
+    // 마이에서 'AI가 내 기록 참고'를 끄면 편지도 기억하지 않음
+    const h = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-recall-off' } })).json().token;
+    await app.inject({ method: 'POST', url: '/profiles', headers: auth(h), payload: { ...prof, id: 'p_recall_off' } });
+    const hm = (await app.inject({ method: 'POST', url: '/memories', headers: auth(h), payload: { kind: 'consult', category: 'love', title: '연락 고민', happenedOn: '2026-09-21' } })).json();
+    await db.update(S.memories).set({ createdAt: old }).where(eq(S.memories.id, hm.id));
+    const [hu] = await db.select().from(S.memories).where(eq(S.memories.id, hm.id));
+    await db.update(S.users).set({ memoryAI: false }).where(eq(S.users.id, hu.userId));
+    expect((await app.inject({ method: 'POST', url: '/letters', headers: auth(h), payload: { profileId: 'p_recall_off', feeling: 'hope' } })).json().recall).toBeNull();
+  });
+  it('황금 부적 소망 기록: 목표 한 줄 → 타임라인 → 진행 상황 수정 → 이루었어요', async () => {
+    const g = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-wish' } })).json().token;
+    const c = (await app.inject({ method: 'POST', url: '/charms', headers: auth(g), payload: { type: 'business', name: '김민수', wish: '하는 일마다 좋은 기회가 함께하기를', goal: '올해 신규 거래처 3곳 확보' } })).json();
+    expect(c).toMatchObject({ goal: '올해 신규 거래처 3곳 확보', status: 'start' });
+    let tl = (await app.inject({ url: '/timeline', headers: auth(g) })).json();
+    expect(tl.items.find((x: any) => x.kind === 'wish')).toMatchObject({ title: '올해 신규 거래처 3곳 확보', category: 'money' });
+    const p = (await app.inject({ method: 'PATCH', url: `/charms/${c.id}`, headers: auth(g), payload: { status: 'doing', note: '1곳과 첫 계약' } })).json();
+    expect(p).toMatchObject({ status: 'doing', note: '1곳과 첫 계약' });
+    expect(p.progressAt).toBeTruthy();
+    await app.inject({ method: 'PATCH', url: `/charms/${c.id}`, headers: auth(g), payload: { status: 'done' } });
+    tl = (await app.inject({ url: '/timeline', headers: auth(g) })).json();
+    expect(tl.items.find((x: any) => x.kind === 'wish').feedback).toBe('good');
+    const noKeep = (await app.inject({ method: 'POST', url: '/charms', headers: auth(g), payload: { type: 'goal', name: '김민수', wish: '세운 목표를 끝까지 이루어 내기를', keep: false } })).json();
+    expect(noKeep.memoryId).toBeNull();
+    const other = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-wish-2' } })).json().token;
+    expect((await app.inject({ method: 'PATCH', url: `/charms/${c.id}`, headers: auth(other), payload: { status: 'start' } })).statusCode).toBe(404);
+  });
+  it('브라우저 사전 요청(CORS): 기록 수정(PATCH)·삭제(DELETE)가 허용된다', async () => {
+    for (const m of ['PATCH', 'DELETE']) {
+      const r = await app.inject({ method: 'OPTIONS', url: '/charms/x', headers: { origin: 'http://localhost:5391', 'access-control-request-method': m, 'access-control-request-headers': 'authorization,content-type' } });
+      expect(String(r.headers['access-control-allow-methods'])).toContain(m);
+    }
   });
   it('시장 노트: 공개된 것만', async () => {
     expect((await app.inject({ url: '/market' })).json()).toBeNull();

@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastProvider, TabBar } from './components/ui';
 import { track } from './lib/track';
+import { ShareProvider } from './components/share';
 import Home from './pages/Home';
 import ProfileNew from './pages/ProfileNew';
 import Today from './pages/Today';
@@ -36,6 +37,7 @@ export function App() {
     return <Suspense fallback={null}><Routes><Route path="/admin/*" element={<Admin />} /></Routes></Suspense>;
   return (
     <ToastProvider>
+      <ShareProvider>
       <div className="app">
         <Routes>
           <Route path="/" element={<Home />} />
@@ -70,6 +72,7 @@ export function App() {
         </Routes>
         {TAB.includes(loc.pathname) && <TabBar />}
       </div>
+      </ShareProvider>
     </ToastProvider>
   );
 }

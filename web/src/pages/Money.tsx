@@ -9,7 +9,8 @@ import { apiGet } from '../lib/api';
 import { kstMonth, kstToday, kstYear } from '../lib/dates';
 import { Bars, FlowChart, FlowLegend, Moon, Ring, Top, won, useToast } from '../components/ui';
 import { I, Icon, type IconName } from '../components/icons';
-import { saveImage, shareLink, shortLink } from '../lib/share';
+import { saveImage } from '../lib/share';
+import { useShare } from '../components/share';
 import { CharmLink } from './Charm';
 import { track } from '../lib/track';
 import brand from '../../../brand.config.json';
@@ -166,10 +167,8 @@ export function LuckyCard() {
   const card = useRef<HTMLDivElement>(null);
   const toast = useToast();
   const reroll = () => { if (round >= 1) return toast('다른 번호는 하루에 한 번만 받을 수 있어요'); rerollLucky(today); track('lucky_reroll'); };
-  const share = async () => {
-    const url = await shortLink('/money', 'lucky', '달새김 오늘의 재물 보너스', `오늘의 행운번호 ${l.numbers.join(' · ')}`);
-    if ((await shareLink({ title: '달새김 오늘의 재물 보너스', text: `오늘의 행운번호 ${l.numbers.join(' · ')} (재미로!)`, url })) === 'copied') toast('링크를 복사했어요');
-  };
+  const openShare = useShare();
+  const share = () => openShare({ title: '달새김 오늘의 재물 보너스', text: `오늘의 행운번호 ${l.numbers.join(' · ')} (재미로 보는 번호예요)`, path: '/money', contentId: 'lucky' });
   return (
     <section className="card mt24" aria-label="오늘의 재물 보너스" style={{ background: 'linear-gradient(180deg,#fffdfa,#f7efe6)' }}>
       <div ref={card} style={{ padding: 4, background: 'transparent' }}>

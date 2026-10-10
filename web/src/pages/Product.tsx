@@ -9,7 +9,8 @@ import { METHODS, PENDING, isInAppBrowser, phoneOk, purchase, savePhone, savedPh
 import { Moon, Skeleton, Top, won, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
-import { saveImage, shareLink, shortLink } from '../lib/share';
+import { saveImage } from '../lib/share';
+import { useShare } from '../components/share';
 import brand from '../../../brand.config.json';
 
 type Prod = (typeof brand.products)[number];
@@ -194,10 +195,8 @@ export function ReadingPage() {
     await apiAuth('/memories', { method: 'POST', json: { kind: 'reading', category: r.productId.startsWith('money') ? 'money' : ['love_flow', 'gunghap', 'reunion'].includes(r.productId) ? 'love' : 'growth', title: `${r.content.title} 풀이를 받음`, summary: r.content.chapters[0]?.highlight, refId: orderId, profileId: isSample ? null : profile.id } }).catch(() => {});
     setSaved(true); toast('타임라인에 새겼어요');
   };
-  const share = async (text: string) => {
-    const url = await shortLink('/', `reading_${r?.productId}`, `달새김사주 ${r?.content?.title}`, text);
-    if ((await shareLink({ title: '달새김사주', text, url })) === 'copied') toast('링크를 복사했어요');
-  };
+  const openShare = useShare();
+  const share = (text: string) => openShare({ title: `달새김사주 ${r?.content?.title ?? ''}`.trim(), text, path: r ? `/product/${r.productId}` : '/', contentId: `reading_${r?.productId}`, note: '고른 한 문장만 보내요. 풀이 전체와 사주 정보는 나만 볼 수 있어요.' });
   if (err) return <><Top title="풀이" back="/me" /><main className="screen"><p>{err}</p><Link to="/me" className="btn primary">마이로 가기</Link></main></>;
   if (!r || !r.content) return (
     <>

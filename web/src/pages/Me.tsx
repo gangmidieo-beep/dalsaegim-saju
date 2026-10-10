@@ -75,7 +75,7 @@ export default function Me() {
       <Top title="마이" back={false} />
       <main className="screen">
         <section className="card between" style={{ display: 'flex' }}>
-          <div><b>{account ? `${account.name || '회원'} 님` : '로그인 없이 이용 중'}</b><div className="faint">{account ? `${account.provider === 'kakao' ? '카카오' : account.provider === 'naver' ? '네이버' : account.provider === 'google' ? 'Google' : ''} 계정 연결됨` : '로그인하면 다른 기기에서도 기록·풀이가 이어져요'}</div></div>
+          <div><b>{account ? `${account.name || profiles.find((p) => p.id === mainId)?.name || profiles[0]?.name || '회원'} 님` : '로그인 없이 이용 중'}</b><div className="faint">{account ? `${account.provider === 'kakao' ? '카카오' : account.provider === 'naver' ? '네이버' : account.provider === 'google' ? 'Google' : ''} 계정 연결됨` : '로그인하면 다른 기기에서도 기록·풀이가 이어져요'}</div></div>
           {account ? <button className="btn line sm" onClick={() => { setAccount(null); toast('로그아웃했어요'); }}>로그아웃</button> : <button className="btn primary sm" onClick={() => setLogin(true)}>로그인</button>}
         </section>
 
@@ -97,7 +97,7 @@ export default function Me() {
         <section className="mt20">
           <h2 className="h3">나의 달빛 우체통</h2>
           <div className="list mt12">
-            <Link to="/mailbox" className="li"><div className="grow"><div className="t">받은 달빛 편지·황금 부적</div><div className="s">다시 읽고, 다시 듣고, 다시 저장해요 · 카카오톡 도착 알림 설정</div></div><I.right className="chev" /></Link>
+            <Link to="/mailbox" className="li"><div className="grow"><div className="t">받은 달빛 편지 · 나의 소망 부적</div><div className="s">편지 다시 읽기·듣기 · 소망 진행 상황 기록 · 카카오톡 도착 알림</div></div><I.right className="chev" /></Link>
             <Link to="/letter/new" className="li"><div className="grow"><div className="t">나만의 달빛 편지 받기</div><div className="s">상담사가 이름을 불러 주며 쓰는 편지</div></div><I.right className="chev" /></Link>
           </div>
         </section>

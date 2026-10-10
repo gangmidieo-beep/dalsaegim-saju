@@ -262,6 +262,8 @@ export const letters = pgTable('letters', {
   body: text().notNull(),
   ai: boolean().default(false).notNull(),
   costKrw: integer().default(0).notNull(),
+  recall: text(), // 이 편지가 떠올린 지난 고민 한 줄(고객 동의한 기록·지난 편지·소망) — 없으면 null
+  memoryId: text(), // 고객이 [타임라인에 새기기]를 눌러 남긴 기록
   createdAt: now(),
 }, (t) => [index('letters_user').on(t.userId, t.createdAt)]);
 
@@ -273,5 +275,10 @@ export const charms = pgTable('charms', {
   type: text().notNull(), // business | wealth | estate | work | goal
   name: text().notNull(),
   wish: text().notNull(),
+  goal: text(), // 소망과 함께 적은 실제 목표 한 줄(예: 올해 신규 거래처 3곳)
+  status: text().notNull().default('start'), // start(새김) | doing(진행 중) | done(이루었어요)
+  note: text(), // 고객이 직접 남기는 진행 상황 한 줄
+  progressAt: timestamp({ withTimezone: true }), // 마지막으로 진행 상황을 적은 때(다시 묻기 기준)
+  memoryId: text(), // 타임라인 기록(kind=wish)
   createdAt: now(),
 }, (t) => [index('charms_user').on(t.userId)]);

@@ -29,6 +29,13 @@
       "when": 1791554334515,
       "tag": "0003_letters_charms",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791604727817,
+      "tag": "0004_letter_recall_charm_progress",
+      "breakpoints": true
     }
   ]
 }
