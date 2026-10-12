@@ -23,6 +23,9 @@ import { writeLetter } from './services/letter.ts';
 import { SITE } from './services/seed.ts';
 import brand from '../../brand.config.json' with { type: 'json' };
 
+// 결제수단 id → PayApp openpaytype (brand.config.json payMethods, 꺼진 수단·모르는 값은 결제창 기본)
+const payOpenType = (method?: string) => (brand as any).payMethods?.list?.find((m: any) => m.id === method && m.on)?.open as string | undefined;
+
 const WEB = () => process.env.PUBLIC_WEB_ORIGIN || 'http://localhost:5391';
 const API = () => process.env.API_ORIGIN || `http://localhost:${process.env.PORT || 8791}`;
 const UPLOADS = fileURLToPath(new URL('../.data/uploads', import.meta.url));
@@ -256,7 +259,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
       const r = await payappRequest({
         orderId: o.id, amount, goodName: `달새김사주 ${p.title}`, phone,
         returnUrl: `${WEB()}/pay/return?order=${o.id}`, feedbackUrl: `${API()}/pay/payapp/feedback`,
-        openpaytype: b.inApp ? 'kakaopay' : ['kakaopay', 'naverpay'].includes(b.method ?? '') ? b.method : undefined, // 카카오톡·인스타 안 브라우저는 카드창이 막혀서 카카오페이로
+        openpaytype: b.inApp && !b.method ? 'kakaopay' : payOpenType(b.method), // 고른 수단의 결제창을 바로 연다(카카오톡·인스타 안 브라우저 기본은 카카오페이)
       }, env, http);
       await db.update(S.orders).set({ providerRef: r.mulNo }).where(eq(S.orders.id, o.id));
       return { ...o, providerRef: r.mulNo, payUrl: r.payUrl };

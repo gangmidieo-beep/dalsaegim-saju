@@ -57,6 +57,18 @@ describe('PayApp 웹 결제', () => {
       expect((await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'friend_pass', phone: '010-1111-2222' } })).statusCode).toBe(200);
     } finally { process.env.READING_AI = 'live'; }
   });
+  it('고른 결제수단의 결제창을 바로 연다(삼성페이는 카드창, 모르는 값은 기본창)', async () => {
+    const open = async (method?: string, inApp = false) => {
+      await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'friend_pass', phone: '010-1111-2222', method, inApp } });
+      return calls[calls.length - 1].get('openpaytype');
+    };
+    expect(await open('tosspay')).toBe('tosspay');
+    expect(await open('vbank')).toBe('vbank');
+    expect(await open('samsungpay')).toBe('card');
+    expect(await open('bitcoin')).toBeNull();
+    expect(await open(undefined, true)).toBe('kakaopay');
+    expect(await open('naverpay', true)).toBe('naverpay');
+  });
   it('사주 없이·남의 사주로는 주문 불가, 궁합은 두 사람', async () => {
     expect((await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'newyear_2027', phone: '010-1111-2222' } })).json().code).toBe('profile');
     const other = await guest('pay-x');

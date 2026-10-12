@@ -695,3 +695,30 @@ body { font-size: 16.5px; }
 .kst-note { margin: 8px 0 0; padding: 10px 12px; border-radius: 12px; background: #f3eefb; font-size: 14px; color: #4a3f66; }
 .form-err { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: #fdecef; color: #b0476a; font-size: 14.5px; font-weight: 700; }
 .btn.soft-off { opacity: 0.55; }
+
+/* 주문·결제 */
+.co-item { background: var(--paper); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; box-shadow: var(--shadow); }
+.co-title { font-size: 19px; font-weight: 800; color: var(--ink); }
+.co-price { text-align: right; display: grid; justify-items: end; }
+.co-price s { color: var(--ink-3); font-size: 14px; }
+.co-price b { font-size: 24px; font-weight: 800; color: var(--gold-ink); }
+.co-step { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 18px; font-weight: 800; color: var(--ink); }
+.co-step span { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--navy); color: #fff; font-size: 13px; font-weight: 800; }
+.co-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.co-tabs button { min-height: 46px; border-radius: 12px; border: 1.5px solid var(--line-2); background: var(--paper); font-weight: 700; font-size: 15px; color: var(--ink-2); }
+.co-tabs button.on { border-color: var(--navy); background: var(--navy); color: #fff; }
+.co-pay { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 10px 14px; border-radius: 14px; border: 1.5px solid var(--line-2); background: var(--paper); text-align: left; }
+.co-pay b { font-size: 16px; font-weight: 700; color: var(--ink); }
+.co-pay.on { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(15, 27, 61, 0.08); }
+.co-mark { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; font-weight: 900; font-size: 15px; }
+.co-mark.plain { background: var(--lav-soft); color: var(--navy); }
+.co-radio { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line-2); }
+.co-pay.on .co-radio { border: 7px solid var(--navy); }
+.co-total { background: var(--gold-soft); border-radius: var(--r); padding: 18px; }
+.co-total dl { margin: 12px 0 0; display: grid; gap: 8px; }
+.co-total dl div { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+.co-total dt { color: var(--ink-2); }
+.co-total dd { margin: 0; font-weight: 700; color: var(--ink); text-align: right; }
+.co-total .sum { border-top: 1px solid rgba(110, 82, 48, 0.25); padding-top: 10px; margin-top: 2px; }
+.co-total .sum dd { font-size: 22px; font-weight: 800; color: var(--gold-ink); }
+.co-pay .grow { flex: 1; min-width: 0; }

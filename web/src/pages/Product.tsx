@@ -5,7 +5,7 @@ import detail from '@dalsaegim/content/data/detail.json';
 import reading from '@dalsaegim/content/data/reading.json';
 import { useApp, useMain } from '../store/app';
 import { apiAuth } from '../lib/api';
-import { METHODS, PENDING, isInAppBrowser, phoneOk, purchase, savePhone, savedPhone } from '../platform/payments';
+import { PAY_GROUPS, PAY_METHODS, PENDING, isInAppBrowser, methodOf, phoneOk, purchase, savePhone, savedPhone } from '../platform/payments';
 import { Moon, Skeleton, Top, won, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
@@ -88,7 +88,8 @@ export function Checkout() {
   const { profiles, mainId } = useApp();
   const { profile, isSample } = useMain();
   const [pick, setPick] = useState<string[]>(isSample ? [] : [profile.id]);
-  const [method, setMethod] = useState(isInAppBrowser() ? 'kakaopay' : 'card');
+  const [method, setMethod] = useState(() => (isInAppBrowser() && methodOf('kakaopay') ? 'kakaopay' : PAY_METHODS[0]?.id ?? 'card'));
+  const [group, setGroup] = useState(() => methodOf(method)?.group ?? 'card');
   const [phone, setPhone] = useState(savedPhone());
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -109,41 +110,76 @@ export function Checkout() {
     if (r.status === 'paid') { track('pay_success', { product: p.id }); nav(p.kind === 'pass' ? '/friend' : `/reading/${r.orderId}`, { replace: true }); }
     else if (r.status === 'failed') { track('pay_fail', { product: p.id, code: r.code }); toast(r.message ?? '결제를 시작하지 못했어요'); }
   };
+  const m = methodOf(method);
+  const inGroup = PAY_METHODS.filter((x) => x.group === group);
+  const pickGroup = (g: string) => { setGroup(g); const first = PAY_METHODS.find((x) => x.group === g); if (first) setMethod(first.id); };
+  const step = (n: number, t: string) => <h2 className="co-step"><span>{n}</span>{t}</h2>;
   return (
     <>
-      <Top title="결제하기" />
-      <main className="screen">
-        <section className="card between" style={{ display: 'flex' }}>
-          <div><div className="faint">{p.kind === 'pass' ? '이용권' : '풀이'}</div><b>{p.title}</b></div>
-          <b className="serif" style={{ fontSize: 22 }}>{won(p.price)}</b>
+      <Top title="주문·결제" />
+      <main className="screen co">
+        <section className="co-item">
+          <span className="chip sm lav">디지털 콘텐츠</span>
+          <div className="between mt8" style={{ alignItems: 'flex-end' }}>
+            <div><b className="co-title">{p.title}</b><div className="faint mt4">{p.kind === 'pass' ? '30일 이용권 · 결제 즉시 시작' : '결제 후 바로 풀이가 만들어져요'}</div></div>
+            <div className="co-price">{p.listPrice ? <s>{won(p.listPrice)}</s> : null}<b>{won(p.price)}</b></div>
+          </div>
         </section>
         {need > 0 && (
-          <section className="mt20">
-            <div className="between"><h2 className="h3">{need > 1 ? '두 사람을 골라 주세요' : '누구의 사주로 볼까요?'}</h2><Link to={`/profile/new?next=${encodeURIComponent(location.pathname + location.search)}`} className="link">+ 사주 추가</Link></div>
+          <section className="mt24">
+            <div className="between">{step(1, need > 1 ? '두 사람의 사주 정보' : '사주 정보 확인')}<Link to={`/profile/new?next=${encodeURIComponent(location.pathname + location.search)}`} className="link">+ 새로 입력</Link></div>
             {profiles.length === 0 ? (
               <Link to={`/profile/new?next=${encodeURIComponent(location.pathname + location.search)}`} className="btn line mt12">사주 입력하기</Link>
             ) : (
               <div className="stack mt12">
                 {profiles.map((x) => (
-                  <button key={x.id} className={`opt${pick.includes(x.id) ? ' picked' : ''}`} style={{ padding: 14 }} onClick={() => toggle(x.id)}>
+                  <button key={x.id} className={`opt${pick.includes(x.id) ? ' picked' : ''}`} style={{ padding: 14 }} onClick={() => toggle(x.id)} aria-pressed={pick.includes(x.id)}>
                     <b style={{ flex: 1, fontSize: 16 }}>{x.name} <span className="faint">· {x.relation ?? (x.id === mainId ? '나' : '')}</span></b>
-                    <span className="faint">{x.calendar === 'lunar' ? '음' : '양'} {x.year}.{x.month}.{x.day}</span>
+                    <span className="muted small">{x.calendar === 'lunar' ? '음력' : '양력'} {x.year}.{x.month}.{x.day} · {x.hour == null ? '시간 모름' : `${x.hour}시`}</span>
                   </button>
                 ))}
               </div>
             )}
+            {need > 1 && <p className="faint mt8">{pick.length}/{need}명 선택</p>}
             {p.id === 'mbti_deep' && !meta.mbti && <p className="small mt8" style={{ color: '#a83f5c' }}>먼저 <Link to="/mbti" className="link">사주 × MBTI</Link>에서 MBTI를 골라 주세요.</p>}
           </section>
         )}
-        <section className="mt20">
-          <h2 className="h3">결제 수단</h2>
-          <div className="seg mt12">{METHODS.map((m) => <button key={m.id} className={method === m.id ? 'on' : ''} onClick={() => setMethod(m.id)}>{m.label}</button>)}</div>
-          {isInAppBrowser() && <p className="faint mt8">카카오톡·인스타그램 안에서는 카드 결제창이 막힐 수 있어 카카오페이를 추천해요.</p>}
-          <label className="field"><span>결제 안내 문자 받을 휴대폰 번호</span><input className="input" inputMode="tel" value={phone} placeholder="010-0000-0000" onChange={(e) => setPhone(e.target.value)} /></label>
+        <section className="mt24">
+          {step(need > 0 ? 2 : 1, '결제수단')}
+          <div className="co-tabs mt12" role="tablist" aria-label="결제수단 종류">
+            {PAY_GROUPS.map(([g, l]) => <button key={g} role="tab" aria-selected={group === g} className={group === g ? 'on' : ''} onClick={() => pickGroup(g)}>{l}</button>)}
+          </div>
+          <div className="stack mt12" role="radiogroup" aria-label="결제수단">
+            {inGroup.map((x) => (
+              <button key={x.id} role="radio" aria-checked={method === x.id} className={`co-pay${method === x.id ? ' on' : ''}`} onClick={() => setMethod(x.id)}>
+                {x.mark ? <span className="co-mark" style={{ background: x.color, color: x.ink }} aria-hidden>{x.mark}</span> : <span className="co-mark plain" aria-hidden>{x.group === 'phone' ? <I.phone size={18} /> : x.group === 'card' ? <I.card size={18} /> : <I.bank size={18} />}</span>}
+                <span className="grow"><b>{x.label}</b>{x.desc && <span className="faint" style={{ display: 'block', fontSize: 13 }}>{x.desc}</span>}</span>
+                <span className="co-radio" aria-hidden />
+              </button>
+            ))}
+          </div>
+          {isInAppBrowser() && <p className="faint mt8">카카오톡·인스타그램 안에서는 카드 결제창이 막힐 수 있어 간편결제를 추천해요.</p>}
         </section>
-        <label className="check mt20"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-          <span>디지털 콘텐츠 특성상 풀이가 열린 뒤에는 청약철회가 제한됨을 확인했어요. <Link to="/refund" className="link">환불정책</Link></span></label>
+        <section className="mt24">
+          {step(need > 0 ? 3 : 2, '결제 안내 받을 연락처')}
+          <label className="field"><span>휴대폰 번호 (결제 안내 문자)</span><input className="input" inputMode="tel" autoComplete="tel" value={phone} placeholder="010-0000-0000" onChange={(e) => setPhone(e.target.value)} /></label>
+          {phone && !phoneOk(phone) && <p className="small mt4" style={{ color: '#a83f5c' }}>010으로 시작하는 번호를 확인해 주세요</p>}
+          <label className="check mt16"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+            <span>디지털 콘텐츠 특성상 풀이가 열린 뒤에는 청약철회가 제한됨을 확인했어요. <Link to="/refund" className="link">환불정책</Link></span></label>
+        </section>
+        <section className="co-total mt24">
+          {step(need > 0 ? 4 : 3, '최종 확인')}
+          <dl>
+            <div><dt>상품</dt><dd>{p.title}</dd></div>
+            {need > 0 && <div><dt>사주</dt><dd>{pick.length ? pick.map((x) => profiles.find((y) => y.id === x)?.name).join(' · ') : '선택 전'}</dd></div>}
+            <div><dt>결제수단</dt><dd>{m?.label ?? '-'}</dd></div>
+            {p.listPrice ? <div><dt>할인</dt><dd style={{ color: '#a83f5c' }}>-{won(p.listPrice - p.price)}</dd></div> : null}
+            <div className="sum"><dt>총 결제금액</dt><dd>{won(p.price)}</dd></div>
+          </dl>
+          {m?.group === 'vbank' && <p className="faint mt8">결제창에서 발급된 계좌로 입금하면 확인되는 즉시 마이 › 구매한 풀이에 열려요.</p>}
+        </section>
         <button className="btn primary mt20" disabled={!ready || busy} onClick={pay}>{busy ? '결제창을 여는 중…' : `${won(p.price)} 결제하기`}</button>
+        {!ready && !busy && <p className="faint center mt8">{need > 0 && pick.length < need ? '사주 정보를 골라 주세요' : !phoneOk(phone) ? '휴대폰 번호를 입력해 주세요' : !agree ? '안내 확인에 체크해 주세요' : ''}</p>}
         <p className="notice mt12">회원가입 없이 결제할 수 있어요. 로그인하면 다른 기기에서도 풀이를 볼 수 있어요.</p>
       </main>
     </>
