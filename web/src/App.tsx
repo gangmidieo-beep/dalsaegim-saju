@@ -24,7 +24,7 @@ import CharmPage from './pages/Charm';
 const Admin = lazy(() => import('./admin/Admin')); // 관리자는 따로 불러온다
 
 // 하단 탭을 보여 주는 화면(홈·기록·타임라인·마이)
-const TAB = ['/', '/records', '/timeline', '/me'];
+const TAB = ['/', '/all', '/records', '/box', '/me', '/timeline'];
 
 export function App() {
   const loc = useLocation();
@@ -61,6 +61,7 @@ export function App() {
           <Route path="/letter" element={<TodayLetter />} />
           <Route path="/letter/new" element={<NewLetter />} />
           <Route path="/mailbox" element={<Mailbox />} />
+          <Route path="/box" element={<Mailbox box />} />
           <Route path="/mailbox/:id" element={<Mailbox />} />
           <Route path="/charm" element={<CharmPage />} />
           <Route path="/me" element={<Me />} />

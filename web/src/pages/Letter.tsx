@@ -230,13 +230,15 @@ export function NewLetter() {
 }
 
 // ③ 나의 달빛 우체통
-export function Mailbox() {
+export function Mailbox({ box = false }: { box?: boolean }) {
   const { profile, isSample } = useMain();
   const account = useApp((s) => s.account);
   const { id } = useParams();
   const nav = useNavigate();
   const toast = useToast();
-  const [tab, setTab] = useState<'letter' | 'charm'>('letter');
+  const [tab, setTab] = useState<'reading' | 'letter' | 'charm'>(box ? 'reading' : 'letter');
+  const [orders, setOrders] = useState<{ id: string; productId: string; title: string; amount: number; status: string; createdAt: string }[] | null>(null);
+  useEffect(() => { if (tab === 'reading' && orders === null) apiAuth<any[]>('/me/orders').then(setOrders).catch(() => setOrders([])); }, [tab]);
   const [list, setList] = useState<Letter[] | null>(null);
   const [notify, setNotify] = useState(false);
   const [ask, setAsk] = useState(false);
@@ -261,14 +263,32 @@ export function Mailbox() {
   );
   return (
     <>
-      <Top title="나의 달빛 우체통" />
+      <Top title={box ? '보관함' : '나의 달빛 우체통'} back={box ? false : undefined} />
       <main className="screen letter-bg">
         <section className="mailbox-head">
           <img src="/img/ui/letter-env.webp" alt="" />
           <div><b>{isSample ? '나만의 우체통' : `${profile.name}님의 우체통`}</b><span>받은 편지와 부적이 차곡차곡 쌓여요. 나만 볼 수 있어요.</span></div>
         </section>
-        <div className="tabs mt12" role="tablist">{([['letter', '달빛 편지'], ['charm', '황금 부적']] as const).map(([k, l]) => <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
-        {tab === 'charm' ? <CharmList /> : (
+        <div className="tabs mt12" role="tablist">{([['reading', '구매한 운세'], ['letter', '달빛 편지'], ['charm', '황금 부적']] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
+        {tab === 'reading' ? (
+          <div className="stack mt16">
+            {orders === null && <><Skeleton /><Skeleton /></>}
+            {orders?.length === 0 && (
+              <section className="card center">
+                <h3 className="h3">아직 구매한 운세가 없어요</h3>
+                <p className="muted mt8">풀이를 받으면 이곳에 차곡차곡 보관돼요. 언제든 다시 읽을 수 있어요.</p>
+                <Link to="/all" className="btn primary mt12">전체 운세 둘러보기 →</Link>
+              </section>
+            )}
+            {orders?.map((o) => (
+              <Link key={o.id} to={o.productId === 'friend_pass' ? '/friend' : `/reading/${o.id}`} className="mail-row">
+                <span className="box-ic" aria-hidden><I.book size={20} /></span>
+                <span className="grow"><small>{dot(o.createdAt)}{o.status === 'refunded' ? ' · 환불됨' : ''}</small><b>{o.title}</b><span>{o.productId === 'friend_pass' ? 'AI 사주친구 이용권' : '다시 읽기 · 공유하기'}</span></span>
+                <I.right className="chev" />
+              </Link>
+            ))}
+          </div>
+        ) : tab === 'charm' ? <CharmList /> : (
           <>
             {list === null && <div className="stack mt16"><Skeleton /><Skeleton /></div>}
             {list?.length === 0 && (

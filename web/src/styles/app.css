@@ -107,7 +107,7 @@ img { max-width: 100%; display: block; }
 .icon-btn { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; }
 
 /* 하단 탭 */
-.tabbar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; z-index: 30; display: grid; grid-template-columns: repeat(4, 1fr); background: rgba(255, 253, 250, 0.96); backdrop-filter: blur(14px); border-top: 1px solid var(--line); padding-bottom: var(--safe-b); }
+.tabbar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; z-index: 30; display: grid; grid-template-columns: repeat(5, 1fr); background: rgba(255, 253, 250, 0.96); backdrop-filter: blur(14px); border-top: 1px solid var(--line); padding-bottom: var(--safe-b); }
 .tabbar a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 0 8px; font-size: 12px; color: var(--ink-3); font-weight: 600; }
 .tabbar a.active { color: var(--navy); }
 .tabbar a.active svg { color: var(--navy); }
@@ -722,3 +722,48 @@ body { font-size: 16.5px; }
 .co-total .sum { border-top: 1px solid rgba(110, 82, 48, 0.25); padding-top: 10px; margin-top: 2px; }
 .co-total .sum dd { font-size: 22px; font-weight: 800; color: var(--gold-ink); }
 .co-pay .grow { flex: 1; min-width: 0; }
+
+/* 홈 (리뉴얼 시안 v29) */
+.h-top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 10px 20px; background: rgba(251, 247, 244, 0.94); backdrop-filter: blur(8px); }
+.h-top .brand { color: var(--navy); }
+.h-main { padding-top: 6px; }
+.h-hero { position: relative; overflow: hidden; padding: 24px 22px 22px; border-radius: 24px; background: linear-gradient(160deg, #f6f1ea 0%, #e9edf5 55%, #d9e1ee 100%); border: 1px solid #e3e1ea; }
+.h-hero .h-moon { position: absolute; right: 18px; top: 18px; width: 86px; height: 86px; border-radius: 50%; background: radial-gradient(circle at 40% 38%, #fff6dc 0%, #f7dfa6 58%, rgba(247, 223, 166, 0) 72%); }
+.h-hero .h-moon::after { content: ''; position: absolute; inset: 18px 14px 18px 26px; border-radius: 50%; box-shadow: inset 8px -2px 0 0 rgba(203, 160, 82, 0.55); }
+.h-hero small.eyebrow { position: relative; font-size: 11.5px; }
+.h-hero h1 { position: relative; margin: 10px 0 0; font-size: 27px; line-height: 1.35; font-weight: 800; letter-spacing: -0.03em; color: var(--navy); }
+.h-hero h1 em { font-style: normal; color: var(--gold-ink); }
+.h-hero p { position: relative; margin: 10px 0 0; font-size: 15px; line-height: 1.65; color: var(--ink-2); max-width: 260px; }
+.h-hero .btn { width: auto; display: inline-flex; min-height: 48px; font-size: 15px; }
+.h-scores { display: flex; gap: 8px; margin-top: 12px; }
+.h-scores span { padding: 6px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.75); font-size: 14px; color: var(--ink-2); font-weight: 600; }
+.h-scores b { color: var(--navy); font-weight: 800; }
+.h-quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.h-quick a { display: grid; justify-items: center; gap: 8px; padding: 16px 6px 14px; border-radius: 18px; background: var(--paper); border: 1px solid var(--line); font-size: 14px; font-weight: 700; color: var(--ink); text-align: center; }
+.h-quick .qi { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; }
+.h-quick .q1 .qi { background: #eceefb; color: #4a54a8; } .h-quick .q2 .qi { background: #f2ecfb; color: #6a4fb8; } .h-quick .q3 .qi { background: #fdecf1; color: #b33c66; }
+.h-quick .q4 .qi { background: #e6f3ef; color: #2f7a63; } .h-quick .q5 .qi { background: #fdeef3; color: #a83f63; } .h-quick .q6 .qi { background: #fbf1df; color: #8a6424; }
+.h-sec { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+.h-sub { margin: 4px 0 0; font-size: 14px; color: var(--ink-2); }
+.mt28 { margin-top: 28px; }
+.h-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.h-card { display: grid; justify-items: center; gap: 4px; padding: 18px 10px 16px; border-radius: 20px; text-align: center; border: 1px solid rgba(0, 0, 0, 0.04); }
+.h-card .pico { width: 52px; height: 52px; margin-bottom: 4px; }
+.h-card b { font-size: 16px; font-weight: 800; color: var(--ink); }
+.h-card small { font-size: 13px; color: var(--ink-2); }
+.h-card.c1 { background: #fdf3e3; } .h-card.c2 { background: #fcecf2; } .h-card.c3 { background: #f0edfb; } .h-card.c4 { background: #e9f3ef; }
+.h-row { display: flex; align-items: center; gap: 14px; padding: 16px 16px; border-radius: 18px; border: 1px solid rgba(0, 0, 0, 0.04); }
+.h-row .ri { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: rgba(255, 255, 255, 0.7); color: var(--navy); }
+.h-row b { display: block; font-size: 16.5px; font-weight: 800; color: var(--ink); }
+.h-row small { display: block; margin-top: 3px; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+.h-row.letter { background: linear-gradient(120deg, #fdf3ea, #f6e9f3); }
+.h-row.charm { background: linear-gradient(120deg, #17284a, #2a3b60); }
+.h-row.charm b { color: #f6dc9c; } .h-row.charm small { color: #dfe3ef; } .h-row.charm .ri { background: rgba(246, 220, 156, 0.14); color: #f6dc9c; } .h-row.charm svg { color: #f6dc9c; }
+.h-row.tline { background: linear-gradient(120deg, #eaf0f8, #e3e8f3); }
+.box-ic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--gold-soft); color: var(--gold-ink); }
+.me-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.me-tiles a { display: grid; gap: 4px; padding: 16px; border-radius: 18px; background: var(--paper); border: 1px solid var(--line); }
+.me-tiles .ti { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 13px; margin-bottom: 6px; }
+.me-tiles .t1 .ti, .me-tiles .ti.t1 { background: #fbf1df; color: #8a6424; } .me-tiles .ti.t2 { background: #fdeef3; color: #a83f63; } .me-tiles .ti.t3 { background: #eceefb; color: #4a54a8; } .me-tiles .ti.t4 { background: #17284a; color: #f6dc9c; }
+.me-tiles b { font-size: 16px; font-weight: 800; color: var(--ink); }
+.me-tiles small { font-size: 13px; color: var(--ink-2); }

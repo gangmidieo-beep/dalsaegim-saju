@@ -26,8 +26,9 @@ export function Top({ title, dark, back = true, right }: { title?: string; dark?
 
 const TABS = [
   { to: '/', label: '홈', icon: I.home, end: true },
-  { to: '/records', label: '기록', icon: I.book },
-  { to: '/timeline', label: '타임라인', icon: I.timeline },
+  { to: '/all', label: '전체운세', icon: I.moon },
+  { to: '/records', label: '기록', icon: I.edit },
+  { to: '/box', label: '보관함', icon: I.mail },
   { to: '/me', label: '마이', icon: I.user },
 ];
 export function TabBar() {

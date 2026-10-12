@@ -1,5 +1,5 @@
-// 홈 — "오늘, 당신의 운명은?" + 시작 카드 + 4입구(오늘의 운세 / 연애·재회 운세 / AI 사주친구 / 나의 사주지도)
-// + 사랑의 갈림길(연애 고민의 길) + 카테고리 바로가기. 안내 문구는 최소로.
+// 홈 — 대표님 리뉴얼 시안(v29) 구조: 히어로(오늘 점수) → 바로가기 6 → 지금 가장 궁금한 이야기 4
+// → (지난 소망·고민 돌아보기) → 달새김만의 특별한 경험 3 → 더 깊이 알고 싶은 나 4.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMain } from '../store/app';
@@ -12,9 +12,16 @@ import { charmOf } from '@dalsaegim/content';
 import type { Saved } from './Charm';
 
 type Mem = { id: string; title: string; category: string; happenedOn: string };
-const QUICK: [string, string, PicName][] = [
-  ['/path?cat=work', '직장운', 'work'], ['/money', '재물운', 'money'], ['/product/gunghap', '궁합', 'family'],
-  ['/today?tab=health', '건강운', 'health'], ['/product/newyear_2027', '신년운세', 'moon'], ['/all', '전체보기', 'today'],
+const QUICK: [string, string, keyof typeof I, string][] = [
+  ['/today', '오늘의 운세', 'moon', 'q1'], ['/product/month_detail', '월간운세', 'calendar', 'q2'], ['/love', '연애·재회', 'heart', 'q3'],
+  ['/friend', 'AI 사주친구', 'chat', 'q4'], ['/letter', '달빛편지', 'mail', 'q5'], ['/charm', '나의 황금부적', 'charm', 'q6'],
+];
+const CURIOUS: [string, string, string, PicName, string][] = [
+  ['/love', '연애·재회운', '그 사람과 나의 흐름', 'love', 'c1'], ['/money', '재물·사업운', '돈과 기회의 방향', 'money', 'c2'],
+  ['/product/gunghap', '두 사람의 궁합', '우리 관계의 가능성', 'family', 'c3'], ['/product/newyear_2027', '2027 신년운세', '새해의 중요한 시기', 'moon', 'c4'],
+];
+const DEEPER: [string, string, PicName, string][] = [
+  ['/map', '나의 사주지도', 'map', 'c4'], ['/money', '재물운 심층', 'money', 'c2'], ['/mbti', '사주 × MBTI', 'self', 'c3'], ['/path', '운명의 갈림길', 'path', 'c1'],
 ];
 
 export default function Home() {
@@ -47,54 +54,32 @@ export default function Home() {
 
   return (
     <>
-      <section className="night home-hero v2" aria-label="달새김사주">
-        <div className="night-top"><span className="brand" style={{ fontSize: 19 }}><I.moon size={20} />달새김사주</span><Link to="/me" className="icon-btn" aria-label="마이"><I.user /></Link></div>
-        <div className="home-title2">
-          <h1>오늘,<br />당신의 운명은?</h1>
-          <p>사랑의 흐름부터 인생의 중요한 순간까지,<br />달새김이 함께 읽어 드릴게요.</p>
-        </div>
-        <div className="start-card">
+      <header className="h-top"><span className="brand"><I.moon size={20} />달새김사주</span><Link to="/me" className="icon-btn" aria-label="마이"><I.user /></Link></header>
+      <main className="screen h-main">
+        <section className="h-hero" aria-label="달새김사주 시작">
+          <span className="h-moon" aria-hidden />
+          <small className="eyebrow">DALSAEGIM · MOONLIGHT STORY</small>
           {isSample ? (
             <>
-              <p className="row" style={{ gap: 8, margin: 0 }}><I.edit size={18} />생년월일·태어난 시간·성별만 알려 주세요</p>
-              <Link to="/profile/new" className="btn blush mt12">내 사주 입력하고 시작하기 →</Link>
+              <h1>사주로 읽는<br />당신의 인생 이야기</h1>
+              <p>나를 이해하고, 더 좋은 선택을 할 수 있도록.<br />달빛 아래 나만의 이야기를 시작하세요.</p>
+              <Link to="/profile/new" className="btn primary mt16">내 사주 분석하기 →</Link>
             </>
           ) : (
             <>
-              <div className="between"><b style={{ fontSize: 17 }}>{profile.name} 님의 오늘</b><span className="score-pill">{t.total}<small>점</small></span></div>
-              <p className="small" style={{ margin: '6px 0 0', color: '#4a4f6e' }}>{t.headline} · 연애 <b style={{ color: '#b33c66' }}>{t.fields.love.score}</b> · 직장 {t.fields.work.score} · 재물 {t.fields.wealth.score}</p>
-              <Link to="/today" className="btn blush mt12">오늘의 운세 보기 →</Link>
+              <h1>{profile.name} 님의<br />오늘은 <em>{t.total}점</em></h1>
+              <p>{t.headline}</p>
+              <div className="h-scores">{([['연애', t.fields.love.score], ['직장', t.fields.work.score], ['재물', t.fields.wealth.score]] as const).map(([l, v]) => <span key={l}>{l} <b>{v}</b></span>)}</div>
+              <Link to="/today" className="btn primary mt16">오늘의 운세 자세히 보기 →</Link>
             </>
           )}
-        </div>
-        <nav className="doors3" aria-label="핵심 입구">
-          <Door to="/today" cls="y" pic="today" title="오늘의 운세" sub="오늘 하루의 흐름" />
-          <Door to="/love" cls="p" pic="love" title="연애·재회 운세" sub="그 사람과 나의 흐름" />
-          <Door to="/friend" cls="l" pic="friend" title="AI 사주친구" sub="고민을 말로 털어놓기" />
-          <Door to="/map" cls="m" pic="map" title="나의 사주지도" sub="타고난 나와 큰 흐름" />
-        </nav>
-        <Link to="/letter" className="home-letter mt16" aria-label="오늘의 달빛 편지 읽기" onClick={() => track('letter_today_open')}>
-          <small>오늘의 달빛 편지</small>
-          <b>{letter?.title ?? '오늘 밤, 당신에게 온 편지'}</b>
-          <p>{letter?.body ?? '달빛이 조용히 전하는 한 통의 편지를 열어 보세요.'}</p>
-          <span className="go">편지 열어보기 →</span>
-        </Link>
-        <Link to="/path?cat=love" className="love-banner" aria-label="사랑의 갈림길 — 연애 고민의 길">
-          <span><small>연애 고민의 길</small><b>사랑의 갈림길</b><span>지금 그 마음, 사주로 길을 찾아 드려요</span></span>
-          <I.right />
-        </Link>
-        <nav className="quick" aria-label="운세 바로가기">
-          {QUICK.map(([to, l, ic]) => <Link key={to} to={to}><Pic n={ic} size="s" /><span>{l}</span></Link>)}
-        </nav>
-        <Link to="/charm" className="home-charm mt12" aria-label="나만의 황금 달빛 부적 만들기">
-          <span className="ct-thumb" style={{ backgroundImage: 'url(/img/ui/charm-wealth.jpg)' }} />
-          <span className="grow"><b>나만의 황금 달빛 부적</b><span>이름과 소망을 새긴 배경화면 만들기</span></span>
-          <I.right />
-        </Link>
-      </section>
+        </section>
 
+        <nav className="h-quick mt16" aria-label="바로가기">
+          {QUICK.map(([to, l, ic, c]) => { const Ic = I[ic]; return <Link key={to} to={to} className={c}><span className="qi"><Ic size={24} /></span><span>{l}</span></Link>; })}
+        </nav>
       {(due.length > 0 || count >= 3 || wish) && (
-        <main className="home-more">
+        <div className="stack mt16">
           {wish && (
             <section className="card wish-ask" aria-label="지난번 새긴 소망">
               <span className="ct-thumb" style={{ backgroundImage: `url(/img/ui/charm-${wish.type}.jpg)` }} />
@@ -117,24 +102,46 @@ export default function Home() {
               </div>
             </section>
           )}
-          {count >= 3 && (
-            <Link to="/timeline" className="card mt16 between" style={{ display: 'flex' }}>
-              <div className="row"><Pic n="moon" size="s" /><div><b>나의 인생 타임라인</b><div className="faint">기록 {count}개가 새겨졌어요</div></div></div><I.right />
-            </Link>
-          )}
-        </main>
+          
+        </div>
       )}
+
+        <section className="mt28" aria-labelledby="h-curious">
+          <h2 className="h-sec" id="h-curious">지금, 가장 궁금한 이야기</h2>
+          <p className="h-sub">고민에 맞는 운세부터 가볍게 살펴보세요.</p>
+          <div className="h-grid mt12">
+            {CURIOUS.map(([to, t1, t2, pic, c]) => <Link key={t1} to={to} className={`h-card ${c}`}><Pic n={pic} /><b>{t1}</b><small>{t2}</small></Link>)}
+          </div>
+        </section>
+
+        <section className="mt28" aria-labelledby="h-special">
+          <h2 className="h-sec" id="h-special">달새김만의 특별한 경험</h2>
+          <p className="h-sub">한 번의 풀이에서 끝나지 않는 나만의 기록</p>
+          <div className="stack mt12">
+            <Link to="/letter" className="h-row letter" onClick={() => track('letter_today_open')}>
+              <span className="ri"><I.mail size={22} /></span>
+              <span className="grow"><b>달빛편지</b><small>{letter ? `오늘의 편지 · ${letter.title}` : '지금의 마음을 편지로 남기고 시간이 흐른 뒤 다시 읽어보세요'}</small></span><I.right size={18} />
+            </Link>
+            <Link to="/charm" className="h-row charm">
+              <span className="ri"><I.charm size={22} /></span>
+              <span className="grow"><b>나만의 황금부적</b><small>건강·가족·합격·사업·인연의 소망을 담아 완성하고 부적함에 보관해요</small></span><I.right size={18} />
+            </Link>
+            <Link to="/timeline" className="h-row tline">
+              <span className="ri"><I.timeline size={22} /></span>
+              <span className="grow"><b>내 인생의 타임라인</b><small>{count >= 1 ? `새겨진 순간 ${count}개 · 시간에 따른 변화를 돌아보세요` : '중요한 순간과 선택을 기록하고 시간에 따른 변화를 돌아보세요'}</small></span><I.right size={18} />
+            </Link>
+          </div>
+        </section>
+
+        <section className="mt28" aria-labelledby="h-deeper">
+          <h2 className="h-sec" id="h-deeper">더 깊이 알고 싶은 나</h2>
+          <div className="h-grid mt12">
+            {DEEPER.map(([to, t1, pic, c]) => <Link key={t1} to={to} className={`h-card ${c}`}><Pic n={pic} /><b>{t1}</b><small>자세히 살펴보기 ↗</small></Link>)}
+          </div>
+        </section>
+      </main>
       <Foot />
     </>
   );
 }
 
-function Door({ to, cls, pic, title, sub }: { to: string; cls: string; pic: PicName; title: string; sub: string }) {
-  return (
-    <Link to={to} className={`door3 ${cls}`}>
-      <Pic n={pic} />
-      <span className="grow"><b>{title}</b><small>{sub}</small></span>
-      <I.right size={16} />
-    </Link>
-  );
-}

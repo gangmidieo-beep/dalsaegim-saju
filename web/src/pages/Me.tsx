@@ -80,12 +80,12 @@ export default function Me() {
         </section>
 
         <section className="mt20">
-          <div className="between"><h2 className="h3">사주</h2><Link to="/profile/new" className="link">+ 추가</Link></div>
+          <div className="between"><h2 className="h3">사주 정보</h2><Link to="/profile/new" className="link">+ 추가</Link></div>
           <div className="list mt12">
             {profiles.length === 0 && <Link to="/profile/new" className="li"><div className="grow"><div className="t">내 사주 입력하기</div><div className="s">생년월일만 있으면 바로 시작해요</div></div><I.right className="chev" /></Link>}
             {profiles.map((p) => (
               <div key={p.id} className="li">
-                <button aria-label="대표 사주로" onClick={() => setMain(p.id)} style={{ color: p.id === mainId ? 'var(--gold-2)' : 'var(--line-2)', fontSize: 18 }}>★</button>
+                <button aria-label="대표 사주로" onClick={() => setMain(p.id)} style={{ color: p.id === mainId ? 'var(--gold-ink)' : 'var(--line-2)', fontSize: 18 }}>★</button>
                 <div className="grow"><div className="t">{p.name} <span className="faint">· {p.relation ?? '나'}{p.mbti ? ` · ${p.mbti}` : ''}</span></div><div className="s">{p.calendar === 'lunar' ? '음력' : '양력'} {p.year}.{p.month}.{p.day}{p.hour == null ? ' · 시간 모름' : ''}</div></div>
                 <Link to={`/profile/${p.id}/edit`} className="icon-btn" aria-label="고치기"><I.edit size={18} /></Link>
                 <button className="icon-btn" aria-label="지우기" onClick={() => del(p.id)}><I.close size={18} /></button>
@@ -94,24 +94,25 @@ export default function Me() {
           </div>
         </section>
 
-        <section className="mt20">
-          <h2 className="h3">나의 달빛 우체통</h2>
-          <div className="list mt12">
-            <Link to="/mailbox" className="li"><div className="grow"><div className="t">받은 달빛 편지 · 나의 소망 부적</div><div className="s">편지 다시 읽기·듣기 · 소망 진행 상황 기록 · 카카오톡 도착 알림</div></div><I.right className="chev" /></Link>
-            <Link to="/letter/new" className="li"><div className="grow"><div className="t">나만의 달빛 편지 받기</div><div className="s">상담사가 이름을 불러 주며 쓰는 편지</div></div><I.right className="chev" /></Link>
+        <section className="mt20" aria-labelledby="me-box">
+          <h2 className="h3" id="me-box">나의 달새김</h2>
+          <div className="me-tiles mt12">
+            <Link to="/box"><span className="ti t1"><I.book size={22} /></span><b>구매한 운세</b><small>{orders.length ? `${orders.length}건 보관 중` : '결과가 이곳에 저장돼요'}</small></Link>
+            <Link to="/mailbox"><span className="ti t2"><I.mail size={22} /></span><b>달빛 우체통</b><small>받은 편지·감정 기록</small></Link>
+            <Link to="/records"><span className="ti t3"><I.edit size={22} /></span><b>나의 기록</b><small>지난 선택과 하루의 마음</small></Link>
+            <Link to="/charm"><span className="ti t4"><I.charm size={22} /></span><b>황금부적함</b><small>소망과 변화 기록</small></Link>
           </div>
-        </section>
-
-        <section className="mt20">
-          <h2 className="h3">구매한 풀이</h2>
-          <div className="list mt12">
-            {orders.length === 0 && <div className="li faint">아직 받은 풀이가 없어요</div>}
-            {orders.map((o) => (
-              <Link key={o.id} to={o.productId === 'friend_pass' ? '/friend' : `/reading/${o.id}`} className="li">
-                <div className="grow"><div className="t">{o.title}</div><div className="s">{new Date(o.createdAt).toLocaleDateString('ko-KR')} · {won(o.amount)}{o.status === 'refunded' ? ' · 환불됨' : ''}</div></div><I.right className="chev" />
-              </Link>
-            ))}
-          </div>
+          {orders.length > 0 && (
+            <div className="list mt12">
+              {orders.slice(0, 3).map((o) => (
+                <Link key={o.id} to={o.productId === 'friend_pass' ? '/friend' : `/reading/${o.id}`} className="li">
+                  <div className="grow"><div className="t">{o.title}</div><div className="s">{new Date(o.createdAt).toLocaleDateString('ko-KR')} · {won(o.amount)}{o.status === 'refunded' ? ' · 환불됨' : ''}</div></div><I.right className="chev" />
+                </Link>
+              ))}
+              {orders.length > 3 && <Link to="/box" className="li"><div className="grow t">구매한 운세 전체 보기</div><I.right className="chev" /></Link>}
+            </div>
+          )}
+          <Link to="/letter/new" className="card flat mt12 between" style={{ display: 'flex' }}><span><b>나만의 달빛 편지 받기</b><span className="faint" style={{ display: 'block' }}>상담사가 이름을 불러 주며 쓰는 편지</span></span><I.right /></Link>
         </section>
 
         <section className="mt20">
