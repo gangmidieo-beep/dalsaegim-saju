@@ -848,3 +848,11 @@ textarea.input { min-height: 88px; padding: 12px 14px; line-height: 1.6; resize:
 .ab-col b { font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.35; }
 .ab-fit { margin-top: 6px; justify-self: start; padding: 4px 10px; border-radius: 999px; background: #fff; font-size: 13px; font-weight: 700; color: var(--navy); border: 1px solid var(--line-2); }
 .field > .qchips { margin-top: 8px; }
+
+.mbti-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.mbti-grid button { min-height: 50px; border-radius: 12px; background: var(--paper); border: 1.5px solid var(--line-2); font-size: 16px; font-weight: 800; letter-spacing: 0.02em; color: var(--ink); }
+.mbti-grid button:hover, .mbti-grid button:focus-visible { border-color: var(--navy); }
+.soon-card { padding: 18px; border-radius: 18px; background: #fff8ef; border: 1px solid #f0e0c4; }
+.soon-card > small { font-size: 11.5px; letter-spacing: 0.1em; font-weight: 800; color: var(--gold-ink); }
+.soon-tile { display: grid; justify-items: center; gap: 4px; padding: 14px 8px; border-radius: 14px; background: #fff; border: 1px solid var(--line); text-align: center; }
+.soon-tile span { font-size: 24px; } .soon-tile b { font-size: 15px; font-weight: 800; } .soon-tile small { font-size: 12px; color: var(--ink-2); }

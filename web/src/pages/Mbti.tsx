@@ -44,10 +44,20 @@ export default function Mbti() {
           <section className="fade-in">
             <h2 className="h2">나의 MBTI를 골라 주세요</h2>
             <p className="muted small mt4">타고난 사주의 기운과 지금의 성향이 어떻게 만나는지 보여 드려요.</p>
-            <div className="grid2 mt16" style={{ gridTemplateColumns: 'repeat(4,1fr)', gap: 8 }}>
-              {MBTI_TYPES.map((t) => <button key={t} className="chip" style={{ justifyContent: 'center', padding: '12px 0' }} onClick={() => pick(t)}>{t}</button>)}
+            <div className="mbti-grid mt16" role="group" aria-label="MBTI 16유형">
+              {MBTI_TYPES.map((t) => <button key={t} onClick={() => pick(t)}>{t}</button>)}
             </div>
             <button className="btn line mt16" onClick={() => setQuiz([])}>잘 모르겠어요 · 12문항으로 알아보기</button>
+            <section className="soon-card mt24" aria-label="추후 제공 콘텐츠">
+              <small>COMING LATER · 부가 서비스</small>
+              <h3 className="h3 mt4">사진으로 보는 운세</h3>
+              <p className="faint mt4">손금·관상은 사주와 나눠, 추후 고를 수 있는 콘텐츠로 준비하고 있어요.</p>
+              <div className="grid2 mt12">
+                <div className="soon-tile"><span aria-hidden>✋</span><b>손금 이야기</b><small>손바닥 촬영 가이드 · 해석 예시</small></div>
+                <div className="soon-tile"><span aria-hidden>◯</span><b>관상 이야기</b><small>얼굴 촬영 가이드 · 해석 예시</small></div>
+              </div>
+              <p className="faint mt8" style={{ fontSize: 13 }}>지금은 사진을 받지 않아요. 건강·성격·미래를 과학적으로 판정하지 않아요.</p>
+            </section>
           </section>
         ) : (
           <section className="fade-in">
