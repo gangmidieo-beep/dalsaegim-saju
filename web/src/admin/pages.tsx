@@ -63,7 +63,9 @@ export function Dashboard() {
       {data && (
         <>
           <div className="ad-cards">
-            <Card label="방문자" value={data.cards.visitors.toLocaleString('ko-KR')} />
+            <Card label="오늘 방문자" value={(data.cards.today_visitors ?? 0).toLocaleString('ko-KR')} />
+            <Card label="기간 방문자" value={data.cards.visitors.toLocaleString('ko-KR')} />
+            <Card label="누적 방문자" value={(data.cards.total_visitors ?? 0).toLocaleString('ko-KR')} />
             <Card label="신규가입" value={data.cards.signups.toLocaleString('ko-KR')} />
             <Card label="AI 친구 이용권(현재)" value={data.cards.passes.toLocaleString('ko-KR')} />
             <Card label="결제건수" value={data.cards.orders.toLocaleString('ko-KR')} />

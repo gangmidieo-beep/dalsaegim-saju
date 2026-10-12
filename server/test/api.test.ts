@@ -256,6 +256,8 @@ describe('관리자 API', () => {
   });
   it('대시보드·회원·결제·구독·통계', async () => {
     const d = (await app.inject({ url: '/admin/api/dashboard?period=month', headers: auth(staff) })).json();
+    expect(d.cards.total_visitors).toBeGreaterThanOrEqual(d.cards.visitors); // 누적 방문자 ≥ 기간 방문자
+    expect(d.cards.today_visitors).toBeGreaterThanOrEqual(0);
     expect(d.cards.signups).toBeGreaterThan(0);
     expect(d.daily.length).toBeGreaterThan(0);
     expect(Object.keys(d.byKind).length).toBeGreaterThan(1);

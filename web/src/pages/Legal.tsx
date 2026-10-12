@@ -1,23 +1,32 @@
 // 이용약관 · 개인정보처리방침 · 환불정책 — 사업자 정보는 brand.config.json business 에서(오픈 전 대표님 정보로 채움)
-import type { ReactNode } from 'react';
+import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { Top } from '../components/ui';
 import brand from '../../../brand.config.json';
 
 const B = brand.business;
 const svc = brand.serviceName;
 function Doc({ title, children }: { title: string; children: ReactNode }) {
+  // 목차 — 본문 제목(H)만 모아 바로가기로
+  const heads = Children.toArray(children).filter((c): c is ReactElement<{ children: ReactNode }> => isValidElement(c) && c.type === H).map((c) => String(c.props.children));
   return (
     <>
       <Top title={title} />
-      <main className="screen read" style={{ fontSize: 15 }}>
+      <main className="screen read legal" style={{ fontSize: 15.5 }}>
         <h1 className="h2">{title}</h1>
         <p className="faint">시행일 2026년 11월 1일 · {B.name}</p>
+        {heads.length > 2 && (
+          <nav className="legal-toc mt16" aria-label="목차">
+            <b>목차</b>
+            <ol>{heads.map((h) => <li key={h}><a href={`#${slug(h)}`}>{h}</a></li>)}</ol>
+          </nav>
+        )}
         {children}
       </main>
     </>
   );
 }
-const H = ({ children }: { children: ReactNode }) => <h2 className="h3 mt24" style={{ fontFamily: 'var(--sans)' }}>{children}</h2>;
+const slug = (t: string) => `s-${t.replace(/[^0-9a-zA-Z가-힣]+/g, '-')}`;
+function H({ children }: { children: ReactNode }) { return <h2 id={slug(String(children))} className="h3 mt24" style={{ scrollMarginTop: 70 }}>{children}</h2>; }
 
 export const Terms = () => (
   <Doc title="이용약관">

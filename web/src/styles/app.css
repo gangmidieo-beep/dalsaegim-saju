@@ -893,3 +893,6 @@ textarea.input { min-height: 88px; padding: 12px 14px; line-height: 1.6; resize:
 .lucky p { margin: 6px 0 0; font-size: 14px; color: #e3e6f2; } .lucky p b { color: #f6dc9c; margin-right: 6px; }
 .lucky .faint { color: #aab2cc; }
 .chip.gold-c { background: var(--gold-soft); color: var(--gold-ink); border-color: transparent; font-weight: 800; }
+.legal p { line-height: 1.85; color: var(--ink); }
+.legal-toc { padding: 14px 16px; border-radius: 14px; background: var(--paper); border: 1px solid var(--line); }
+.legal-toc b { font-size: 14px; } .legal-toc ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14.5px; } .legal-toc a { color: var(--lav-ink); }

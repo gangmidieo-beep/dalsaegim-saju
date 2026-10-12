@@ -26,6 +26,8 @@ export async function dashboard(db: Db, r: { from: string; to: string }) {
   const [cards] = await rows<any>(db, sql`
     select
       (select count(distinct coalesce(user_id, session_id)) from events e where e.name = 'page_view' and ${inRange(sql`e.created_at`, r)})::int as visitors,
+      (select count(distinct coalesce(user_id, session_id)) from events e where e.name = 'page_view' and (e.created_at at time zone ${KST})::date = (now() at time zone ${KST})::date)::int as today_visitors,
+      (select count(distinct coalesce(user_id, session_id)) from events e where e.name = 'page_view')::int as total_visitors,
       (select count(*) from users u where ${inRange(sql`u.created_at`, r)})::int as signups,
       (select count(*) from subscriptions s where s.status in ('active','grace') and s.expires_at > now())::int as passes,
       (select count(*) from orders o where o.status = 'paid' and ${inRange(sql`o.created_at`, r)})::int as orders,
