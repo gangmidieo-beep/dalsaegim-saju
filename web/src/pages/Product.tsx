@@ -26,42 +26,65 @@ const FREE: Record<string, string[]> = {
 };
 const findP = (id?: string) => brand.products.find((p) => p.id === id) as Prod | undefined;
 
+type Detail = { sub: string; target: string[]; why: string; sample?: { title: string; body: string; q: string } };
 export function ProductDetail() {
   const { id } = useParams();
   const [sp] = useSearchParams();
   const p = findP(id);
-  const d = (detail as Record<string, { sub: string; target: string[]; why: string }>)[id ?? ''];
+  const { isSample } = useMain();
+  const d = (detail as Record<string, Detail>)[id ?? ''];
   const ch = (reading.chapters as Record<string, string[]>)[id ?? ''];
   useEffect(() => { if (p) track('product_view', { product: p.id }); }, [p?.id]);
   if (!p || !p.visible) return <><Top title="풀이" /><main className="screen"><p>없는 상품이에요.</p><Link to="/" className="btn primary">홈으로</Link></main></>;
   const q = sp.toString();
+  const go = `/checkout/${p.id}${q ? `?${q}` : ''}`;
+  const STEPS = p.kind === 'pass' ? ['상담사 선택', '내 사주 연결', '대화형 상담', '한 줄 기록'] : ['사주 정보', '명리 해석', '심층 결과', '나의 기록'];
   return (
     <>
       <Top title={p.title} />
-      <main className="screen">
-        <section className="card navy" style={{ position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', right: -14, top: -14, opacity: 0.7 }}><Moon size={110} /></div>
-          {p.badge && <span className="badge">{p.badge}</span>}
-          <h2 className="h1 mt8" style={{ fontSize: 24 }}>{p.title}</h2>
-          <p className="mt8" style={{ color: '#d9d6ea', margin: '8px 0 0' }}>{d?.sub ?? p.cardCopy}</p>
-          <div className="mt16 row" style={{ alignItems: 'baseline', gap: 8 }}>
-            {p.listPrice && <span style={{ textDecoration: 'line-through', color: '#9a97b3' }}>{won(p.listPrice)}</span>}
-            <b className="serif" style={{ fontSize: 26, color: '#F2DCCB' }}>{won(p.price)}</b>
+      <main className="screen pd">
+        <section className="pd-hero">
+          <span className="pd-moon" aria-hidden />
+          <small className="pd-eye">DALSAEGIM · PREMIUM READING</small>
+          {p.badge && <span className="badge mt8" style={{ display: 'inline-block' }}>{p.badge}</span>}
+          <h2>{p.title}</h2>
+          <p>{d?.sub ?? p.cardCopy}</p>
+          <div className="pd-price">
+            {p.listPrice && <span className="was"><s>{won(p.listPrice)}</s><em>{Math.round((1 - p.price / p.listPrice) * 100)}% 할인</em></span>}
+            <b>{won(p.price)}</b>
           </div>
         </section>
-        {d && (
-          <>
-            <section className="card mt16"><h3 className="h3">이런 분께 필요해요</h3>{d.target.map((t) => <p key={t} className="small" style={{ margin: '8px 0 0' }}>✓ {t}</p>)}</section>
-            <section className="card flat mt12"><h3 className="h3">지금 봐야 하는 이유</h3><p className="small mt8" style={{ margin: '8px 0 0' }}>{d.why}</p></section>
-          </>
-        )}
+
+        <ol className="pd-steps mt16" aria-label="이용 순서">
+          {STEPS.map((t, i) => <li key={t} className={i === 0 && !isSample && p.kind !== 'pass' ? 'done' : ''}><span>{i === 0 && !isSample && p.kind !== 'pass' ? '✓' : `0${i + 1}`}</span>{t}</li>)}
+        </ol>
+
         {ch && (
-          <section className="card mt12">
-            <h3 className="h3">담기는 내용 · {ch.length}장</h3>
-            <ol className="small mt8" style={{ paddingLeft: 20, margin: '8px 0 0', lineHeight: 1.9 }}>{ch.map((c) => <li key={c}>{c}</li>)}</ol>
-            <p className="faint mt8">무료로 본 지수·좋은 달과 같은 계산을 바탕으로, 내 사주에 맞춰 새로 써요.</p>
+          <section className="card mt16" aria-labelledby="pd-guide">
+            <small className="pd-eye dark">READING GUIDE</small>
+            <h3 className="h3 mt4" id="pd-guide">이 리포트에서 확인할 내용 · {ch.length}장</h3>
+            <ol className="pd-toc mt12">{ch.map((c, i) => <li key={c}><span>{String(i + 1).padStart(2, '0')}</span>{c}</li>)}</ol>
           </section>
         )}
+
+        {d?.sample && (
+          <section className="pd-sample mt12" aria-labelledby="pd-sample">
+            <small className="pd-eye dark">PREMIUM SAMPLE · 서술 방식</small>
+            <h3 className="h3 mt4" id="pd-sample">{d.sample.title}</h3>
+            <p>{d.sample.body}</p>
+            <div className="pd-q"><small>나에게 남기는 질문</small><b>{d.sample.q}</b></div>
+          </section>
+        )}
+
+        {d && (
+          <section className="card mt12">
+            <h3 className="h3">이런 분께 필요해요</h3>
+            {d.target.map((t) => <p key={t} className="pd-check">{t}</p>)}
+            <h3 className="h3 mt16">지금 봐야 하는 이유</h3>
+            <p className="small mt8" style={{ margin: '8px 0 0' }}>{d.why}</p>
+          </section>
+        )}
+
         <section className="card mt12" aria-label="무료와 유료 비교">
           <h3 className="h3">무료와 결제 후, 무엇이 다른가요?</h3>
           <div className="cmp mt12">
@@ -69,13 +92,23 @@ export function ProductDetail() {
             <div className="paid"><small>결제 후 받는 것</small>
               {p.kind === 'pass'
                 ? <><p>· 30일 동안 횟수 제한 없이 상담</p><p>· 상담 기록을 이어서 기억하는 상담</p><p>· 기간이 끝나면 자동 결제되지 않아요</p></>
-                : <><p>· 내 사주 맞춤 상세 풀이 {ch?.length ?? ''}장</p><p>· 좋은 시기·조심할 시기와 그 이유</p><p>· 바로 할 수 있는 조언</p><p>· 언제든 다시 보기(마이 &gt; 구매한 풀이)</p></>}
+                : <><p>· 내 사주 맞춤 상세 풀이 {ch?.length ?? ''}장</p><p>· 좋은 시기·조심할 시기와 그 이유</p><p>· 바로 할 수 있는 조언</p><p>· 언제든 다시 보기(보관함)</p></>}
             </div>
           </div>
-          <Link to="/refund" className="link mt8" style={{ display: 'inline-block', fontSize: 14 }}>환불정책 보기</Link>
         </section>
-        <p className="notice mt12">결제 후 바로 이 사이트에서 열려요 · 회원가입 없이 결제 가능 · 풀이는 마이 &gt; 구매한 풀이에서 다시 볼 수 있어요</p>
-        <Link to={`/checkout/${p.id}${q ? `?${q}` : ''}`} className="btn primary mt16">{p.kind === 'pass' ? '이용권 시작하기' : '풀이 받기'} · {won(p.price)}</Link>
+
+        {p.kind !== 'pass' && (
+          <section className="card flat mt12" aria-labelledby="pd-basis">
+            <h3 className="h3" id="pd-basis">해석 근거 안내</h3>
+            <p className="small mt8" style={{ margin: '8px 0 0' }}>생년월일시·양력/음력·윤달·절기를 반영해 계산한 사주원국·오행·십성·대운만 근거로 씁니다. 계산하지 않은 점수·순위·수익률은 만들지 않아요. 운세는 자기 이해를 돕는 참고 정보예요.</p>
+            <Link to="/refund" className="link mt8" style={{ display: 'inline-block', fontSize: 14 }}>환불정책 보기</Link>
+          </section>
+        )}
+        <p className="notice mt12">결제 후 바로 이 사이트에서 열려요 · 회원가입 없이 결제 가능 · 보관함에서 언제든 다시 볼 수 있어요</p>
+        <div className="pd-cta">
+          <span><small>콘텐츠 이용금액</small><b>{won(p.price)}</b></span>
+          <Link to={go} className="btn primary">{p.kind === 'pass' ? '이용권 시작하기' : '상세 풀이 받기'} →</Link>
+        </div>
       </main>
     </>
   );

@@ -767,3 +767,38 @@ body { font-size: 16.5px; }
 .me-tiles .t1 .ti, .me-tiles .ti.t1 { background: #fbf1df; color: #8a6424; } .me-tiles .ti.t2 { background: #fdeef3; color: #a83f63; } .me-tiles .ti.t3 { background: #eceefb; color: #4a54a8; } .me-tiles .ti.t4 { background: #17284a; color: #f6dc9c; }
 .me-tiles b { font-size: 16px; font-weight: 800; color: var(--ink); }
 .me-tiles small { font-size: 13px; color: var(--ink-2); }
+
+/* 상품 상세 (프리미엄 리딩 틀) */
+.pd { padding-bottom: calc(110px + var(--safe-b)); }
+.pd-hero { position: relative; overflow: hidden; padding: 24px 20px 20px; border-radius: 22px; background: linear-gradient(155deg, #13244a 0%, #22355e 70%, #2d4170 100%); color: #fff; }
+.pd-moon { position: absolute; right: -10px; top: -10px; width: 120px; height: 120px; border-radius: 50%; box-shadow: inset 16px -6px 0 0 rgba(242, 216, 160, 0.55); opacity: 0.8; }
+.pd-eye { font-size: 11.5px; letter-spacing: 0.1em; font-weight: 800; color: #e9cf98; }
+.pd-eye.dark { color: var(--gold-ink); }
+.pd-hero h2 { position: relative; margin: 8px 0 0; font-size: 26px; line-height: 1.3; font-weight: 800; letter-spacing: -0.02em; }
+.pd-hero p { position: relative; margin: 8px 0 0; font-size: 15px; color: #e3e6f2; }
+.pd-price { margin-top: 16px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.pd-price .was { display: inline-flex; gap: 6px; align-items: baseline; }
+.pd-price s { color: #b9bfd6; font-size: 15px; }
+.pd-price em { font-style: normal; font-weight: 800; color: #ffb3c8; font-size: 14px; }
+.pd-price b { font-size: 28px; font-weight: 800; color: #f6dc9c; }
+.pd-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.pd-steps li { display: grid; justify-items: center; gap: 4px; font-size: 12.5px; font-weight: 700; color: var(--ink-2); text-align: center; }
+.pd-steps span { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--line-2); font-size: 12px; color: var(--ink-2); }
+.pd-steps li.done span { background: var(--navy); border-color: var(--navy); color: #fff; }
+.pd-toc { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.pd-toc li { display: flex; gap: 12px; align-items: baseline; padding: 10px 0; border-top: 1px solid var(--line); font-size: 15.5px; font-weight: 600; color: var(--ink); }
+.pd-toc li:first-child { border-top: 0; }
+.pd-toc span { flex: none; font-size: 13px; font-weight: 800; color: var(--gold-ink); }
+.pd-sample { padding: 20px 18px; border-radius: var(--r); background: #fffaf2; border: 1px solid #efe2cc; }
+.pd-sample p { margin: 10px 0 0; font-size: 15.5px; line-height: 1.8; color: var(--ink); }
+.pd-q { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: #fff; border-left: 3px solid var(--gold); }
+.pd-q small { display: block; font-size: 12.5px; font-weight: 700; color: var(--gold-ink); }
+.pd-q b { display: block; margin-top: 2px; font-size: 15.5px; color: var(--navy); }
+.pd-check { margin: 8px 0 0; padding-left: 24px; position: relative; font-size: 15px; color: var(--ink); }
+.pd-check::before { content: '✓'; position: absolute; left: 2px; color: var(--good); font-weight: 900; }
+.pd-cta { position: fixed; left: 50%; transform: translateX(-50%); bottom: 0; width: 100%; max-width: 480px; z-index: 25; display: flex; align-items: center; gap: 12px; padding: 12px 16px calc(12px + var(--safe-b)); background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(8px); border-top: 1px solid var(--line); }
+.pd-cta span { display: grid; flex: none; }
+.pd-cta small { font-size: 12px; color: var(--ink-2); }
+.pd-cta b { font-size: 20px; font-weight: 800; color: var(--gold-ink); }
+.pd-cta .btn { flex: 1; min-height: 52px; }
+.pd-eye { display: block; } .pd-hero .badge { position: relative; }
