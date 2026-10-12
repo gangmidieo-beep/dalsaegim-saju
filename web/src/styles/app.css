@@ -802,3 +802,31 @@ body { font-size: 16.5px; }
 .pd-cta b { font-size: 20px; font-weight: 800; color: var(--gold-ink); }
 .pd-cta .btn { flex: 1; min-height: 52px; }
 .pd-eye { display: block; } .pd-hero .badge { position: relative; }
+
+/* AI 사주친구 — 상담사 고르기(리뉴얼 시안) */
+.pk-title { margin: 6px 0 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); }
+.pk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pk-card { display: grid; text-align: left; border-radius: 18px; overflow: hidden; background: var(--paper); border: 1.5px solid var(--line); transition: transform 0.15s, box-shadow 0.15s; }
+.pk-card.on { border-color: #c79a4a; box-shadow: 0 0 0 3px rgba(199, 154, 74, 0.2), 0 8px 20px rgba(27, 31, 59, 0.1); transform: translateY(-1px); }
+.pk-img { position: relative; display: block; aspect-ratio: 4 / 3.4; overflow: hidden; background: #1d2238; }
+.pk-img img { width: 100%; height: 100%; object-fit: cover; object-position: center 22%; }
+.pk-img em { position: absolute; left: 8px; top: 8px; padding: 3px 9px; border-radius: 999px; background: #ffe3ec; color: #93304f; font-style: normal; font-size: 11.5px; font-weight: 800; }
+.pk-body { display: grid; gap: 2px; padding: 10px 12px 12px; }
+.pk-body b { font-size: 17px; font-weight: 800; color: var(--ink); }
+.pk-body .t { font-size: 13px; font-weight: 800; color: #a0612e; }
+.pk-body small { font-size: 12.5px; line-height: 1.45; color: var(--ink-2); }
+.pk-greet { padding: 16px; border-radius: 16px; background: #fff7ec; border: 1px solid #f0e0c4; }
+.pk-greet b { font-size: 15px; font-weight: 800; color: var(--ink); }
+.pk-greet p { margin: 6px 0 0; font-size: 15px; line-height: 1.6; color: var(--ink-2); }
+.pk-topics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pk-topics button { min-height: 44px; padding: 6px 4px; border-radius: 12px; background: var(--paper); border: 1.5px solid var(--line-2); font-size: 14px; font-weight: 700; color: var(--ink); }
+.pk-topics button.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+textarea.input { min-height: 88px; padding: 12px 14px; line-height: 1.6; resize: vertical; }
+.friend-stage.v2 { background: radial-gradient(120% 60% at 50% 0%, #2c3b66 0%, #16213f 55%, #0f1830 100%); }
+.friend-stage.v2::before { display: none; }
+.fs-photo { margin: 4px 16px 0; border-radius: 22px; overflow: hidden; position: relative; aspect-ratio: 4 / 3; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35); border: 1px solid rgba(246, 220, 156, 0.25); }
+.fs-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 25%; }
+.fs-photo figcaption { position: absolute; left: 0; right: 0; bottom: 0; padding: 30px 16px 12px; background: linear-gradient(180deg, rgba(10, 16, 34, 0), rgba(10, 16, 34, 0.85)); display: grid; }
+.fs-photo b { font-size: 20px; font-weight: 800; color: #fff; }
+.fs-photo span { font-size: 13.5px; color: #e3e6f2; }
+.friend-stage.v2 .f-bubble { margin-top: 14px; }

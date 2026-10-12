@@ -79,9 +79,9 @@ describe('공개 API', () => {
     const r = (await app.inject({ method: 'POST', url: '/friend/chat', headers: auth(g), payload: { profileId: prof.id, text: '다시 연락해도 될까요?', persona: 'seonbi' } })).json();
     expect(r.reply).toContain('헤어진 사람이 생각남');
     const c = (await app.inject({ url: `/friend/chats/${r.chatId}`, headers: auth(g) })).json();
-    expect(c.persona).toBe('seonbi');
+    expect(c.persona).toBe('cheongun') // 예전 id(seonbi)는 새 상담사로 이어짐;
     const bad = (await app.inject({ method: 'POST', url: '/friend/chat', headers: auth(g), payload: { profileId: prof.id, text: '안녕', persona: 'nobody' } })).json();
-    expect((await app.inject({ url: `/friend/chats/${bad.chatId}`, headers: auth(g) })).json().persona).toBe('dalha');
+    expect((await app.inject({ url: `/friend/chats/${bad.chatId}`, headers: auth(g) })).json().persona).toBe('harin');
   });
   it('이용권이 있으면 제한 없음', async () => {
     await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'friend_pass' } });
@@ -126,8 +126,8 @@ describe('공개 API', () => {
     const l = (await app.inject({ method: 'POST', url: '/letters', headers: auth(g), payload: { profileId: prof.id, persona: 'doryeong', feeling: 'hope', topic: 'reunion', input: '다시 연락이 올까요' } })).json();
     expect(l.body).toContain('하늘');
     expect(l.to).toBe('TO. 하늘 고객님');
-    expect(l.from).toContain('사주도령');
-    expect(l.persona).toBe('doryeong');
+    expect(l.from).toContain('준호');
+    expect(l.persona).toBe('junho');
     expect(l).not.toHaveProperty('costKrw');
     expect(l.body).not.toMatch(/반드시|무조건|큰일|불행/);
     const over = await app.inject({ method: 'POST', url: '/letters', headers: auth(g), payload: { profileId: prof.id, feeling: 'tired' } });

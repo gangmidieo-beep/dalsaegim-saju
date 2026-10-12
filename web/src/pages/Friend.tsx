@@ -2,10 +2,10 @@
 // 답할 때마다 "오늘의 새김" 요약 → [저장][수정][남기지 않기]. 대화는 서버에 남아 화면을 나갔다 와도 이어진다.
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { PERSONAS, personaOf } from '@dalsaegim/content';
+import { FRIEND_TOPICS, PERSONAS, personaOf } from '@dalsaegim/content';
 import { useApp, useMain } from '../store/app';
 import { apiAuth, syncProfile } from '../lib/api';
-import { MemoryCard, Sheet, won, useToast } from '../components/ui';
+import { MemoryCard, Sheet, Top, won, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
 import { speak as voiceSpeak, stopVoice } from '../lib/voice';
@@ -35,7 +35,8 @@ export default function Friend() {
   const input = useRef<HTMLTextAreaElement>(null);
   const toast = useToast();
   const nav = useNavigate();
-  const topic = sp.get('topic');
+  const [pendingTopic, setPendingTopic] = useState<string | null>(null);
+  const topic = sp.get('topic') ?? pendingTopic;
   const pass = brand.products.find((p) => p.id === 'friend_pass')!;
   const picking = !persona || sp.get('pick') === '1';
   const pe = personaOf(chatPersona ?? persona);
@@ -51,7 +52,7 @@ export default function Friend() {
 
   // 상담사 성별대로 읽기(자연 음성이 켜져 있으면 그것으로)
   const speak = (t: string) => { void voiceSpeak(t, pe.gender, { rate: 1.02 }); };
-  const send = async (raw?: string, viaVoice = false) => {
+  const send = async (raw?: string, viaVoice = false, opt: { persona?: string; topic?: string } = {}) => {
     const t = (raw ?? text).trim();
     if (!t || busy) return;
     setText('');
@@ -59,7 +60,7 @@ export default function Friend() {
     setBusy(true);
     try {
       await syncProfile(profile, true);
-      const r = await apiAuth<{ chatId: string; reply: string; draft: Draft; remaining: number | null; pass: boolean }>('/friend/chat', { method: 'POST', json: { chatId, profileId: profile.id, text: t, topic, persona: pe.id, source: sp.get('q') ? 'path' : 'home' } });
+      const r = await apiAuth<{ chatId: string; reply: string; draft: Draft; remaining: number | null; pass: boolean }>('/friend/chat', { method: 'POST', json: { chatId, profileId: profile.id, text: t, topic: opt.topic ?? topic, persona: opt.persona ?? pe.id, source: sp.get('q') ? 'path' : 'home' } });
       setChatId(r.chatId); setFriendChat(r.chatId); setChatPersona(pe.id);
       setMsgs((m) => [...m, { role: 'friend', text: r.reply }]);
       setRemaining(r.remaining); setPass(r.pass);
@@ -110,16 +111,17 @@ export default function Friend() {
   );
 
   // ① 상담사 고르기(접수)
-  if (picking) return <PersonaPick current={persona} onPick={choose} onBack={() => (persona ? setSp({}) : nav(-1))} />;
+  if (picking) return <PersonaPick current={persona} onPick={(id, q, t) => { choose(id); if (q && !isSample) { setPendingTopic(t ?? null); void send(q, false, { persona: id, topic: t }); } }} />;
 
   // ② 첫 화면 — 상담사 사진 크게
   if (msgs.length === 0 && !typing) return (
-    <div className="friend-stage" style={{ backgroundImage: `url(${pe.img})` }}>
+    <div className="friend-stage v2">
       <div className="night-top">
         <button className="icon-btn" aria-label="뒤로" onClick={() => nav(-1)}><I.back /></button>
         <button className="persona-chip" onClick={() => setSp({ pick: '1' })}>{pe.name} · {pe.title} <I.right size={14} /></button>
         <span style={{ width: 40 }} />
       </div>
+      <figure className="fs-photo"><img src={pe.img} alt={`${pe.name} 상담사`} /><figcaption><b>{pe.name}</b><span>{pe.who}</span></figcaption></figure>
       <div className="f-bubble">{pe.greet.replace('{name}', profile.name)}</div>
       <section className="voice" aria-label="상담 시작">
         <div className="row" style={{ gap: 14 }}>
@@ -182,34 +184,44 @@ export default function Friend() {
   );
 }
 
-// 상담사 고르기 — 세련된 접수 화면(어두운 바탕 + 샴페인 골드)
-function PersonaPick({ current, onPick, onBack }: { current: string | null; onPick: (id: string) => void; onBack: () => void }) {
-  const [sel, setSel] = useState(current ?? PERSONAS[0].id);
+// 상담사 고르기 — 리뉴얼 시안(v29): 상담사 6명 카드 + 상담 주제 24가지 + 오늘의 고민
+function PersonaPick({ current, onPick }: { current: string | null; onPick: (id: string, q?: string, topic?: string) => void }) {
+  const [sel, setSel] = useState(personaOf(current ?? PERSONAS[0].id).id);
+  const [topic, setTopic] = useState<string | null>(null);
+  const [q, setQ] = useState('');
   const p = personaOf(sel);
+  const start = () => onPick(sel, q.trim() || (topic ? `${topic} 고민을 이야기하고 싶어요` : undefined), topic ?? undefined);
   return (
-    <div className="pick-page">
-      <div className="night-top"><button className="icon-btn" aria-label="뒤로" onClick={onBack}><I.back /></button><h1>AI 사주친구</h1><span style={{ width: 40 }} /></div>
-      <main style={{ padding: '4px 18px calc(110px + var(--safe-b))' }}>
-        <p className="pick-eyebrow">달새김 상담실</p>
-        <h2 className="pick-title">오늘 이야기를 들어 줄<br />상담사를 골라 주세요</h2>
-        <p className="pick-sub">같은 사주를 보고도 말하는 방식이 달라요. 언제든 바꿀 수 있어요.</p>
-        <div className="pick-grid mt20" role="radiogroup" aria-label="상담사">
+    <>
+      <Top title="AI 사주친구" />
+      <main className="screen pk">
+        <small className="pd-eye dark">DALSAEGIM · MOONLIGHT COUNSEL</small>
+        <h2 className="pk-title">나에게 맞는 사주 상담사</h2>
+        <p className="h-sub">지금 내 마음에 맞는 상담 스타일을 고르세요. 같은 사주를 보고도 말하는 방식이 달라요.</p>
+        <div className="pk-grid mt16" role="radiogroup" aria-label="상담사">
           {PERSONAS.map((x) => (
-            <button key={x.id} role="radio" aria-checked={sel === x.id} className={`pcard${sel === x.id ? ' on' : ''}`} onClick={() => setSel(x.id)}>
-              <img src={x.img} alt="" loading="lazy" />
-              <span className="pc-body">
-                <b>{x.name}</b><small>{x.title}</small>
-                <q>{x.quote}</q>
-              </span>
-              {x.love && <span className="pc-tag">연애 상담 추천</span>}
+            <button key={x.id} role="radio" aria-checked={sel === x.id} className={`pk-card${sel === x.id ? ' on' : ''}`} onClick={() => setSel(x.id)}>
+              <span className="pk-img"><img src={x.img} alt="" loading="lazy" />{x.tag && <em>{x.tag}</em>}</span>
+              <span className="pk-body"><b>{x.name}</b><small className="t">{x.title}</small><small>{x.who}</small></span>
             </button>
           ))}
-          <div className="pcard soon" aria-disabled>
-            <span className="pc-body" style={{ position: 'static', textAlign: 'center' }}><b>나만의 상담사</b><small>말투·성별을 직접 고르기</small><q>곧 만나요</q></span>
-          </div>
         </div>
+        <section className="pk-greet mt16" aria-live="polite">
+          <b>{p.name}의 첫인사</b>
+          <p>“{p.quote}”</p>
+        </section>
+        <section className="mt24" aria-labelledby="pk-topic">
+          <div className="between"><h3 className="h3" id="pk-topic">상담 주제 선택</h3><span className="faint">{FRIEND_TOPICS.length}가지 관심사</span></div>
+          <p className="faint mt4">연애부터 사업·재물·가족까지, 지금 가장 마음에 걸리는 주제를 골라 주세요.</p>
+          <div className="pk-topics mt12">{FRIEND_TOPICS.map((t) => <button key={t} aria-pressed={topic === t} className={topic === t ? 'on' : ''} onClick={() => setTopic(topic === t ? null : t)}>{t}</button>)}</div>
+        </section>
+        <label className="field mt20"><span>오늘의 고민 <small className="faint">(선택)</small></span>
+          <textarea className="input" rows={3} maxLength={500} value={q} placeholder={topic ? `${topic}에 관해 지금 상황과 가장 궁금한 점을 적어 주세요` : '지금 상황과 가장 궁금한 점을 편하게 적어 주세요'} onChange={(e) => setQ(e.target.value)} />
+        </label>
+        <button className="btn primary mt16" onClick={start}>{p.name}{josa(p.name)} 상담 시작하기 →</button>
+        <p className="notice mt12">상담사는 AI 캐릭터예요. 실제 사주 계산을 바탕으로 이야기하며, ‘연화 할매’도 신내림이나 점괘를 주장하지 않아요.</p>
+        <Link to="/product/friend_pass" className="link center mt8" style={{ display: 'block' }}>AI 사주친구 이용권 살펴보기 →</Link>
       </main>
-      <div className="pick-cta"><button className="btn gold-lux" onClick={() => onPick(sel)}>{p.name}{josa(p.name)} 상담 시작하기</button></div>
-    </div>
+    </>
   );
 }

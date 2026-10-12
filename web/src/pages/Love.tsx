@@ -68,8 +68,8 @@ export default function Love() {
         </section>
 
         <Link to="/friend" className="card lav mt16 row" style={{ display: 'flex', gap: 12 }}>
-          <img className="p-avatar" src="/img/ui/p-dalha.webp" alt="" />
-          <span className="grow"><b>연애 고민, 말로 털어놓기</b><span className="faint" style={{ display: 'block' }}>달하·월화가 내 사주로 들어 드려요</span></span><I.right />
+          <img className="p-avatar" src="/img/ui/p-harin.webp" alt="" />
+          <span className="grow"><b>연애 고민, 말로 털어놓기</b><span className="faint" style={{ display: 'block' }}>하린·준호가 내 사주로 들어 드려요</span></span><I.right />
         </Link>
       </main>
     </>
