@@ -243,7 +243,7 @@ function WishEdit({ s, onSave, onAgain, onDelete }: { s: Saved; onSave: (p: Part
         <button className="btn line sm" style={{ flex: 1 }} onClick={onAgain}><I.download size={16} />부적 다시 저장</button>
         <Link to={CHARM_LINK[s.type].to} className="btn line sm" style={{ flex: 1 }}>관련 운세</Link>
       </div>
-      <button className="link mt12 center" style={{ display: 'block', width: '100%', color: '#9a9cb0' }} onClick={onDelete}>이 부적 지우기</button>
+      <button className="link mt12 center" style={{ display: 'block', width: '100%', color: '#61647c' }} onClick={onDelete}>이 부적 지우기</button>
     </div>
   );
 }

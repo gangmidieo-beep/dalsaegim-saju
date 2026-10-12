@@ -132,7 +132,7 @@ export function Checkout() {
                 ))}
               </div>
             )}
-            {p.id === 'mbti_deep' && !meta.mbti && <p className="small mt8" style={{ color: '#c0687b' }}>먼저 <Link to="/mbti" className="link">사주 × MBTI</Link>에서 MBTI를 골라 주세요.</p>}
+            {p.id === 'mbti_deep' && !meta.mbti && <p className="small mt8" style={{ color: '#a83f5c' }}>먼저 <Link to="/mbti" className="link">사주 × MBTI</Link>에서 MBTI를 골라 주세요.</p>}
           </section>
         )}
         <section className="mt20">

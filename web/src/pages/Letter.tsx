@@ -9,6 +9,7 @@ import { Sheet, Skeleton, Top, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { CharmList } from './Charm';
 import { track } from '../lib/track';
+import { speak as voiceSpeak, stopVoice, pauseVoice, resumeVoice } from '../lib/voice';
 import { useShare } from '../components/share';
 import { toBlob } from 'html-to-image';
 
@@ -23,26 +24,15 @@ const dot = (s: string) => s.slice(0, 10).replace(/-/g, '.');
 export function useReader(personaId: string) {
   const [state, setState] = useState<'idle' | 'play' | 'pause'>('idle');
   const pe = personaOf(personaId);
-  useEffect(() => () => { if ('speechSynthesis' in window) speechSynthesis.cancel(); }, []);
+  useEffect(() => () => stopVoice(), []);
   const play = (text: string) => {
-    if (!('speechSynthesis' in window)) return false;
-    if (state === 'pause') { speechSynthesis.resume(); setState('play'); return true; }
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'ko-KR';
-    const vs = speechSynthesis.getVoices().filter((v) => v.lang.startsWith('ko'));
-    const male = pe.gender === 'M';
-    const v = vs.find((x) => (male ? /male|injoon|minsu|남/i : /female|yuna|heami|sun|여/i).test(x.name) && !(male && /female/i.test(x.name))) ?? vs[0];
-    if (v) u.voice = v;
-    u.rate = 0.92;
-    u.pitch = male && !(v && /male|injoon|minsu|남/i.test(v.name) && !/female/i.test(v.name)) ? 0.72 : 1.02;
-    u.onend = () => setState('idle');
+    if (state === 'pause') { resumeVoice(); setState('play'); return true; }
     setState('play');
-    speechSynthesis.speak(u);
+    void voiceSpeak(text, pe.gender, { rate: 0.92, onEnd: () => setState('idle') }).then((ok) => { if (!ok) setState('idle'); });
     return true;
   };
-  const pause = () => { speechSynthesis.pause(); setState('pause'); };
-  const replay = (text: string) => { speechSynthesis.cancel(); setState('idle'); setTimeout(() => play(text), 60); };
+  const pause = () => { pauseVoice(); setState('pause'); };
+  const replay = (text: string) => { stopVoice(); setState('idle'); setTimeout(() => play(text), 60); };
   return { state, play, pause, replay };
 }
 
@@ -72,7 +62,7 @@ export function LetterView({ l, name, onDelete }: { l: Letter; name: string; onD
         <button className="btn line sm" onClick={() => r.replay(text)}>처음부터 다시 듣기</button>
       </div>
       <p className="notice">자동으로 재생되지 않아요. 소리 없이 글로만 읽으셔도 돼요.</p>
-      {onDelete && <button className="link mt12 center" style={{ display: 'block', width: '100%', color: '#9a9cb0' }} onClick={onDelete}>이 편지 지우기</button>}
+      {onDelete && <button className="link mt12 center" style={{ display: 'block', width: '100%', color: '#61647c' }} onClick={onDelete}>이 편지 지우기</button>}
     </section>
   );
 }
@@ -266,7 +256,7 @@ export function Mailbox() {
   if (id && open) return (
     <>
       <Top title="나의 달빛 우체통" back="/mailbox" />
-      <main className="screen letter-bg"><LetterView l={open} name={profile.name} /><LetterAfter l={open} onKept={() => void load()} /><button className="link mt16 center" style={{ display: 'block', width: '100%', color: '#9a9cb0' }} onClick={() => del(open.id)}>이 편지 지우기</button></main>
+      <main className="screen letter-bg"><LetterView l={open} name={profile.name} /><LetterAfter l={open} onKept={() => void load()} /><button className="link mt16 center" style={{ display: 'block', width: '100%', color: '#61647c' }} onClick={() => del(open.id)}>이 편지 지우기</button></main>
     </>
   );
   return (

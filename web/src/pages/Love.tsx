@@ -35,7 +35,7 @@ export default function Love() {
       </header>
       <main className="screen over" style={{ paddingTop: 0 }}>
         <section className="card" aria-label="올해 나의 연애 흐름">
-          <div className="between"><h3 className="h3">앞으로 12달, 나의 연애 흐름</h3><span className="faint">오늘 연애 <b style={{ color: '#d0577f', fontSize: 17 }}>{t.fields.love.score}</b>점</span></div>
+          <div className="between"><h3 className="h3">앞으로 12달, 나의 연애 흐름</h3><span className="faint">오늘 연애 <b style={{ color: '#b33c66', fontSize: 17 }}>{t.fields.love.score}</b>점</span></div>
           <div className="mt8"><FlowChart points={f.nm.map((x) => x.score)} labels={f.nm.map((x) => `${x.month}월`)} good={f.gi} careful={f.ci} current={0} /></div>
           <FlowLegend />
           <p className="explain">그래프는 사주의 연애 기운(일간과 각 달의 기운이 만나는 정도)을 0~100으로 나타낸 거예요. 높을수록 마음이 닿기 쉬운 달이에요.</p>

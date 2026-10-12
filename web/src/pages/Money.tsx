@@ -69,7 +69,7 @@ function HubCard({ kind, icon, line, year }: { kind: MoneyKind; icon: IconName; 
   const f = useMoney(profile, kind, year);
   return (
     <Link to={`/money/${kind}?y=${year}`} className="opt" style={{ alignItems: 'center' }}>
-      <span className="ic" style={{ background: 'var(--gold-soft)', color: 'var(--gold-2)' }}><Icon name={icon} /></span>
+      <span className="ic" style={{ background: 'var(--gold-soft)', color: 'var(--gold-ink)' }}><Icon name={icon} /></span>
       <span style={{ flex: 1 }}><b>{MONEY_META[kind].title}</b><div className="faint">{line}</div></span>
       <span style={{ textAlign: 'right' }}><b className="serif" style={{ fontSize: 22 }}>{f.score}</b><div className="faint" style={{ fontSize: 11 }}>{year}</div></span>
     </Link>
@@ -172,7 +172,7 @@ export function LuckyCard() {
   return (
     <section className="card mt24" aria-label="오늘의 재물 보너스" style={{ background: 'linear-gradient(180deg,#fffdfa,#f7efe6)' }}>
       <div ref={card} style={{ padding: 4, background: 'transparent' }}>
-        <div className="row"><span style={{ color: 'var(--gold-2)' }}><I.gift /></span><h3 className="h3">오늘의 재물 보너스</h3></div>
+        <div className="row"><span style={{ color: 'var(--gold-ink)' }}><I.gift /></span><h3 className="h3">오늘의 재물 보너스</h3></div>
         <p className="faint mt4">달새김이 드리는 작은 행운 선물이에요{isSample ? ' (예시)' : ''}.</p>
         <div className="balls mt16">{l.numbers.map((n, i) => <span key={`${round}-${n}`} className={`ball c${(Math.ceil(n / 10) % 5) + 1}`} style={{ animationDelay: `${i * 0.07}s` }}>{n}</span>)}</div>
         <div className="chips mt16" style={{ justifyContent: 'center' }}>{l.keywords.map((k) => <span key={k} className="chip sm gold">{k}</span>)}</div>

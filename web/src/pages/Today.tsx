@@ -91,7 +91,7 @@ export default function Today() {
               const f = t.fields[k];
               return (
                 <div key={k} className="card">
-                  <div className="between"><span className="row"><Pic n={PIC[k]} size="s" /><b style={{ fontSize: 17.5 }}>{FIELD_LABEL[k]}</b></span><b style={{ color: '#d0577f', fontSize: 18 }}>{f.score}점</b></div>
+                  <div className="between"><span className="row"><Pic n={PIC[k]} size="s" /><b style={{ fontSize: 17.5 }}>{FIELD_LABEL[k]}</b></span><b style={{ color: '#b33c66', fontSize: 18 }}>{f.score}점</b></div>
                   <p style={{ margin: '10px 0 0', fontWeight: 600 }}>{f.summary}</p>
                   {f.detail.map((x) => <p key={x} className="muted" style={{ margin: '6px 0 0', fontSize: 15.5 }}>· {x}</p>)}
                   <div className="grid2 mt12" style={{ gap: 8 }}>

@@ -111,7 +111,7 @@ export default function SajuMap() {
 
           {m.period.now && (
             <section className="card lav mt16" aria-label="중요한 시기">
-              <div className="eyebrow" style={{ color: 'var(--lav-2)' }}>지금 지나는 큰 흐름</div>
+              <div className="eyebrow" style={{ color: 'var(--lav-ink)' }}>지금 지나는 큰 흐름</div>
               <h3 className="h3 mt4">{m.period.now.fromYear}~{m.period.now.toYear} · {m.period.now.text}({m.period.now.hanja}) 대운</h3>
               <p className="small mt4" style={{ margin: '4px 0 0' }}>{m.period.now.theme}</p>
               {m.period.next && <p className="faint mt8">다음 {m.period.next.fromYear}년부터 · {m.period.next.theme}</p>}

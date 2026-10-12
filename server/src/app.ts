@@ -17,6 +17,7 @@ import { fulfillOrder, revokeOrder } from './services/payments/fulfill.ts';
 import { normalizePhone, parsePayappFeedback, payappCancel, payappEnv, payappRequest } from './services/payments/payapp.ts';
 import { latestMarket, liveAI } from './services/reading/generate.ts';
 import { friendReply, friendLive, type ChatMsg } from './services/friend.ts';
+import { synthesize, ttsLive, TTS_MAX_CHARS } from './services/tts.ts';
 import { personaOf, defaultTodayLetter, LETTER_FEELINGS, LETTER_TOPICS, LETTER_KAKAO, CHARMS } from '@dalsaegim/content';
 import { writeLetter } from './services/letter.ts';
 import { SITE } from './services/seed.ts';
@@ -68,7 +69,23 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     !!(await db.select({ id: S.subscriptions.id }).from(S.subscriptions)
       .where(and(eq(S.subscriptions.userId, userId), inArray(S.subscriptions.status, ['active', 'grace']), gt(S.subscriptions.expiresAt, new Date()))).limit(1))[0];
 
-  app.get('/health', async () => ({ ok: true, mock: MOCK, ai: liveAI(), friendAi: friendLive() }));
+  app.get('/health', async () => ({ ok: true, mock: MOCK, ai: liveAI(), friendAi: friendLive(), tts: ttsLive() }));
+  // 자연 음성 — 로그인한 사람만(비용 보호). 꺼져 있으면 503 → 화면이 브라우저 음성으로 대신 읽는다
+  app.post('/tts', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, rep) => {
+    if (!ttsLive()) return rep.code(503).send({ error: '자연 음성이 꺼져 있어요' });
+    const id = await userOf(req);
+    if (!id) return rep.code(401).send({ error: '로그인이 필요해요' });
+    const b = (req.body ?? {}) as { text?: string; gender?: string };
+    const text = String(b.text ?? '').slice(0, TTS_MAX_CHARS);
+    if (!text.trim()) return rep.code(400).send({ error: '읽을 글이 없어요' });
+    try {
+      const audio = await synthesize(text, b.gender === 'M' ? 'M' : 'F', http);
+      return rep.header('content-type', 'audio/mpeg').header('cache-control', 'private, max-age=86400').send(audio);
+    } catch (e) {
+      req.log.warn({ err: String(e) }, 'tts failed');
+      return rep.code(502).send({ error: '음성을 만들지 못했어요' });
+    }
+  });
   // 화면이 "어떤 로그인을 보여줄지·결제 전에 로그인을 요구할지" 정할 때 씀(키가 등록된 것만)
   app.get('/auth/providers', async () => ({ providers: MOCK ? ['google', 'kakao', 'naver'] : (['google', 'kakao', 'naver'] as const).filter((p) => isConfigured(p)) }));
 

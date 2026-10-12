@@ -8,6 +8,7 @@ import { apiAuth, syncProfile } from '../lib/api';
 import { MemoryCard, Sheet, won, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
+import { speak as voiceSpeak, stopVoice } from '../lib/voice';
 import brand from '../../../brand.config.json';
 
 type Msg = { role: 'user' | 'friend'; text: string; at?: string };
@@ -43,22 +44,13 @@ export default function Friend() {
     if (isSample) return;
     apiAuth<{ remaining: number | null; pass: boolean }>('/friend/status').then((s) => { setRemaining(s.remaining); setPass(s.pass); }).catch(() => {});
     if (friendChatId && !sp.get('q')) apiAuth<{ id: string; persona: string | null; messages: Msg[] }>(`/friend/chats/${friendChatId}`).then((c) => { setChatId(c.id); setMsgs(c.messages); setChatPersona(c.persona); }).catch(() => setFriendChat(null));
-    return () => { if ('speechSynthesis' in window) speechSynthesis.cancel(); };
+    return () => { stopVoice(); };
   }, [isSample]);
   useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [msgs.length, busy, draft?.state]);
   useEffect(() => { if (typing) input.current?.focus(); }, [typing]);
 
-  const speak = (t: string) => {
-    if (!('speechSynthesis' in window)) return;
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(t);
-    u.lang = 'ko-KR'; u.rate = 1.02;
-    const male = pe.id === 'seonbi' || pe.id === 'doryeong';
-    const vs = speechSynthesis.getVoices().filter((v) => v.lang.startsWith('ko'));
-    const v = vs.find((x) => (male ? /male|injoon|minsu/i : /female|yuna|heami|sun/i).test(x.name)) ?? vs[0];
-    if (v) u.voice = v;
-    speechSynthesis.speak(u);
-  };
+  // 상담사 성별대로 읽기(자연 음성이 켜져 있으면 그것으로)
+  const speak = (t: string) => { void voiceSpeak(t, pe.gender, { rate: 1.02 }); };
   const send = async (raw?: string, viaVoice = false) => {
     const t = (raw ?? text).trim();
     if (!t || busy) return;
@@ -90,7 +82,7 @@ export default function Friend() {
   const listen = () => {
     const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
     if (!SR) { toast('이 브라우저에서는 음성 입력이 어려워요. 글로 적어 주세요'); setTyping(true); return; }
-    if ('speechSynthesis' in window) speechSynthesis.cancel();
+    stopVoice();
     const r = new SR();
     r.lang = 'ko-KR'; r.interimResults = false;
     r.onresult = (e: any) => { setRead(true); void send(e.results[0][0].transcript, true); };
@@ -98,7 +90,7 @@ export default function Friend() {
     r.onend = () => setRec(false);
     setRec(true); r.start();
   };
-  const newChat = () => { setChatId(null); setFriendChat(null); setChatPersona(null); setMsgs([]); setDraft(null); setTyping(false); if ('speechSynthesis' in window) speechSynthesis.cancel(); };
+  const newChat = () => { setChatId(null); setFriendChat(null); setChatPersona(null); setMsgs([]); setDraft(null); setTyping(false); stopVoice(); };
   const choose = (id: string) => {
     setPersona(id);
     if (chatPersona && chatPersona !== id) newChat();
@@ -155,7 +147,7 @@ export default function Friend() {
           <img className="p-avatar" src={pe.img} alt="" />
           <span style={{ lineHeight: 1.3 }}><b style={{ fontSize: 16.5 }}>{pe.name}</b><span className="faint" style={{ display: 'block', fontSize: 13 }}>{pe.title} · {profile.name} 님의 사주를 알고 있어요</span></span>
         </button>
-        <button className={`icon-btn${read ? ' on' : ''}`} aria-label={read ? '읽어 주기 끄기' : '답을 소리로 읽어 주기'} aria-pressed={read} onClick={() => { setRead(!read); if (read && 'speechSynthesis' in window) speechSynthesis.cancel(); }}><I.speaker /></button>
+        <button className={`icon-btn${read ? ' on' : ''}`} aria-label={read ? '읽어 주기 끄기' : '답을 소리로 읽어 주기'} aria-pressed={read} onClick={() => { setRead(!read); if (read) stopVoice(); }}><I.speaker /></button>
         <button className="icon-btn" aria-label="새 상담" onClick={newChat}><I.edit /></button>
       </header>
       <div className="chat big">

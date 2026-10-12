@@ -62,7 +62,7 @@ export default function Home() {
           ) : (
             <>
               <div className="between"><b style={{ fontSize: 17 }}>{profile.name} 님의 오늘</b><span className="score-pill">{t.total}<small>점</small></span></div>
-              <p className="small" style={{ margin: '6px 0 0', color: '#4a4f6e' }}>{t.headline} · 연애 <b style={{ color: '#d0577f' }}>{t.fields.love.score}</b> · 직장 {t.fields.work.score} · 재물 {t.fields.wealth.score}</p>
+              <p className="small" style={{ margin: '6px 0 0', color: '#4a4f6e' }}>{t.headline} · 연애 <b style={{ color: '#b33c66' }}>{t.fields.love.score}</b> · 직장 {t.fields.work.score} · 재물 {t.fields.wealth.score}</p>
               <Link to="/today" className="btn blush mt12">오늘의 운세 보기 →</Link>
             </>
           )}

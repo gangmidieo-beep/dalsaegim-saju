@@ -58,7 +58,7 @@ export default function Timeline() {
                   <div className="faint" style={{ fontSize: 13 }}>{dotDate(x.date)}{KIND[x.kind] ? ` · ${KIND[x.kind]}` : ''}</div>
                   <div><span className="cbadge" style={{ ['--c' as any]: CAT_COLOR[x.category] }}>{CAT_LABEL[x.category]}</span><b>{x.title}</b></div>
                   {x.summary && <div className="small muted">{x.summary}</div>}
-                  {x.sajuNote && <div className="small" style={{ color: 'var(--lav-2)' }}>그때 사주 · {x.sajuNote}</div>}
+                  {x.sajuNote && <div className="small" style={{ color: 'var(--lav-ink)' }}>그때 사주 · {x.sajuNote}</div>}
                   {fbOf(x) && <div className="small" style={{ color: fbOf(x)![1], fontWeight: 700 }}>실제 · {fbOf(x)![0]}</div>}
                 </div>
                 {x.photo ? <img className="thumb" src={x.photo} alt="" /> : <span />}

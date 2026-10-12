@@ -83,7 +83,7 @@ export default function Records() {
             <button className="saegim mt12" style={{ display: 'block', width: '100%', textAlign: 'left' }} onClick={() => setEdit(latest)}>
               <div className="between"><div className="cat"><Pic n={CAT_PIC[latest.category] ?? 'moon'} size="s" />{CAT_LONG[latest.category] ?? '나·성장'}</div><span className="faint" style={{ fontSize: 13 }}>{dotDate(latest.happenedOn)}</span></div>
               <p><b>{latest.title}</b>{latest.summary && !latest.summary.includes(latest.title) ? <><br />{latest.summary}</> : null}</p>
-              {latest.sajuNote && <p className="small" style={{ color: 'var(--lav-2)' }}>사주 흐름 · {latest.sajuNote}</p>}
+              {latest.sajuNote && <p className="small" style={{ color: 'var(--lav-ink)' }}>사주 흐름 · {latest.sajuNote}</p>}
             </button>
           ) : list && (
             <p className="muted small center mt12">상담과 고민, 실제 있었던 일이 차곡차곡 새겨지는 곳이에요.</p>
