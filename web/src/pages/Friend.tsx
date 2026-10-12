@@ -51,7 +51,7 @@ export default function Friend() {
   useEffect(() => { if (typing) input.current?.focus(); }, [typing]);
 
   // 상담사 성별대로 읽기(자연 음성이 켜져 있으면 그것으로)
-  const speak = (t: string) => { void voiceSpeak(t, pe.gender, { rate: 1.02 }); };
+  const speak = (t: string, g: 'F' | 'M' = pe.gender) => { void voiceSpeak(t, g, { rate: 1.02 }); };
   const send = async (raw?: string, viaVoice = false, opt: { persona?: string; topic?: string } = {}) => {
     const t = (raw ?? text).trim();
     if (!t || busy) return;
@@ -61,12 +61,14 @@ export default function Friend() {
     try {
       await syncProfile(profile, true);
       const r = await apiAuth<{ chatId: string; reply: string; draft: Draft; remaining: number | null; pass: boolean }>('/friend/chat', { method: 'POST', json: { chatId, profileId: profile.id, text: t, topic: opt.topic ?? topic, persona: opt.persona ?? pe.id, source: sp.get('q') ? 'path' : 'home' } });
-      setChatId(r.chatId); setFriendChat(r.chatId); setChatPersona(pe.id);
+      // 상담사를 고르자마자 첫 질문을 보내는 경우, 이 시점의 pe 는 이전 상담사라 고른 id 를 쓴다
+      const used = personaOf(opt.persona ?? pe.id);
+      setChatId(r.chatId); setFriendChat(r.chatId); setChatPersona(used.id);
       setMsgs((m) => [...m, { role: 'friend', text: r.reply }]);
       setRemaining(r.remaining); setPass(r.pass);
       setDraft({ d: r.draft, state: 'open' });
-      if (read || viaVoice) speak(r.reply);
-      track('friend_send', { topic: r.draft.category, persona: pe.id, voice: viaVoice });
+      if (read || viaVoice) speak(r.reply, used.gender);
+      track('friend_send', { topic: r.draft.category, persona: used.id, voice: viaVoice });
     } catch (e: any) {
       setMsgs((m) => m.slice(0, -1));
       setText(t);

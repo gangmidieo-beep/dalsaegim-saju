@@ -125,7 +125,7 @@ export default function SajuMap() {
           </section>
           <div className="grid2 mt12">
             <Link to="/mbti" className="btn line sm" style={{ width: '100%' }}>사주 × MBTI</Link>
-            <Link to="/path" className="btn line sm" style={{ width: '100%' }}><I.path size={18} />내 고민의 길</Link>
+            <Link to="/path" className="btn line sm" style={{ width: '100%' }}><I.path size={18} />운명의 갈림길</Link>
           </div>
         </div>
       </main>

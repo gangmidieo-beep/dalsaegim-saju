@@ -6,7 +6,7 @@ import brand from '../../../brand.config.json';
 
 const FREE: [string, string, string, PicName][] = [
   ['/today', '오늘의 운세', '오늘 하루의 흐름', 'today'], ['/love', '연애·재회 운세', '앞으로 12달 연애 흐름', 'love'],
-  ['/path', '내 고민의 길', '고민별 가장 좋은 시기', 'path'], ['/friend', 'AI 사주친구', '하루 3번 무료 상담', 'friend'],
+  ['/path', '운명의 갈림길', '두 선택 비교 · 고민별 좋은 시기', 'path'], ['/friend', 'AI 사주친구', '하루 3번 무료 상담', 'friend'],
   ['/map', '나의 사주지도', '타고난 나와 큰 흐름', 'map'], ['/money', '돈의 흐름', '재물·사업·투자·부동산', 'money'], ['/mbti', '사주 × MBTI', '타고난 기운과 지금 성향', 'self'],
 ];
 const SERIES: [string, string][] = [['love', '사랑 시리즈'], ['year', '올해·이번 달'], ['life', '나의 사주'], ['money', '돈의 흐름'], ['worry', '고민·성향'], ['mbti', ''], ['friend', 'AI 사주친구']];

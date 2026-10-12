@@ -10,7 +10,7 @@ import { track } from '../lib/track';
 
 export type Memory = { id: string; kind: string; category: string; title: string; summary: string | null; happenedOn: string; sajuNote: string | null; feedback: string | null; createdAt: string; visibility?: string; photo?: string | null };
 const VIS: [string, string, string][] = [['private', '비공개', '기록함에만 두고 타임라인·AI 모두 안 봐요'], ['self', '나만보기', '나의 타임라인에 보여요'], ['ai', 'AI 참고용', 'AI 사주친구가 상담할 때 참고해요']];
-const KIND: Record<string, string> = { consult: 'AI 상담', path: '고민의 길', event: '실제 있었던 일', reading: '풀이', choice: '갈림길', report: '보고서' };
+const KIND: Record<string, string> = { consult: 'AI 상담', path: '운명의 갈림길', event: '실제 있었던 일', reading: '풀이', choice: '갈림길', report: '보고서' };
 const FB: Record<string, string> = { good: '잘 풀렸어요', same: '비슷해요', changed: '달라졌어요' };
 
 export function EditSheet({ m, onClose, onDone }: { m: Partial<Memory> | null; onClose: () => void; onDone: () => void }) {
@@ -104,8 +104,8 @@ export default function Records() {
         {list?.length === 0 && (
           <section className="card center mt16">
             <h2 className="h3">아직 새겨진 기록이 없어요</h2>
-            <p className="small muted mt8">AI 사주친구와 이야기하거나 고민의 길을 걸으면 요약이 자동으로 만들어져요. 저장할지는 직접 고르면 돼요.</p>
-            <div className="grid2 mt16"><Link to="/friend" className="btn primary sm" style={{ width: '100%' }}>AI 사주친구</Link><Link to="/path" className="btn line sm" style={{ width: '100%' }}>내 고민의 길</Link></div>
+            <p className="small muted mt8">AI 사주친구와 이야기하거나 운명의 갈림길을 살펴보면 요약이 자동으로 만들어져요. 저장할지는 직접 고르면 돼요.</p>
+            <div className="grid2 mt16"><Link to="/friend" className="btn primary sm" style={{ width: '100%' }}>AI 사주친구</Link><Link to="/path" className="btn line sm" style={{ width: '100%' }}>운명의 갈림길</Link></div>
           </section>
         )}
         {months.map((mo) => (

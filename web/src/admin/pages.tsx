@@ -279,7 +279,7 @@ export function Payments() {
 }
 
 /* ---------- 8 통계 분석 ---------- */
-const CONTENT_KO: Record<string, string> = { today: '오늘의 운세', map: '사주지도', money: '돈의 흐름', path: '고민의 길', mbti: '사주×MBTI', money_wealth: '재물운', money_business: '사업운', money_invest: '투자운', money_estate: '부동산운' };
+const CONTENT_KO: Record<string, string> = { today: '오늘의 운세', map: '사주지도', money: '돈의 흐름', path: '운명의 갈림길', mbti: '사주×MBTI', money_wealth: '재물운', money_business: '사업운', money_invest: '투자운', money_estate: '부동산운' };
 function Bars({ rows, label, value, fmt = (n: number) => n.toLocaleString('ko-KR') }: { rows: any[]; label: string; value: string; fmt?: (n: number) => string }) {
   const max = Math.max(1, ...rows.map((r) => +r[value]));
   return <ul className="ad-bars">{rows.map((r, i) => <li key={i}><span>{r[label] ?? '(없음)'}</span><i style={{ width: `${(+r[value] / max) * 100}%` }} /><b>{fmt(+r[value])}</b></li>)}</ul>;
@@ -387,7 +387,7 @@ export function Kpi() {
   const { qs, ui } = usePeriod('7d');
   const { data, err } = useLoad(() => adminApi<any>(`/kpi?${qs}`), [qs]);
   const R: [string, string, string][] = [['freeToPaid', '무료→유료 전환율', '활동 회원 중 결제한 비율'], ['friendUse', 'AI 사주친구 사용률', '활동 회원 중 대화한 비율'], ['memorySave', '기록 저장률', '활동 회원 중 기록을 남긴 비율'],
-    ['pathDone', '고민의 길 완료율', '시작한 사람 중 결과까지 본 비율'], ['revisit7', '7일 재방문율', '가입 7일 뒤에도 들어온 비율'], ['revisit30', '30일 재방문율', '가입 30일 뒤에도 들어온 비율'], ['repurchase', '재결제율', '결제 회원 중 2번 이상 결제']];
+    ['pathDone', '갈림길 완료율', '시작한 사람 중 결과까지 본 비율'], ['revisit7', '7일 재방문율', '가입 7일 뒤에도 들어온 비율'], ['revisit30', '30일 재방문율', '가입 30일 뒤에도 들어온 비율'], ['repurchase', '재결제율', '결제 회원 중 2번 이상 결제']];
   return (
     <>
       <Head title="운영 핵심지표">{ui}</Head>
