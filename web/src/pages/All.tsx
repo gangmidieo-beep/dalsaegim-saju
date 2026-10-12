@@ -15,7 +15,7 @@ export default function All() {
   const vis = brand.products.filter((p) => p.visible !== false && !(p as { adult?: boolean }).adult);
   return (
     <>
-      <Top title="전체 운세" />
+      <Top title="전체 운세" back={false} />
       <main className="screen">
         <h2 className="h3">무료로 보기</h2>
         <div className="list mt12">
