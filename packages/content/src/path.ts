@@ -92,3 +92,47 @@ export function recommendPaths(saju: SajuResult, profileId: string, recentCatego
   }).sort((a, b) => b.s - a.s);
   return score.slice(0, 2).map(({ id, label, icon }) => ({ id, label, icon }));
 }
+
+/* ---------- 운명의 갈림길 — 두 선택 비교 (대표님 리뉴얼 시안 v29) ----------
+ * 정답을 예언하지 않는다. 사주로 읽는 것은 "움직이기 좋은 리듬인가, 다지기 좋은 리듬인가"와 시기뿐이고,
+ * 선택지 자체의 좋고 나쁨은 사용자가 고른 기준과 질문으로 스스로 비교하게 한다. */
+export const CHOICE_CRITERIA = [
+  { id: 'stable', label: '안정감', qs: ['두 선택 중 1년 뒤에도 생활이 흔들리지 않는 쪽은 어디인가요?', '최악의 경우를 감당할 수 있는 쪽은 어디인가요?', '지금 내가 지키고 싶은 일상은 무엇인가요?'] },
+  { id: 'growth', label: '성장 가능성', qs: ['3년 뒤의 내가 더 배워 있을 쪽은 어디인가요?', '두려움 때문에 피하고 있는 쪽은 없나요?', '실패해도 남는 경험이 큰 쪽은 어디인가요?'] },
+  { id: 'money', label: '경제적 여유', qs: ['6개월 동안의 수입·지출을 두 선택으로 나눠 적어 보면 어떤가요?', '고정비가 늘어나는 쪽은 어디인가요?', '되돌릴 때 드는 비용이 더 큰 쪽은 어디인가요?'] },
+  { id: 'people', label: '관계와 가족', qs: ['이 선택에 가장 영향을 받는 사람은 누구인가요?', '그 사람과 이 고민을 충분히 나눴나요?', '관계를 지키면서 할 수 있는 방법이 있나요?'] },
+  { id: 'rest', label: '건강과 휴식', qs: ['두 선택 중 잠과 식사가 지켜지는 쪽은 어디인가요?', '지금 내 몸이 보내는 신호는 무엇인가요?', '쉬어 가는 선택도 하나의 답이 될 수 있을까요?'] },
+] as const;
+export type CriterionId = (typeof CHOICE_CRITERIA)[number]['id'];
+
+export function compareChoices(saju: SajuResult, o: { catId: string; situation: string; a: string; b: string; change: 'a' | 'b' | 'none'; criterion: CriterionId }, profileId: string, now = new Date()) {
+  const cat = PATHS.find((c) => c.id === o.catId) ?? PATHS[0];
+  const base = pathResult(saju, cat.id, cat.sub[0].id, o.situation || cat.label, profileId, now, 6);
+  const near = Math.round(base.flow.slice(0, 3).reduce((s, x) => s + x.score, 0) / 3);
+  const later = Math.round(base.flow.slice(3, 6).reduce((s, x) => s + x.score, 0) / 3);
+  // 리듬: 가까운 3개월이 강하면 '움직이는 때', 뒤 3개월이 더 강하면 '준비했다가 움직이는 때', 둘 다 낮으면 '다지는 때'
+  const rhythm: 'move' | 'prepare' | 'keep' = near >= 62 && near >= later - 3 ? 'move' : later > near + 3 ? 'prepare' : 'keep';
+  const RHY = {
+    move: { title: '움직이기 좋은 리듬', line: `앞으로 3개월(${base.flow[0].month}~${base.flow[2].month}월)의 ${cat.label} 흐름이 힘 있게 열려 있어요. 결정을 미루기보다 작게라도 시작해 보기 좋은 때예요.` },
+    prepare: { title: '준비했다가 움직이는 리듬', line: `지금보다 ${base.flow[3].month}~${base.flow[5].month}월의 흐름이 더 밝아요. 지금은 정보를 모으고, 결정은 그 시기에 내리면 힘을 덜 들이고 갈 수 있어요.` },
+    keep: { title: '다지며 지켜보는 리듬', line: `앞으로 6개월은 크게 방향을 틀기보다 지금 자리를 다지기 좋은 흐름이에요. 바꾸더라도 되돌릴 수 있는 작은 단계부터가 좋아요.` },
+  }[rhythm];
+  const fit = (side: 'a' | 'b') => {
+    if (o.change === 'none') return null;
+    const isChange = o.change === side;
+    if (rhythm === 'move') return isChange ? '지금 흐름과 잘 맞아요' : '지키는 선택도 무리 없어요';
+    if (rhythm === 'prepare') return isChange ? `${base.flow[3].month}월 이후가 더 좋아요` : '준비 기간으로 삼기 좋아요';
+    return isChange ? '작은 단계부터가 안전해요' : '지금 흐름과 잘 맞아요';
+  };
+  const crit = CHOICE_CRITERIA.find((c) => c.id === o.criterion) ?? CHOICE_CRITERIA[0];
+  return {
+    cat: base.cat, rhythm, rhythmTitle: RHY.title, rhythmLine: RHY.line,
+    best: base.best, careful: base.careful, chart: base.chart, bestIdx: base.bestIdx, carefulIdx: base.carefulIdx,
+    a: { label: o.a, fit: fit('a') }, b: { label: o.b, fit: fit('b') },
+    criterion: crit.label, questions: [...crit.qs],
+    reason: base.reason,
+    memory: { category: base.memory.category, title: `갈림길 — ${o.a} vs ${o.b}`.slice(0, 60), summary: `${o.situation ? `${o.situation} · ` : ''}${o.a} / ${o.b} 중 고민, 기준은 ${crit.label}. 사주 리듬: ${RHY.title}(가장 좋은 시기 ${base.best})`, sajuNote: base.memory.sajuNote },
+    friendPrompt: `${o.a}와(과) ${o.b} 사이에서 고민 중이에요. 제게 중요한 기준은 ${crit.label}이에요. 같이 정리해 주세요.`,
+  };
+}
+export type ChoiceResult = ReturnType<typeof compareChoices>;
