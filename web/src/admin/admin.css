@@ -1,5 +1,5 @@
 /* 관리자 — PC 화면용(좁은 화면에서도 동작). 달새김 네이비·오프화이트·샴페인골드 톤. */
-.adm, .ad-login { --hanji: #F7F3EE; --ink: #1B1F3B; --ink-2: #4A4D63; --on-ink: #F7F3EE; --on-ink-2: #B9B6CF; --gold-light: #F2DCCB; --gold-grad: linear-gradient(120deg,#C9A57A,#F2DCCB); --seal: #3A3F66; --brush: var(--serif); --line: #E2DCD2; --paper: #FFFDFA; --ink-3: #6B6E85; --ink-4: #8A8CA0; --line-soft: #EEE8DF; --hanji-2: #EFE9E1; --gold-pale: #F5ECE0; --gold-deep: #B8925F; }
+.adm, .ad-login { --hanji: #F7F3EE; --ink: #1B1F3B; --ink-2: #4A4D63; --on-ink: #F7F3EE; --on-ink-2: #B9B6CF; --gold-light: #F2DCCB; --gold-grad: linear-gradient(120deg,#C9A57A,#F2DCCB); --seal: #3A3F66; --brush: var(--serif); --line: #E2DCD2; --paper: #FFFDFA; --ink-3: #565A72; --ink-4: #5D6077; --line-soft: #EEE8DF; --hanji-2: #EFE9E1; --gold-pale: #F5ECE0; --gold-deep: #B8925F; }
 .adm { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; background: var(--hanji); font-size: 15px; color: var(--ink); }
 .adm aside { background: var(--ink); color: var(--on-ink); padding: 18px 12px; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; }
 .ad-brand { font-family: var(--brush); font-size: 22px; display: flex; align-items: center; gap: 8px; padding: 0 6px 16px; border-bottom: 1px solid #3A3F66; }
