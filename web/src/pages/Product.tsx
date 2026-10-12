@@ -210,7 +210,7 @@ export function Checkout() {
             {p.listPrice ? <div><dt>할인</dt><dd style={{ color: '#a83f5c' }}>-{won(p.listPrice - p.price)}</dd></div> : null}
             <div className="sum"><dt>총 결제금액</dt><dd>{won(p.price)}</dd></div>
           </dl>
-          {m?.group === 'vbank' && <p className="faint mt8">결제창에서 발급된 계좌로 입금하면 확인되는 즉시 마이 › 구매한 풀이에 열려요.</p>}
+          {m?.group === 'vbank' && <p className="faint mt8">결제창에서 발급된 계좌로 입금하면 확인되는 즉시 보관함 › 구매한 운세에 열려요.</p>}
         </section>
         <button className="btn primary mt20" disabled={!ready || busy} onClick={pay}>{busy ? '결제창을 여는 중…' : `${won(p.price)} 결제하기`}</button>
         {!ready && !busy && <p className="faint center mt8">{need > 0 && pick.length < need ? '사주 정보를 골라 주세요' : !phoneOk(phone) ? '휴대폰 번호를 입력해 주세요' : !agree ? '안내 확인에 체크해 주세요' : ''}</p>}
@@ -224,6 +224,7 @@ export function PayReturn() {
   const [sp] = useSearchParams();
   const nav = useNavigate();
   const [msg, setMsg] = useState('결제를 확인하고 있어요');
+  const [retry, setRetry] = useState<string | null>(null);
   useEffect(() => {
     const id = sp.get('order') ?? (() => { try { return JSON.parse(localStorage.getItem(PENDING) || '{}').orderId; } catch { return null; } })();
     if (!id) { nav('/', { replace: true }); return; }
@@ -231,12 +232,12 @@ export function PayReturn() {
     const tick = async () => {
       const o = await apiAuth<{ status: string; kind: string; productId: string }>(`/orders/${id}`).catch(() => null);
       if (o?.status === 'paid') { localStorage.removeItem(PENDING); track('pay_success', { product: o.productId }); nav(o.kind === 'subscription' ? '/friend' : `/reading/${id}`, { replace: true }); return; }
-      if (o && ['failed', 'cancelled'].includes(o.status)) { track('pay_cancel', { product: o.productId }); setMsg('결제가 완료되지 않았어요'); return; }
-      if (++n < 15) setTimeout(tick, 2000); else setMsg('결제 확인이 늦어지고 있어요. 마이 > 구매한 풀이에서 확인해 주세요.');
+      if (o && ['failed', 'cancelled'].includes(o.status)) { track('pay_cancel', { product: o.productId }); setMsg('결제가 완료되지 않았어요'); setRetry(o.productId); return; }
+      if (++n < 15) setTimeout(tick, 2000); else setMsg('결제 확인이 늦어지고 있어요. 하단 보관함 › 구매한 운세에서 확인해 주세요.');
     };
     void tick();
   }, []);
-  return <main className="screen center" style={{ paddingTop: 120 }}><div style={{ display: 'grid', placeItems: 'center' }}><Moon size={100} /></div><p className="mt16">{msg}</p><Link to="/me" className="link">마이로 가기</Link></main>;
+  return <main className="screen center" style={{ paddingTop: 120 }}><div style={{ display: 'grid', placeItems: 'center' }}><Moon size={100} /></div><p className="mt16">{msg}</p>{retry && <Link to={`/checkout/${retry}`} replace className="btn primary mt16" style={{ maxWidth: 280, margin: '16px auto 0' }}>다시 결제하기</Link>}<Link to="/box" className="link mt16" style={{ display: 'block' }}>보관함으로 가기</Link></main>;
 }
 
 type Reading = { status: 'queued' | 'generating' | 'done' | 'failed'; productId: string; content: { title: string; intro: string; visual?: Visual; chapters: { id: string; title: string; say: string; body: string; highlight: string; points?: string[]; basis?: Basis[] }[]; closing: { title: string; body: string; tips: string[] } } | null };
@@ -274,7 +275,7 @@ export function ReadingPage() {
       <main className="screen center" style={{ paddingTop: 60 }}>
         <div style={{ display: 'grid', placeItems: 'center' }}><Moon size={110} /></div>
         <h2 className="h2 mt16">{r?.status === 'failed' ? '풀이를 다시 준비하고 있어요' : '달새김이 풀이를 새기고 있어요'}</h2>
-        <p className="muted small mt8">보통 1~2분이면 완성돼요. 이 화면을 닫아도 마이 &gt; 구매한 풀이에서 볼 수 있어요.</p>
+        <p className="muted small mt8">보통 1~2분이면 완성돼요. 이 화면을 닫아도 하단 보관함에서 다시 볼 수 있어요.</p>
         <div className="stack mt24"><Skeleton h={18} /><Skeleton h={18} /><Skeleton h={18} /></div>
       </main>
     </>

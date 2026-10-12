@@ -174,6 +174,17 @@ export function buildFacts(productId: string, people: Person[], sajus: SajuResul
     lines.push(`MBTI ${mb.mbti}(${mb.info.nick}) / 사주로 본 성향 ${mb.sajuType} / 일치도 ${mb.match}%`);
     paras.push(`${mb.title}. ${mb.line}`, mb.love, mb.work, mb.money);
     keywords = [...mb.info.traits, ...keywords];
+    // 장 제목과 내용이 맞게 — 타고난 기운 / 만나는 방식 / 연애 / 일과 돈 / 균형
+    const AX = ['에너지 방향(E·I)', '정보를 받는 방식(S·N)', '판단 기준(T·F)', '생활 리듬(J·P)'];
+    const same = AX.filter((_, i) => mb.mbti[i] === mb.sajuType[i]);
+    const diff = AX.filter((_, i) => mb.mbti[i] !== mb.sajuType[i]);
+    sectionsOut = [
+      [`${p0.name} 님은 ${map.dayMaster.image}의 기운을 타고났어요. ${map.dayMaster.line}`, `지금 고른 MBTI는 ${mb.mbti}, '${mb.info.nick}'이에요. 사주로 읽은 성향은 ${mb.sajuType}에 가까워요.`],
+      [`사주와 MBTI는 네 가지 축 가운데 ${same.length}가지가 같은 쪽을 가리켜요. ${mb.title}. ${mb.line}`, same.length ? `${same.join('·')}은 사주와 지금의 성향이 같은 쪽을 가리켜요. 이 부분은 ${p0.name} 님의 가장 단단한 강점이에요.` : '네 가지 축이 모두 사주와 다르게 나타나요. 타고난 기질과 지금의 모습 사이에 오래 다듬어 온 노력이 있다는 뜻이에요.', diff.length ? `${diff.join('·')}은 서로 다르게 나타나요. 상황에 따라 다른 모습이 나오는 건 자연스러운 일이에요.` : ''].filter(Boolean),
+      [mb.love, map.areas.find((a) => a.id === 'love')!.line],
+      [mb.work, mb.money, map.areas.find((a) => a.id === 'money')!.line],
+      [`채우면 좋은 기운은 '${map.need}'이에요. ${map.elementAdvice}`, `${mb.info.traits.join('·')}이 ${p0.name} 님의 무기예요. 지칠 때는 사주가 말하는 본래의 리듬(${mb.sajuType})으로 잠시 돌아가 보세요.`],
+    ];
   }
   // 공통 — 사주지도
   paras.push(...map.areas.map((a) => `${a.label}: ${a.line}`));
