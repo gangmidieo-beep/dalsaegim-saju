@@ -892,3 +892,4 @@ textarea.input { min-height: 88px; padding: 12px 14px; line-height: 1.6; resize:
 .lucky-grid span { font-size: 12px; color: #c9cfe2; } .lucky-grid b { font-size: 16px; color: #fff; }
 .lucky p { margin: 6px 0 0; font-size: 14px; color: #e3e6f2; } .lucky p b { color: #f6dc9c; margin-right: 6px; }
 .lucky .faint { color: #aab2cc; }
+.chip.gold-c { background: var(--gold-soft); color: var(--gold-ink); border-color: transparent; font-weight: 800; }

@@ -2,9 +2,11 @@
 // 무료 요약(지수·월별 흐름·좋은/신중한 달·키워드) → 상세 해석(유료) → 마지막에 오늘의 재물 보너스(행운번호, 재미 요소).
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { MONEY_META, toRanges, type MoneyKind } from '@dalsaegim/content';
+import { MONEY_META, sajuTable, toRanges, type MoneyKind } from '@dalsaegim/content';
+import reading from '@dalsaegim/content/data/reading.json';
+import { SajuTableView } from '../components/report';
 import { useApp, useMain } from '../store/app';
-import { useLucky, useMoney } from '../lib/fortune';
+import { useLucky, useMoney, useSaju } from '../lib/fortune';
 import { apiGet } from '../lib/api';
 import { kstMonth, kstToday, kstYear } from '../lib/dates';
 import { Bars, FlowChart, FlowLegend, Moon, Ring, Top, won, useToast } from '../components/ui';
@@ -88,6 +90,9 @@ export function MoneyResult() {
   const curIdx = Y.year === kstYear() ? kstMonth() - 1 : null;
   const inv = f.invest;
   const T = inv?.titles;
+  const saju = useSaju(profile);
+  const table = sajuTable(saju) as any[];
+  const chs = (reading.chapters as Record<string, string[]>)[p.id] ?? [];
   return (
     <>
       <Top title={f.title} />
@@ -148,6 +153,20 @@ export function MoneyResult() {
         <section className="card navy mt16"><div className="eyebrow" style={{ color: 'var(--gold)' }}>달새김 한마디</div><p className="serif mt8" style={{ margin: '8px 0 0', fontSize: 17 }}>“{f.word}”</p></section>
         {kind === 'invest' && <p className="notice mt8">사주로 투자 결과를 예측하지 않아요. 시장 정보와 나의 흐름을 함께 보는 참고 콘텐츠예요.</p>}
 
+        <section className="card mt16" aria-labelledby="mr-table">
+          <span className="chip sm gold-c">STEP · 사주원국</span>
+          <h3 className="h3 mt8" id="mr-table">{profile.name} 님의 사주 구성표{isSample && <span className="sample-tag">예시</span>}</h3>
+          <p className="faint mt4" style={{ marginBottom: 10 }}>상세 해석은 이 표의 어느 글자가 근거인지 ①②③으로 짚어 가며 풀어 드려요.</p>
+          <SajuTableView table={table} full name={profile.name} />
+        </section>
+        {chs.length > 0 && (
+          <section className="card mt12" aria-labelledby="mr-toc">
+            <span className="chip sm gold-c">상세 해석 · {chs.length}장</span>
+            <h3 className="h3 mt8" id="mr-toc">심층 풀이 목차</h3>
+            <ol className="pd-toc mt8">{chs.map((c, i) => <li key={c}><span>제 {i + 1}장</span>{c}</li>)}</ol>
+            {kind === 'wealth' && <p className="faint mt8">3년 월별 재물 흐름과 강한 시기 TOP 3, 나에게 맞는 행운 실천표까지 담겨요.</p>}
+          </section>
+        )}
         <Link to={`/product/${p.id}?y=${Y.year}`} className="btn primary mt16">상세 해석 보기 · {won(p.price)}</Link>
         {kind !== 'invest' && <CharmLink type={kind as 'wealth' | 'business' | 'estate'} />}
         <Link to="/money" className="btn line mt8">다른 돈의 흐름 보기</Link>
