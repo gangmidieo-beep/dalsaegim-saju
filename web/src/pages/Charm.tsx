@@ -11,18 +11,31 @@ import { I } from '../components/icons';
 import { track } from '../lib/track';
 
 const W = 1080, H = 1920;
-const imgOf = (t: CharmType) => `/img/ui/charm-${t}.jpg`;
+export const imgOf = (t: CharmType) => `/img/ui/charm-${charmOf(t).base}.jpg`;
 export type Saved = { id: string; type: CharmType; name: string; wish: string; goal: string | null; status: 'start' | 'doing' | 'done'; note: string | null; progressAt: string | null; createdAt: string };
 
 // 부적 그리기(고화질 1080×1920) — 템플릿 위에 부적 이름·이름·소망·축원을 새긴다
 export async function drawCharm(type: CharmType, name: string, wish: string): Promise<string> {
   const c = charmOf(type);
   const img = await new Promise<HTMLImageElement>((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = imgOf(type); });
-  await Promise.all(['600 72px "Noto Serif KR"', '400 44px "Noto Serif KR"'].map((f) => document.fonts?.load(f).catch(() => null)));
+  await Promise.all(['600 72px "Noto Serif KR"', '400 44px "Noto Serif KR"', `600 96px "Noto Serif KR"`].map((f, i) => document.fonts?.load(f, i === 2 ? c.mark : undefined).catch(() => null)));
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const g = cv.getContext('2d')!;
   g.drawImage(img, 0, 0, W, H);
   const serif = '"Noto Serif KR", "Nanum Myeongjo", serif';
+  // 소망별 색 — 달 둘레에 은은한 빛
+  const glow = g.createRadialGradient(W / 2, 300, 40, W / 2, 300, 520);
+  glow.addColorStop(0, `${c.tint}66`); glow.addColorStop(1, `${c.tint}00`);
+  g.save(); g.globalCompositeOperation = 'screen'; g.fillStyle = glow; g.fillRect(0, 0, W, 900); g.restore();
+  // 한자 인장 — 소망마다 다른 글자(學·商·緣·康·家·願·福·成·安)
+  g.save();
+  g.beginPath(); g.arc(W / 2, 706, 64, 0, Math.PI * 2);
+  g.fillStyle = 'rgba(12, 18, 38, 0.72)'; g.fill();
+  g.lineWidth = 3; g.strokeStyle = c.tint; g.stroke();
+  g.beginPath(); g.arc(W / 2, 706, 54, 0, Math.PI * 2); g.lineWidth = 1.5; g.strokeStyle = 'rgba(246, 220, 156, 0.6)'; g.stroke();
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = c.tint; g.font = `600 70px ${serif}`;
+  g.shadowColor = `${c.tint}aa`; g.shadowBlur = 18; g.fillText(c.mark, W / 2, 710);
+  g.restore();
   const gold = g.createLinearGradient(0, 760, 0, 860); gold.addColorStop(0, '#fbe7b0'); gold.addColorStop(1, '#c99a45');
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.shadowColor = 'rgba(232, 190, 110, 0.55)'; g.shadowBlur = 24;
@@ -161,8 +174,8 @@ export default function CharmPage() {
           <div className="charm-types">
             {CHARMS.map((x) => (
               <button key={x.id} className={type === x.id ? 'on' : ''} onClick={() => setType(x.id)} aria-pressed={type === x.id}>
-                <span className="ct-img" style={{ backgroundImage: `url(${imgOf(x.id)})` }} />
-                <b>{x.label}</b><small>{x.name.replace('황금 ', '')}</small>
+                <span className="ct-img" style={{ backgroundImage: `url(${imgOf(x.id)})`, ['--tint' as string]: x.tint }}><i className="ct-mark" aria-hidden>{x.mark}</i></span>
+                <b>{x.label}</b><small>{x.sub}</small>
               </button>
             ))}
           </div>

@@ -101,9 +101,10 @@ describe('시그니처 콘텐츠 — 달빛 편지·황금 부적', () => {
       expect(l.recalled).toBe(true);
     }
   });
-  it('오늘의 편지는 날짜마다 같은 편지, 부적은 5종이고 보장 표현 없음', () => {
+  it('오늘의 편지는 날짜마다 같은 편지, 부적은 9종(시안 순서)이고 보장·효능 표현 없음', () => {
     expect(defaultTodayLetter('2026-10-09')).toEqual(defaultTodayLetter('2026-10-09'));
-    expect(CHARMS.map((c) => c.id)).toEqual(['business', 'wealth', 'estate', 'work', 'goal']);
-    for (const c of CHARMS) expect([c.name, c.bless, ...c.wishes].join(' ')).not.toMatch(/보장|확실|반드시|대박|수익률/);
+    expect(CHARMS.map((c) => c.id)).toEqual(['goal', 'business', 'love', 'health', 'family', 'wish', 'wealth', 'work', 'calm']);
+    expect(new Set(CHARMS.map((c) => c.mark)).size).toBe(9);
+    for (const c of CHARMS) expect([c.name, c.bless, ...c.wishes].join(' ')).not.toMatch(/보장|확실|반드시|대박|수익률|치료|낫는|완치/);
   });
 });

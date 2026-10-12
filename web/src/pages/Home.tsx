@@ -9,7 +9,7 @@ import { Foot, CAT_LABEL, Pic, useToast, type PicName } from '../components/ui';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
 import { charmOf } from '@dalsaegim/content';
-import type { Saved } from './Charm';
+import { imgOf, type Saved } from './Charm';
 
 type Mem = { id: string; title: string; category: string; happenedOn: string };
 const QUICK: [string, string, keyof typeof I, string][] = [
@@ -82,7 +82,7 @@ export default function Home() {
         <div className="stack mt16">
           {wish && (
             <section className="card wish-ask" aria-label="지난번 새긴 소망">
-              <span className="ct-thumb" style={{ backgroundImage: `url(/img/ui/charm-${wish.type}.jpg)` }} />
+              <span className="ct-thumb" style={{ backgroundImage: `url(${imgOf(wish.type)})` }} />
               <div className="grow">
                 <small>{charmOf(wish.type).name}</small>
                 <h2 className="h3">지난번 새긴 소망은 어떻게 진행되고 있나요?</h2>

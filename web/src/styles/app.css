@@ -597,7 +597,7 @@ body { font-size: 16.5px; }
 /* ===== 시그니처 ② 황금 달빛 부적 — 딥네이비·블랙·골드 ===== */
 .charm-bg { background: radial-gradient(120% 50% at 50% 0%, #1f1b2e 0%, #121019 55%, #0b0a10 100%); color: #f3ece0; min-height: calc(100dvh - 56px); }
 .gold-h { color: #e8cf98 !important; }
-.charm-types { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.charm-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .charm-types button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px 8px; border-radius: 14px; border: 1.5px solid rgba(201, 169, 106, 0.2); background: rgba(255, 255, 255, 0.03); color: #f3ece0; }
 .charm-types button.on { border-color: #d9b874; box-shadow: 0 0 0 2px rgba(217, 184, 116, 0.35); background: rgba(217, 184, 116, 0.08); }
 .ct-img, .ct-thumb { display: block; width: 100%; aspect-ratio: 9 / 13; border-radius: 10px; background-size: cover; background-position: center top; }
@@ -830,3 +830,7 @@ textarea.input { min-height: 88px; padding: 12px 14px; line-height: 1.6; resize:
 .fs-photo b { font-size: 20px; font-weight: 800; color: #fff; }
 .fs-photo span { font-size: 13.5px; color: #e3e6f2; }
 .friend-stage.v2 .f-bubble { margin-top: 14px; }
+.charm-types .ct-img { position: relative; aspect-ratio: 9 / 11; }
+.ct-mark { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: rgba(12, 18, 38, 0.78); border: 2px solid var(--tint, #e8cf98); color: var(--tint, #e8cf98); font-family: var(--letter-serif); font-style: normal; font-size: 21px; font-weight: 600; box-shadow: 0 0 14px color-mix(in srgb, var(--tint, #e8cf98) 55%, transparent); }
+.charm-types b { font-size: 14.5px; font-weight: 800; }
+.charm-types small { font-size: 12px; color: #c9bfab; }

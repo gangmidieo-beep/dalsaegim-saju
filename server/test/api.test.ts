@@ -148,17 +148,18 @@ describe('공개 API', () => {
     expect((await app.inject({ url: '/letters/status', headers: auth(g) })).json().notify).toBe(false);
     expect((await app.inject({ url: '/letters' })).statusCode).toBe(401);
   });
-  it('황금 달빛 부적: 5종만, 이름·소망 필수, 내 것만 보이고 지울 수 있음', async () => {
+  it('황금 달빛 부적: 9종만(예전 안택부는 새로 못 만듦), 이름·소망 필수, 내 것만 보이고 지울 수 있음', async () => {
     const g = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-charm' } })).json().token;
     expect((await app.inject({ method: 'POST', url: '/charms', headers: auth(g), payload: { type: 'lotto', name: '가', wish: '나' } })).statusCode).toBe(400);
     expect((await app.inject({ method: 'POST', url: '/charms', headers: auth(g), payload: { type: 'wealth', name: ' ', wish: '나' } })).statusCode).toBe(400);
-    for (const type of ['business', 'wealth', 'estate', 'work', 'goal']) expect((await app.inject({ method: 'POST', url: '/charms', headers: auth(g), payload: { type, name: '하늘', wish: '좋은 기운이 머물기를' } })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: '/charms', headers: auth(g), payload: { type: 'estate', name: '하늘', wish: '나' } })).statusCode).toBe(400);
+    for (const type of ['goal', 'business', 'love', 'health', 'family', 'wish', 'wealth', 'work', 'calm']) expect((await app.inject({ method: 'POST', url: '/charms', headers: auth(g), payload: { type, name: '하늘', wish: '좋은 기운이 머물기를' } })).statusCode).toBe(200);
     const list = (await app.inject({ url: '/charms', headers: auth(g) })).json() as any[];
-    expect(list).toHaveLength(5);
+    expect(list).toHaveLength(9);
     const other = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-charm-2' } })).json().token;
     expect((await app.inject({ url: '/charms', headers: auth(other) })).json()).toHaveLength(0);
     await app.inject({ method: 'DELETE', url: `/charms/${list[0].id}`, headers: auth(g) });
-    expect((await app.inject({ url: '/charms', headers: auth(g) })).json()).toHaveLength(4);
+    expect((await app.inject({ url: '/charms', headers: auth(g) })).json()).toHaveLength(8);
   });
   it('달빛 편지가 지난 고민을 기억한다(동의한 기록만) → 타임라인에 새기기 → 기억 끄기', async () => {
     const g = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-recall' } })).json().token;
