@@ -8,3 +8,4 @@ export * from './newyear';
 export * from './persona';
 export * from './letter';
 export * from './charm';
+export * from './wealth';

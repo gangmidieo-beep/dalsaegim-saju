@@ -856,3 +856,39 @@ textarea.input { min-height: 88px; padding: 12px 14px; line-height: 1.6; resize:
 .soon-card > small { font-size: 11.5px; letter-spacing: 0.1em; font-weight: 800; color: var(--gold-ink); }
 .soon-tile { display: grid; justify-items: center; gap: 4px; padding: 14px 8px; border-radius: 14px; background: #fff; border: 1px solid var(--line); text-align: center; }
 .soon-tile span { font-size: 24px; } .soon-tile b { font-size: 15px; font-weight: 800; } .soon-tile small { font-size: 12px; color: var(--ink-2); }
+
+/* 프리미엄 리포트 — 사주 구성표 */
+.mb12 { margin-bottom: 12px; }
+.stbl { display: grid; gap: 0; border-radius: 14px; overflow: hidden; background: #f7f5f1; border: 1px solid var(--line); font-size: 13px; }
+.stbl-row { display: grid; grid-template-columns: 58px repeat(4, 1fr); align-items: center; border-top: 1px solid rgba(0, 0, 0, 0.05); }
+.stbl-row:first-child { border-top: 0; }
+.stbl-row > span { padding: 7px 2px; text-align: center; color: var(--ink); white-space: pre-line; line-height: 1.35; }
+.stbl-row > span[role=rowheader] { font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.stbl-row.head > span { font-weight: 800; font-size: 14px; padding: 9px 2px; }
+.stbl-row.sm > span { font-size: 12px; color: var(--ink-2); }
+.stbl-row.big { background: #fff; }
+.stbl-row.big .ch { position: relative; display: grid; justify-items: center; padding: 8px 2px; }
+.stbl-row.big b { font-family: var(--letter-serif); font-size: 30px; font-weight: 600; line-height: 1.15; }
+.stbl-row.big small { font-size: 11.5px; color: var(--ink-2); }
+.stbl-row.big .ch.on { background: #fff6e2; box-shadow: inset 0 0 0 2px #e0b45c; }
+.stbl-row.big .ch i { position: absolute; top: 2px; right: 4px; font-style: normal; font-weight: 900; color: #b8452f; font-size: 15px; }
+.stbl-row .none { color: var(--ink-3); font-size: 12px; }
+.ch.wood b { color: #2f7d55; } .ch.fire b { color: #c2412d; } .ch.earth b { color: #9a6a1f; } .ch.metal b { color: #6b6f7d; } .ch.water b { color: #1e2f5c; }
+.stbl:not(.full) .stbl-row > span[role=rowheader] { font-size: 11.5px; }
+.f36 { margin: 0 0 14px; padding: 14px 12px 12px; border-radius: 14px; background: #fbfaf7; border: 1px solid var(--line); }
+.f36 figcaption { font-size: 14px; font-weight: 800; color: var(--ink); text-align: center; margin-bottom: 6px; }
+.f36 svg { width: 100%; height: auto; display: block; }
+.f36 .grid { stroke: #e9e5ee; stroke-width: 1; } .f36 .yr { stroke: #2c3a66; stroke-dasharray: 3 3; stroke-width: 1; }
+.f36 .lab { font-size: 10px; fill: #5d6077; } .f36 .ln { fill: none; stroke: #2c3a66; stroke-width: 2; stroke-linejoin: round; }
+.f36 .top { fill: #c79a4a; stroke: #fff; stroke-width: 2; } .f36 .low { fill: #fff; stroke: #b33c66; stroke-width: 2; }
+.f36 .tlab { font-size: 10px; font-weight: 800; fill: #7a5c30; text-anchor: middle; }
+.f36-top { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.f36-top li { display: grid; justify-items: center; gap: 1px; padding: 8px 4px; border-radius: 10px; background: #fff; border: 1px solid #efe2cc; }
+.f36-top span { font-size: 11px; font-weight: 800; color: var(--gold-ink); } .f36-top b { font-size: 14px; } .f36-top em { font-style: normal; font-size: 12px; color: var(--ink-2); }
+.lucky { margin-top: 12px; padding: 16px; border-radius: 16px; background: #17284a; color: #eef0f7; }
+.lucky > small { font-size: 12px; font-weight: 800; color: #f6dc9c; letter-spacing: 0.04em; }
+.lucky-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 8px; }
+.lucky-grid div { padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.07); display: grid; gap: 2px; }
+.lucky-grid span { font-size: 12px; color: #c9cfe2; } .lucky-grid b { font-size: 16px; color: #fff; }
+.lucky p { margin: 6px 0 0; font-size: 14px; color: #e3e6f2; } .lucky p b { color: #f6dc9c; margin-right: 6px; }
+.lucky .faint { color: #aab2cc; }

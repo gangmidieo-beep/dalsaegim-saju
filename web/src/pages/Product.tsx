@@ -11,6 +11,7 @@ import { I } from '../components/icons';
 import { track } from '../lib/track';
 import { saveImage } from '../lib/share';
 import { useShare } from '../components/share';
+import { Flow36, LuckyCard, SajuTableView, type Basis, type Visual } from '../components/report';
 import brand from '../../../brand.config.json';
 
 type Prod = (typeof brand.products)[number];
@@ -238,7 +239,7 @@ export function PayReturn() {
   return <main className="screen center" style={{ paddingTop: 120 }}><div style={{ display: 'grid', placeItems: 'center' }}><Moon size={100} /></div><p className="mt16">{msg}</p><Link to="/me" className="link">마이로 가기</Link></main>;
 }
 
-type Reading = { status: 'queued' | 'generating' | 'done' | 'failed'; productId: string; content: { title: string; intro: string; chapters: { id: string; title: string; say: string; body: string; highlight: string }[]; closing: { title: string; body: string; tips: string[] } } | null };
+type Reading = { status: 'queued' | 'generating' | 'done' | 'failed'; productId: string; content: { title: string; intro: string; visual?: Visual; chapters: { id: string; title: string; say: string; body: string; highlight: string; points?: string[]; basis?: Basis[] }[]; closing: { title: string; body: string; tips: string[] } } | null };
 export function ReadingPage() {
   const { orderId } = useParams();
   const [r, setR] = useState<Reading | null>(null);
@@ -281,16 +282,28 @@ export function ReadingPage() {
   const c = r.content;
   return (
     <>
-      <Top title={c.title} back="/me" />
+      <Top title={c.title} back="/box" />
       <main className="screen read">
         <section className="card navy"><div className="eyebrow" style={{ color: 'var(--gold)' }}>달새김사주 풀이</div><h1 className="h1 mt8" style={{ fontSize: 23 }}>{c.title}</h1><p className="mt8" style={{ color: '#d9d6ea', margin: '8px 0 0' }}>{c.intro}</p></section>
         <nav className="chips mt16" aria-label="목차">{c.chapters.map((x, i) => <a key={x.id} href={`#${x.id}`} className="chip sm">{i + 1}. {x.title}</a>)}</nav>
+        {c.visual && (
+          <section className="card mt16" aria-labelledby="st-full">
+            <div className="eyebrow">사주원국</div>
+            <h2 className="mt4" id="st-full">{profile.name} 님의 사주 구성표</h2>
+            <p className="faint" style={{ marginBottom: 12 }}>시주·일주·월주·연주의 균형을 보는 기본표예요. 장마다 근거가 되는 자리를 ①②③으로 표시했어요.</p>
+            <SajuTableView table={c.visual.table} full name={profile.name} />
+          </section>
+        )}
         {c.chapters.map((x, i) => (
           <section key={x.id} id={x.id} className="card mt16" style={{ scrollMarginTop: 70 }}>
-            <div className="eyebrow">{String(i + 1).padStart(2, '0')}</div>
+            <div className="eyebrow">제 {i + 1}장</div>
             <h2 className="mt4">{x.title}</h2>
-            <p className="faint" style={{ marginBottom: 12 }}>{x.say}</p>
+            {x.points && <div className="chips mt8">{x.points.map((t) => <span key={t} className="chip sm lav">{t}</span>)}</div>}
+            <p className="faint" style={{ margin: '10px 0 12px' }}>{x.say}</p>
+            {c.visual && x.basis && x.basis.length > 0 && <div className="mb12"><SajuTableView table={c.visual.table} basis={x.basis} /></div>}
+            {c.visual?.flow && c.visual.flowAt === i && <Flow36 flow={c.visual.flow} name={profile.name} />}
             {x.body.split(/\n\n+/).map((t, k) => <p key={k}>{t}</p>)}
+            {c.visual?.lucky && c.visual.luckyAt === i && <LuckyCard l={c.visual.lucky as any} />}
             <div className="quote">{x.highlight}</div>
             <button className="link mt8" onClick={() => share(x.highlight)}>이 문장 공유하기</button>
           </section>

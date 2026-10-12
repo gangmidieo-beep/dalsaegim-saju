@@ -108,3 +108,25 @@ describe('시그니처 콘텐츠 — 달빛 편지·황금 부적', () => {
     for (const c of CHARMS) expect([c.name, c.bless, ...c.wishes].join(' ')).not.toMatch(/보장|확실|반드시|대박|수익률|치료|낫는|완치/);
   });
 });
+
+describe('프리미엄 재물 리포트 — 사주 구성표', () => {
+  it('타사 리포트와 같은 명식(음력 1986.2.20 자시)에서 십성·운성·신살·귀인이 모두 일치', async () => {
+    const { calcSaju } = await import('@dalsaegim/engine');
+    const { sajuTable, wealthReport } = await import('../src/index');
+    const s = calcSaju({ calendar: 'lunar', year: 1986, month: 2, day: 20, hour: 0, gender: 'M' });
+    const t = sajuTable(s) as any[];
+    expect(t.map((c) => c.stem.han + c.branch.han).join(' ')).toBe('庚子 壬申 辛卯 丙寅');
+    expect(t.map((c) => c.stem.sip)).toEqual(['편인', '일간', '정인', '편재']);
+    expect(t.map((c) => c.branch.sip)).toEqual(['겁재', '편인', '상관', '식신']);
+    expect(t.map((c) => c.branch.yy + c.branch.el)).toEqual(['음수', '양금', '음목', '양목']);
+    expect(t.map((c) => c.stage)).toEqual(['제왕', '장생', '사', '병']);
+    expect(t.map((c) => c.shinsal)).toEqual(['재살', '역마살', '년살', '지살']);
+    expect(t.map((c) => c.gwiin.join('·'))).toEqual(['', '태극귀인·천덕귀인', '천을귀인', '문창귀인']);
+    const r = wealthReport(s, '하늘', 'x', new Date('2026-10-12T03:00:00Z'));
+    expect(r.chapters.map((c) => c.title)).toEqual(['부자의 그릇', '돈 버는 구조', '인생역전 타이밍', '투자와 자산 증식', '돈과 사람', '경고와 리스크', '재물운 실천 지도']);
+    expect(r.flow.points).toHaveLength(36);
+    expect(r.flow.top).toHaveLength(3);
+    const all = r.chapters.flatMap((c) => c.paras).join(' ');
+    expect(all).not.toMatch(/상위 \d+%|보장|반드시|대박|폭발/);
+  });
+});

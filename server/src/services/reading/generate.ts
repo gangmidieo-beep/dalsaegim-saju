@@ -6,13 +6,16 @@ import { and, desc, eq, inArray, lt } from 'drizzle-orm';
 import { calcSaju, branchRelations, kstParts, type SajuResult } from '@dalsaegim/engine';
 import {
   moneyFlow, newYearPreview, sajuMap, sajuMbti, pathResult, nextMonths, monthFortune, todayFortune, toRanges, MONEY_KINDS, type MoneyKind,
+  wealthReport, type Basis, type SajuTable,
 } from '@dalsaegim/content';
 import R from '../../../../packages/content/data/reading.json' with { type: 'json' };
 import { schema as S, type Db } from '../../db/index.ts';
 
-export type Chapter = { id: string; title: string; say: string; body: string; highlight: string };
+export type Chapter = { id: string; title: string; say: string; body: string; highlight: string; points?: string[]; basis?: Basis[] };
+/** 화면에 그릴 계산 자료 — 사주 구성표·3년 흐름·행운(프리미엄 재물 리포트) */
+export type Visual = { table: SajuTable; flow?: { points: { y: number; m: number; score: number }[]; top: { y: number; m: number; score: number }[]; low: { y: number; m: number; score: number }[] }; lucky?: Record<string, unknown>; flowAt?: number; luckyAt?: number };
 export type Closing = { title: string; body: string; tips: string[] };
-export type ReadingContent = { productId: string; title: string; intro: string; chapters: Chapter[]; closing: Closing; facts?: unknown; generatedBy: 'ai' | 'engine' };
+export type ReadingContent = { productId: string; title: string; intro: string; chapters: Chapter[]; closing: Closing; facts?: unknown; visual?: Visual; generatedBy: 'ai' | 'engine' };
 export type Person = { name: string; gender: 'M' | 'F'; year: number; month: number; day: number; calendar: 'solar' | 'lunar'; leap?: boolean; hour?: number | null };
 export type OrderMeta = { cat?: string; sub?: string; q?: string; mbti?: string } | null;
 
@@ -33,7 +36,8 @@ export function checkQuality(c: ReadingContent, names: string[], expected: strin
 }
 
 /* ---------- 사실(계산 결과) ---------- */
-type Facts = { lines: string[]; paras: string[]; keywords: string[]; tips: string[]; sections?: string[][] };
+type ChapterMeta = { points: string[]; basis: Basis[]; say: string; highlight: string };
+type Facts = { lines: string[]; paras: string[]; keywords: string[]; tips: string[]; sections?: string[][]; meta?: ChapterMeta[]; visual?: Visual };
 const kindOf = (id: string): MoneyKind | null => (id.startsWith('money_') && id !== 'money_pack' ? (id.slice(6) as MoneyKind) : null);
 export function buildFacts(productId: string, people: Person[], sajus: SajuResult[], meta: OrderMeta, market: { body: string; flow: number[] | null } | null, now = new Date()): Facts {
   const id = 'r';
@@ -68,9 +72,26 @@ export function buildFacts(productId: string, people: Person[], sajus: SajuResul
     tips = [...f.tips, ...tips];
   };
   let sectionsOut: string[][] | undefined;
+  let metaOut: ChapterMeta[] | undefined;
+  let visual: Visual | undefined;
   const k = kindOf(productId);
   if (k) money(k);
   else if (productId === 'money_pack') MONEY_KINDS.forEach(money);
+  // 프리미엄 재물 리포트(재물 흐름·돈의 흐름 4종) — 7장 + 사주 구성표 근거 + 3년 흐름 + 행운
+  if (productId === 'money_wealth' || productId === 'money_pack') {
+    const rep = wealthReport(s, p0.name, id, now);
+    const POSL: Record<string, string> = { hour: '시주', day: '일주', month: '월주', year: '연주' };
+    const cellOf = (b: Basis) => { const c = rep.table.find((x) => x.key === b.pos); if (!c || c.empty) return ''; return b.part === 'stem' ? `${POSL[b.pos]} 천간 ${c.stem.han}(${c.stem.sip})` : b.part === 'branch' ? `${POSL[b.pos]} 지지 ${c.branch.han}(${c.branch.sip}·${c.shinsal}${c.gwiin.length ? `·${c.gwiin.join('·')}` : ''})` : `${POSL[b.pos]} 전체`; };
+    lines.push(`사주 구성표: ${rep.table.map((c) => (c.empty ? `${c.label} 모름` : `${c.label} ${c.stem.han}${c.branch.han}(천간 ${c.stem.sip}/지지 ${c.branch.sip}, ${c.stage}, ${c.shinsal}${c.gwiin.length ? `, ${c.gwiin.join('·')}` : ''})`)).join(' / ')}`,
+      `3년 재물 흐름 강한 시기 TOP3: ${rep.flow.top.map((x) => `${x.y}년 ${x.m}월(${x.score}점)`).join(', ')} / 낮은 시기: ${rep.flow.low.map((x) => `${x.y}년 ${x.m}월`).join(', ')}`,
+      `행운(재미): 색 ${rep.lucky.color} · 숫자 ${rep.lucky.number.join('·')} · 방향 ${rep.lucky.direction} · 모양 ${rep.lucky.shape} · 물건 ${rep.lucky.item}`,
+      ...rep.chapters.map((c, i) => `${i + 1}장 근거 표시: ${c.basis.length ? c.basis.map((b) => `${'①②③'[b.n - 1]} ${cellOf(b)}`).join(', ') : '없음'} (본문에서 같은 번호로 가리킬 것)`));
+    sectionsOut = rep.chapters.map((c) => c.paras);
+    if (productId === 'money_pack' && market) sectionsOut[3] = [...sectionsOut[3].slice(0, 3), `달새김이 보는 올해의 시장 이야기: ${market.body}`, sectionsOut[3][3]];
+    metaOut = rep.chapters.map((c) => ({ points: c.points, basis: c.basis, say: c.say, highlight: c.highlight }));
+    visual = { table: rep.table, flow: rep.flow, lucky: rep.lucky, flowAt: 2, luckyAt: 6 };
+    keywords = [...rep.keywords, ...keywords];
+  }
   else if (productId === 'newyear_2027' || productId === 'month_detail') {
     const ny = newYearPreview(s, 2027, id);
     if (productId === 'newyear_2027') {
@@ -157,14 +178,14 @@ export function buildFacts(productId: string, people: Person[], sajus: SajuResul
   // 공통 — 사주지도
   paras.push(...map.areas.map((a) => `${a.label}: ${a.line}`));
   if (map.period.now) paras.push(`지금은 ${map.period.now.fromYear}~${map.period.now.toYear}년 ${map.period.now.text} 대운, '${map.period.now.theme}'예요.${map.period.next ? ` 다음 ${map.period.next.fromYear}년부터는 '${map.period.next.theme}'로 이어져요.` : ''}`);
-  return { lines, paras, keywords: [...new Set(keywords)], tips: [...new Set(tips)], sections: sectionsOut };
+  return { lines, paras, keywords: [...new Set(keywords)], tips: [...new Set(tips)], sections: sectionsOut, meta: metaOut, visual };
 }
 
 /* ---------- 프롬프트 ---------- */
 export function buildPrompt(product: { id: string; title: string }, people: Person[], facts: Facts, titles: string[], meta: OrderMeta, now = new Date()) {
   const system = `당신은 사주 서비스 "달새김사주"의 풀이 작가 "달새김"이다.
 독자는 20~30대 여성이 중심. 다정하고 세련된 해요체(~해요, ~예요). 과장된 신비주의·공포 금지, 쉬운 말, 한 문단 3~5문장.
-장마다 근거(어떤 기운·어떤 달 때문인지)를 한 줄 넣어 "내 얘기 같다"는 느낌을 준다. 아래 '계산된 사실'의 숫자·달·키워드와 반드시 일치하게 쓴다(새 숫자를 지어내지 않는다).
+장마다 근거(어떤 기운·어떤 달 때문인지)를 한 줄 넣어(사실에 'N장 근거 표시'가 있으면 본문에 ①②③ 번호를 그대로 써서 사주 구성표의 그 자리를 가리킨다) "내 얘기 같다"는 느낌을 준다. 아래 '계산된 사실'의 숫자·달·키워드와 반드시 일치하게 쓴다(새 숫자를 지어내지 않는다).
 단정 금지(죽음·이혼 확정·파산·큰 병), 의료 조언 금지, "반드시·무조건" 금지.
 돈·투자 주제: 사주로 결과를 예측하지 않는다. 종목·매수·매도·수익 보장 표현 금지. 시장 이야기는 주어진 시장 노트 내용만 쓰고, 없으면 "공식 정보로 함께 확인"을 권한다.
 다른 운세 사이트·책의 문장을 흉내 내지 말고 모두 새로 쓴다. 이름은 "OOO 님"으로 부른다. 희망적으로 마무리하고 실천 조언은 구체적으로.
@@ -189,10 +210,11 @@ export function engineContent(product: { id: string; title: string }, people: Pe
   const chapters = titles.map((title, i) => {
     const chunk = facts.sections?.[i] ?? facts.paras.slice(starts[i], starts[i] + base + (i < extra ? 1 : 0));
     const body = (chunk.length ? chunk : facts.paras.slice(0, 2)).join('\n\n');
-    return { id: `c${i + 1}`, title, say: facts.keywords[i % facts.keywords.length] ?? title, body: body.startsWith(name) ? body : `${name} 님, ${body}`, highlight: (chunk[0] ?? body).split(/(?<=요\.)\s/)[0] };
+    const m = facts.meta?.[i];
+    return { id: `c${i + 1}`, title, say: m?.say ?? facts.keywords[i % facts.keywords.length] ?? title, body: m || body.startsWith(name) ? body : `${name} 님, ${body}`, highlight: m?.highlight ?? (chunk[0] ?? body).split(/(?<=요\.)\s/)[0], ...(m ? { points: m.points, basis: m.basis } : {}) };
   });
   return {
-    productId: product.id, title: product.title, generatedBy: 'engine',
+    productId: product.id, title: product.title, generatedBy: 'engine', ...(facts.visual ? { visual: facts.visual } : {}),
     intro: `${name} 님의 사주와 올해의 흐름을 바탕으로 '${product.title}'을 정리했어요. 숫자와 시기는 무료 요약과 같은 계산에서 나왔어요.`,
     chapters,
     closing: { title: '달새김이 남기는 말', body: `오늘 읽은 흐름을 기록해 두면, 몇 달 뒤 실제로 어땠는지 함께 돌아볼 수 있어요. ${name} 님의 시간이 차곡차곡 새겨지기를 바라요.`, tips: facts.tips.slice(0, 3) },
@@ -239,7 +261,9 @@ export async function generateReading(product: { id: string; title: string }, pe
     if (k === 0) intro = res.json.intro ?? ''; else if (res.json.closing?.body) closing = { title: res.json.closing.title || closing.title, body: res.json.closing.body, tips: res.json.closing.tips ?? [] };
     for (const c of res.json.chapters ?? []) chapters.push({ id: `c${chapters.length + 1}`, title: c.title, say: c.say, body: c.body, highlight: c.highlight });
   }
-  const content: ReadingContent = { productId: product.id, title: product.title, intro, chapters, closing, facts: facts.lines, generatedBy: 'ai' };
+  // 근거 번호·소제목·그림 자료는 계산값 그대로 붙인다(AI 가 바꾸지 못하게)
+  chapters.forEach((c, i) => { const m = facts.meta?.[i]; if (m) Object.assign(c, { points: m.points, basis: m.basis }); });
+  const content: ReadingContent = { productId: product.id, title: product.title, intro, chapters, closing, facts: facts.lines, ...(facts.visual ? { visual: facts.visual } : {}), generatedBy: 'ai' };
   return { content, tokensIn, tokensOut, costKrw: costKrwOf(tokensIn, tokensOut), issues: checkQuality(content, ps.map((p) => p.name), titles) };
 }
 
