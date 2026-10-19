@@ -75,7 +75,13 @@ describe('PayApp 웹 결제', () => {
     const opid = await prof(other);
     expect((await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'newyear_2027', profileId: opid, phone: '010-1111-2222' } })).json().code).toBe('profile');
     expect((await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'gunghap', profileId: pid, phone: '010-1111-2222' } })).json().code).toBe('profile');
-    expect((await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'adult_gunghap', profileId: pid, phone: '010-1111-2222' } })).statusCode).toBe(404);
+    // 성인 상품 — 성인 인증 전에는 주문 불가(403 adult)
+    const ad = await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'adult_gunghap', profileId: pid, phone: '010-1111-2222' } });
+    expect(ad.statusCode).toBe(403);
+    expect(ad.json().code).toBe('adult');
+    // 썸 타로 — 카드 3장 없이는 주문 불가, 잘못된 카드 값도 거절
+    expect((await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'tarot_some', profileId: pid, phone: '010-1111-2222' } })).json().code).toBe('cards');
+    expect((await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'tarot_some', profileId: pid, phone: '010-1111-2222', meta: { cards: '1,2' } } })).json().code).toBe('cards');
   });
   it('번호 없으면 결제창을 열지 않음', async () => {
     const r = await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'newyear_2027', profileId: pid } });
@@ -117,17 +123,19 @@ describe('PayApp 웹 결제', () => {
     const ent = (await app.inject({ url: '/me/entitlements', headers: auth(token) })).json();
     expect(ent.owned.filter((x: any) => x.orderId === orderId)).toHaveLength(1);
   });
-  it('AI 사주친구 30일 이용권 → 두 번 사면 이어 붙임, 환불 시 즉시 종료', async () => {
+  it('AI 사주친구 이용권(90일·질문 10회) → 두 번 사면 기간·질문 이어 붙임, 환불 시 즉시 종료', async () => {
     const t = await guest('pay-3');
     const m = (await app.inject({ method: 'POST', url: '/orders', headers: auth(t), payload: { productId: 'friend_pass', phone: '01055556666' } })).json();
     await feedback(m.id, m.amount);
     let ent = (await app.inject({ url: '/me/entitlements', headers: auth(t) })).json();
     expect(ent.premium).toBe(true);
-    expect(Math.round((new Date(ent.subscription.expiresAt).getTime() - Date.now()) / 864e5)).toBe(30);
+    expect(Math.round((new Date(ent.subscription.expiresAt).getTime() - Date.now()) / 864e5)).toBe(90);
+    expect(ent.subscription.credits).toBe(10);
     const y = (await app.inject({ method: 'POST', url: '/orders', headers: auth(t), payload: { productId: 'friend_pass', phone: '01055556666' } })).json();
     await feedback(y.id, y.amount);
     ent = (await app.inject({ url: '/me/entitlements', headers: auth(t) })).json();
-    expect(Math.round((new Date(ent.subscription.expiresAt).getTime() - Date.now()) / 864e5)).toBe(60);
+    expect(Math.round((new Date(ent.subscription.expiresAt).getTime() - Date.now()) / 864e5)).toBe(180);
+    expect(ent.subscription.credits).toBe(20);
     await feedback(y.id, y.amount, '9');
     ent = (await app.inject({ url: '/me/entitlements', headers: auth(t) })).json();
     expect(ent.premium).toBe(false);

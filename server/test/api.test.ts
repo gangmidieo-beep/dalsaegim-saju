@@ -38,13 +38,28 @@ describe('공개 API', () => {
     expect(a.mbti).toBe('INFP');
     expect((await app.inject({ method: 'POST', url: '/profiles', headers: auth(token), payload: profile('연인') })).statusCode).toBe(200);
   });
-  it('상품: 달새김 14종 노출(재회운 추가), 성인 상품은 숨김, 사이트 구분값', async () => {
+  it('상품: 달새김 18종 노출(결혼운·직업운·썸 타로·속궁합 추가), 성인 상품은 19 표시용 adult, 사이트 구분값', async () => {
     const list = (await app.inject({ url: '/products' })).json() as any[];
-    expect(list).toHaveLength(14);
+    expect(list).toHaveLength(18);
     expect(list.every((p) => p.siteId === 'dalsaegim')).toBe(true);
-    expect(list.find((p) => p.id === 'adult_gunghap')).toBeUndefined();
+    expect(list.find((p) => p.id === 'adult_gunghap').adult).toBe(true);
+    expect(list.map((p) => p.id)).toEqual(expect.arrayContaining(['marriage', 'career', 'tarot_some']));
     expect(list.filter((p) => p.series === 'money')).toHaveLength(5);
     expect((await app.inject({ url: '/banners?slot=home' })).json()).toHaveLength(2);
+  });
+  it('성인 상품: 인증 전 403 → 시연 인증 → 두 사람 주문 가능 / 월간운세 달 선택·타로 카드 저장', async () => {
+    const two = (await app.inject({ url: '/profiles', headers: auth(token) })).json() as any[];
+    const ids = two.map((x) => x.id).slice(0, 2).join('+');
+    expect((await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'adult_gunghap', profileId: ids } })).json().code).toBe('adult');
+    expect((await app.inject({ url: '/adult/status', headers: auth(token) })).json()).toMatchObject({ verified: false, mode: 'mock' });
+    expect((await app.inject({ method: 'POST', url: '/adult/verify', headers: auth(token), payload: {} })).json().verified).toBe(true);
+    expect((await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'adult_gunghap', profileId: ids } })).json().status).toBe('paid');
+    const m = (await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'month_detail', profileId: pid, meta: { ym: '2027-03' } } })).json();
+    expect(m.meta).toEqual({ ym: '2027-03' });
+    const bad = (await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'month_detail', profileId: pid, meta: { ym: '2027-13' } } })).json();
+    expect(bad.meta ?? {}).toEqual({});
+    const t = (await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'tarot_some', profileId: pid, meta: { cards: '6,37r,19' } } })).json();
+    expect(t.meta).toEqual({ cards: '6,37r,19' });
   });
   it('주문(mock) → 풀이 대기 → 고민의 길 질문 전달 → 내 주문 목록', async () => {
     const o = await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'path_deep', profileId: pid, meta: { cat: 'love', sub: 'partner', q: '계속 만나도 될까?', evil: 'x' } } });
@@ -83,9 +98,15 @@ describe('공개 API', () => {
     const bad = (await app.inject({ method: 'POST', url: '/friend/chat', headers: auth(g), payload: { profileId: prof.id, text: '안녕', persona: 'nobody' } })).json();
     expect((await app.inject({ url: `/friend/chats/${bad.chatId}`, headers: auth(g) })).json().persona).toBe('harin');
   });
-  it('이용권이 있으면 제한 없음', async () => {
+  it('이용권: 하루 무료를 다 쓴 뒤 질문 10회에서 하나씩 차감', async () => {
     await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'friend_pass' } });
-    expect((await app.inject({ method: 'POST', url: '/friend/chat', headers: auth(token), payload: { profileId: pid, text: '이직하고 싶어요' } })).json().remaining).toBeNull();
+    const st = (await app.inject({ url: '/friend/status', headers: auth(token) })).json();
+    expect(st.pass).toBe(true);
+    expect(st.credits).toBe(10);
+    expect(st.free).toBe(0); // 앞 테스트에서 무료 3번을 다 씀
+    const r = (await app.inject({ method: 'POST', url: '/friend/chat', headers: auth(token), payload: { profileId: pid, text: '이직하고 싶어요' } })).json();
+    expect(r.credits).toBe(9);
+    expect(r.remaining).toBe(9);
   });
   it('달새김 기록: 저장 → 수정 → 2주 뒤 묻기(피드백) → 타임라인에 풀이와 함께 → 삭제', async () => {
     const m = (await app.inject({ method: 'POST', url: '/memories', headers: auth(token), payload: { kind: 'consult', category: 'love', title: '현재 연인과 관계를 계속할지 고민함', happenedOn: '2026-10-05', profileId: pid } })).json();
@@ -270,7 +291,7 @@ describe('관리자 API', () => {
     const k = (await app.inject({ url: '/admin/api/kpi?period=month', headers: auth(staff) })).json();
     expect(k.rates.friendUse).toBeGreaterThan(0);
     expect(k.rates.pathDone).toBeGreaterThanOrEqual(0);
-    expect(k.byProduct.length).toBe(14);
+    expect(k.byProduct.length).toBe(18);
   });
   it('권한 2단계 — 운영자는 가격 변경 불가, 변경 이력 기록', async () => {
     expect((await app.inject({ method: 'PATCH', url: '/admin/api/products/money_wealth', headers: auth(staff), payload: { badge: 'BEST' } })).statusCode).toBe(200);

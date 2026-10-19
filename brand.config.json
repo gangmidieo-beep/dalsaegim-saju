@@ -131,6 +131,33 @@
    "visible": true
   },
   {
+   "id": "marriage",
+   "kind": "reading",
+   "series": "love",
+   "title": "결혼운 — 나의 배우자와 결혼 시기",
+   "cardCopy": "결혼 인연이 가까워지는 시기와 잘 맞는 배우자의 기운",
+   "price": 14900,
+   "listPrice": null,
+   "badge": "NEW",
+   "people": 1,
+   "sort": 27,
+   "visible": true
+  },
+  {
+   "id": "tarot_some",
+   "kind": "reading",
+   "series": "love",
+   "title": "썸 타로 — 그 사람의 마음",
+   "cardCopy": "카드 3장으로 보는 그 사람의 마음과 우리 사이의 흐름",
+   "price": 4900,
+   "listPrice": null,
+   "badge": "NEW",
+   "people": 1,
+   "sort": 29,
+   "visible": true,
+   "engineOk": true
+  },
+  {
    "id": "lifetime",
    "kind": "reading",
    "series": "life",
@@ -147,13 +174,26 @@
    "id": "month_detail",
    "kind": "reading",
    "series": "year",
-   "title": "이번 달 상세운세",
-   "cardCopy": "이번 달의 날짜별 흐름과 조심할 날",
+   "title": "월간운세 — 원하는 달 상세운세",
+   "cardCopy": "1월~12월 중 궁금한 달을 골라, 날짜별 흐름과 좋은 날",
    "price": 4900,
    "listPrice": null,
    "badge": null,
    "people": 1,
    "sort": 31,
+   "visible": true
+  },
+  {
+   "id": "career",
+   "kind": "reading",
+   "series": "work",
+   "title": "직업운 — 나에게 맞는 일과 이직 시기",
+   "cardCopy": "타고난 일의 재능, 취업·이직이 열리는 달",
+   "price": 14900,
+   "listPrice": null,
+   "badge": "NEW",
+   "people": 1,
+   "sort": 36,
    "visible": true
   },
   {
@@ -186,27 +226,29 @@
    "id": "friend_pass",
    "kind": "pass",
    "series": "friend",
-   "title": "AI 사주친구 30일 이용권",
-   "cardCopy": "하루 3번 제한 없이, 내 사주와 기록을 아는 친구와 대화",
+   "title": "AI 사주친구 이용권 · 질문 10회",
+   "cardCopy": "내 사주와 기록을 아는 상담 친구에게 10번 더 묻기 · 90일 동안",
    "price": 9900,
    "listPrice": null,
    "badge": null,
    "people": 1,
    "sort": 50,
-   "visible": true
+   "visible": true,
+   "days": 90,
+   "questions": 10
   },
   {
    "id": "adult_gunghap",
    "kind": "reading",
    "series": "adult",
    "title": "두 사람의 속궁합",
-   "cardCopy": "성인 인증 후 이용 가능",
+   "cardCopy": "성인 인증 후 · 두 사람의 친밀감과 표현의 결",
    "price": 19900,
    "listPrice": null,
    "badge": null,
    "people": 2,
-   "sort": 90,
-   "visible": false,
+   "sort": 23,
+   "visible": true,
    "adult": true
   }
  ],
@@ -217,12 +259,12 @@
  "business": {
   "name": "운(運)새김",
   "ceo": "송광민",
-  "regNo": "",
+  "regNo": "653-07-03076",
   "mailOrderNo": "",
-  "address": "",
+  "address": "서울특별시 광진구 능동로 330, 5층 5242(중곡동, 우진빌딩)",
   "phone": "",
   "email": "",
-  "kakao": ""
+  "kakao": "https://pf.kakao.com/_AZHFX"
  },
  "newYear": 2027,
  "letters": {

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 // 프리미엄 리포트 그림 — 사주 구성표(근거 번호 표시) · 3년 월별 흐름 · 행운 카드. 서버가 계산해 둔 값을 그대로 그린다.
 type Side = { han: string; kor: string; el: string; yy: string; sip: string };
 type Col = { key: 'hour' | 'day' | 'month' | 'year'; label: string; empty: true } | { key: 'hour' | 'day' | 'month' | 'year'; label: string; empty: false; stem: Side; branch: Side; stage: string; shinsal: string; gwiin: string[] };
@@ -74,6 +75,37 @@ export function LuckyCard({ l }: { l: NonNullable<Visual['lucky']> }) {
       <p><b>행운템</b> {l.item}</p>
       <p><b>상승 루틴</b> {l.routine}</p>
       <p className="faint" style={{ fontSize: 12.5 }}>{l.note}</p>
+    </section>
+  );
+}
+
+// 결과 맨 위 요약 카드(대표님 V88 리포트 틀) — 막대는 엔진이 계산한 지수, 단계는 실제 좋은 달
+export type Summary = { tone: 'love' | 'money' | 'saju' | 'time'; headline: string; lead: string; metrics: { label: string; score: number; note?: string }[]; steps: { label: string; text: string }[]; action: string; cards?: { id: number; rev: boolean }[] };
+const TONE_LABEL = { love: 'LOVE · 사랑과 인연', money: 'WEALTH · 돈과 일', saju: 'SAJU · 타고난 나', time: 'TIME · 시기의 흐름' };
+export function ReportSummary({ s, title, cardsNode }: { s: Summary; title: string; cardsNode?: ReactNode }) {
+  return (
+    <section className={`rs ${s.tone}`} aria-label="핵심 요약">
+      <small className="rs-over">{TONE_LABEL[s.tone]}</small>
+      <h2 className="rs-head">{s.headline}</h2>
+      <p className="rs-lead">{s.lead}</p>
+      {cardsNode}
+      <div className="rs-box">
+        <small>핵심 요약 · {title}</small>
+        <div className="rs-bars">
+          {s.metrics.map((m) => (
+            <div key={m.label} className="rs-bar">
+              <span>{m.label}{m.note && <em>{m.note}</em>}</span>
+              <span className="track" role="img" aria-label={`${m.label} ${m.score}`}><i style={{ width: `${Math.max(8, Math.min(100, (m.score - 30) / 0.65))}%` }} /></span>
+              <b>{m.score}</b>
+            </div>
+          ))}
+        </div>
+        <p className="rs-note">{s.cards ? '막대는 고른 카드가 보여 주는 분위기예요(정방향·반가운 카드일수록 길어요).' : '막대는 내 사주로 계산한 지수예요(100에 가까울수록 기운이 밝아요).'} 확률이나 결과 보장은 아니에요.</p>
+      </div>
+      <h3 className="rs-sub">시기·단계별로 살펴보기</h3>
+      <ol className="rs-steps">{s.steps.map((x, i) => <li key={i}><span>{i + 1}</span><div><b>{x.label}</b><p>{x.text}</p></div></li>)}</ol>
+      <h3 className="rs-sub">오늘부터 적용할 한 가지</h3>
+      <p className="rs-act">{s.action}</p>
     </section>
   );
 }

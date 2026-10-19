@@ -121,3 +121,43 @@ describe('결제 → 풀이 생성 → 결과 조회 (엔진 풀이)', () => {
     expect((await app.inject({ url: `/readings/${o.id}`, headers: { authorization: `Bearer ${other}` } })).statusCode).toBe(404);
   });
 });
+
+describe('10/19 추가 상품 — 결혼운·직업운·썸 타로·월간 선택·요약 카드', () => {
+  const BAN = [/반드시|무조건|100%/, /사망|파산/, /종목/, /예요\.예요/, /undefined|NaN/];
+  const plain = (c: { chapters: { body: string }[]; summary?: unknown }) => c.chapters.map((x) => x.body).join('\n') + JSON.stringify(c.summary);
+  it('모든 유료 상품에 요약 카드(지수 3개 이하·단계·실천)가 붙는다', async () => {
+    for (const p of PAID) {
+      const g = await generateReading({ id: p.id, title: p.title }, p.people > 1 ? [ME, YOU] : [ME], { meta: { ym: '2027-03', cards: '6,37r,19', mbti: 'INFJ', cat: 'love', sub: 'partner', q: '계속 만나도 될까?' }, now: NOW });
+      const s = g.content.summary!;
+      expect(s, p.id).toBeTruthy();
+      expect(s.metrics.length).toBeGreaterThan(0);
+      expect(s.metrics.every((m) => m.score >= 30 && m.score <= 100)).toBe(true);
+      expect(s.steps.length).toBeGreaterThanOrEqual(2);
+      expect(s.action.length).toBeGreaterThan(5);
+      for (const re of BAN) expect(re.test(plain(g.content)), `${p.id} ${re}`).toBe(false);
+    }
+  });
+  it('결혼운·직업운: 장마다 본문, 이름·좋은 달 포함', async () => {
+    for (const id of ['marriage', 'career']) {
+      const g = await generateReading({ id, title: id }, [ME], { now: NOW });
+      expect(g.content.chapters).toHaveLength(5);
+      expect(g.content.chapters.every((c) => c.body.length >= 120)).toBe(true);
+      expect(plain(g.content)).toContain('김서윤');
+      expect(plain(g.content)).toMatch(/\d{1,2}월/);
+    }
+  });
+  it('썸 타로: 고른 카드 그대로 해석(정·역), AI 없이 엔진 풀이', async () => {
+    const g = await generateReading({ id: 'tarot_some', title: '썸 타로' }, [ME], { meta: { cards: '6,37r,19' }, now: NOW });
+    expect(g.content.generatedBy).toBe('engine');
+    expect(g.content.summary!.cards).toEqual([{ id: 6, rev: false }, { id: 37, rev: true }, { id: 19, rev: false }]);
+    expect(g.content.chapters[0].body).toContain('연인');
+    expect(g.content.chapters[1].body).toContain('역방향');
+    expect(g.content.chapters).toHaveLength(5);
+  });
+  it('월간운세: 고른 달(2027-03)로 계산, 31일까지 나눔', async () => {
+    const g = await generateReading({ id: 'month_detail', title: '월간운세' }, [ME], { meta: { ym: '2027-03' }, now: NOW });
+    expect(g.content.summary!.headline).toContain('2027년 3월');
+    expect(g.content.chapters[3].title).toContain('21일');
+    expect(g.content.summary!.steps[2].label).toContain('31');
+  });
+});

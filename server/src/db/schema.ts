@@ -18,6 +18,7 @@ export const users = pgTable('users', {
   memoryAI: boolean().default(true).notNull(), // AI 사주친구가 내 기록을 참고해도 되는지
   letterNotifyAt: timestamp({ withTimezone: true }), // 카카오톡 '달빛 편지 도착' 안내 수신 동의 시각(철회하면 null)
   mergedInto: text(), // 게스트 → 로그인 계정으로 합쳐지면 대상 id
+  adultAt: timestamp({ withTimezone: true }), // 성인 본인인증 완료 시각(속궁합 등 성인 상품)
   createdAt: now(),
   lastSeenAt: now(),
   deletedAt: timestamp({ withTimezone: true }),
@@ -100,6 +101,7 @@ export const subscriptions = pgTable('subscriptions', {
   renewedAt: timestamp({ withTimezone: true }),
   expiresAt: timestamp({ withTimezone: true }).notNull(),
   canceledAt: timestamp({ withTimezone: true }),
+  credits: integer(), // 남은 질문 수(AI 사주친구 10회 이용권). null = 횟수 제한 없음(옛 30일권)
 }, (t) => [index('subs_user').on(t.userId)]);
 
 export const readings = pgTable('readings', {

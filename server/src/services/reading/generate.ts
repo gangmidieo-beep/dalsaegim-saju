@@ -6,7 +6,7 @@ import { and, desc, eq, inArray, lt } from 'drizzle-orm';
 import { calcSaju, branchRelations, kstParts, type SajuResult } from '@dalsaegim/engine';
 import {
   moneyFlow, newYearPreview, sajuMap, sajuMbti, pathResult, nextMonths, monthFortune, todayFortune, toRanges, MONEY_KINDS, type MoneyKind,
-  wealthReport, type Basis, type SajuTable,
+  wealthReport, marriageReport, careerReport, tarotReading, parseCards, monthsLabel, type Basis, type SajuTable,
 } from '@dalsaegim/content';
 import R from '../../../../packages/content/data/reading.json' with { type: 'json' };
 import { schema as S, type Db } from '../../db/index.ts';
@@ -15,9 +15,11 @@ export type Chapter = { id: string; title: string; say: string; body: string; hi
 /** 화면에 그릴 계산 자료 — 사주 구성표·3년 흐름·행운(프리미엄 재물 리포트) */
 export type Visual = { table: SajuTable; flow?: { points: { y: number; m: number; score: number }[]; top: { y: number; m: number; score: number }[]; low: { y: number; m: number; score: number }[] }; lucky?: Record<string, unknown>; flowAt?: number; luckyAt?: number };
 export type Closing = { title: string; body: string; tips: string[] };
-export type ReadingContent = { productId: string; title: string; intro: string; chapters: Chapter[]; closing: Closing; facts?: unknown; visual?: Visual; generatedBy: 'ai' | 'engine' };
+/** 결과 맨 위 요약 카드(대표님 V88 리포트 틀) — 막대는 엔진이 계산한 지수, 단계는 실제 좋은 달·날 */
+export type Summary = { tone: 'love' | 'money' | 'saju' | 'time'; headline: string; lead: string; metrics: { label: string; score: number; note?: string }[]; steps: { label: string; text: string }[]; action: string; cards?: { id: number; rev: boolean }[] };
+export type ReadingContent = { productId: string; title: string; intro: string; chapters: Chapter[]; closing: Closing; facts?: unknown; visual?: Visual; summary?: Summary; generatedBy: 'ai' | 'engine' };
 export type Person = { name: string; gender: 'M' | 'F'; year: number; month: number; day: number; calendar: 'solar' | 'lunar'; leap?: boolean; hour?: number | null };
-export type OrderMeta = { cat?: string; sub?: string; q?: string; mbti?: string } | null;
+export type OrderMeta = { cat?: string; sub?: string; q?: string; mbti?: string; ym?: string; cards?: string } | null;
 
 export const chaptersFor = (productId: string) => (R.chapters as Record<string, string[]>)[productId] ?? R.chapters.lifetime;
 const sajuOfP = (p: Person) => calcSaju({ year: p.year, month: p.month, day: p.day, hour: p.hour ?? null, calendar: p.calendar, leapMonth: p.leap, gender: p.gender, timeUnknown: p.hour == null });
@@ -37,7 +39,7 @@ export function checkQuality(c: ReadingContent, names: string[], expected: strin
 
 /* ---------- 사실(계산 결과) ---------- */
 type ChapterMeta = { points: string[]; basis: Basis[]; say: string; highlight: string };
-type Facts = { lines: string[]; paras: string[]; keywords: string[]; tips: string[]; sections?: string[][]; meta?: ChapterMeta[]; visual?: Visual };
+type Facts = { lines: string[]; paras: string[]; keywords: string[]; tips: string[]; sections?: string[][]; meta?: ChapterMeta[]; visual?: Visual; summary?: Summary };
 const kindOf = (id: string): MoneyKind | null => (id.startsWith('money_') && id !== 'money_pack' ? (id.slice(6) as MoneyKind) : null);
 export function buildFacts(productId: string, people: Person[], sajus: SajuResult[], meta: OrderMeta, market: { body: string; flow: number[] | null } | null, now = new Date()): Facts {
   const id = 'r';
@@ -72,6 +74,7 @@ export function buildFacts(productId: string, people: Person[], sajus: SajuResul
     tips = [...f.tips, ...tips];
   };
   let sectionsOut: string[][] | undefined;
+  let summaryOut: Summary | undefined;
   let metaOut: ChapterMeta[] | undefined;
   let visual: Visual | undefined;
   const k = kindOf(productId);
@@ -112,14 +115,33 @@ export function buildFacts(productId: string, people: Person[], sajus: SajuResul
         [map.period.now ? `지금은 ${map.period.now.fromYear}~${map.period.now.toYear}년 ${map.period.now.text} 대운, '${map.period.now.theme}'예요.` : `${p0.name} 님의 2027년이 차곡차곡 새겨지기를 바라요.`, `좋은 달(${ny.good})을 달력에 표시해 두고, 그때마다 하고 싶은 일을 하나씩 꺼내 보세요.`],
       ];
     } else {
-      const mf = monthFortune(s, now, id);
+      // 월간운세 — 고객이 고른 달(meta.ym, 없으면 이번 달). 그 달의 날짜별 흐름을 초순·중순·하순으로
       const k0 = kstParts(now);
-      const days = Array.from({ length: 28 }, (_, i) => ({ d: i + 1, t: todayFortune(s, new Date(Date.UTC(k0.year, k0.month - 1, i + 1, 3)), id).total }));
-      const best = [...days].sort((a, b) => b.t - a.t).slice(0, 3).map((x) => x.d).sort((a, b) => a - b);
-      const low = [...days].sort((a, b) => a.t - b.t).slice(0, 3).map((x) => x.d).sort((a, b) => a - b);
-      lines.push(`${mf.month}월: 지수 ${mf.total} / 좋은 날 ${best.join(', ')}일 / 조심할 날 ${low.join(', ')}일 / 키워드 ${mf.keyword}`);
-      paras.push(mf.line, `이번 달 기운이 좋은 날은 ${best.join(', ')}일, 속도를 늦추면 좋은 날은 ${low.join(', ')}일이에요.`);
+      const [yy, mm] = meta?.ym ? meta.ym.split('-').map(Number) : [k0.year, k0.month];
+      const ref = new Date(Date.UTC(yy, mm - 1, 15, 3));
+      const mf = monthFortune(s, ref, id);
+      const last = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
+      const days = Array.from({ length: last }, (_, i) => ({ d: i + 1, t: todayFortune(s, new Date(Date.UTC(yy, mm - 1, i + 1, 3)), id).total }));
+      const topD = (xs: typeof days, n: number) => [...xs].sort((a, b) => b.t - a.t).slice(0, n).map((x) => x.d).sort((a, b) => a - b);
+      const lowD = (xs: typeof days, n: number) => [...xs].sort((a, b) => a.t - b.t).slice(0, n).map((x) => x.d).sort((a, b) => a - b);
+      const best = topD(days, 3), low = lowD(days, 3);
+      const parts = [days.slice(0, 10), days.slice(10, 20), days.slice(20)];
+      const avgT = (xs: typeof days) => Math.round(xs.reduce((a, x) => a + x.t, 0) / xs.length);
+      const FL: Record<string, string> = { love: '연애·관계', work: '일', wealth: '재물', health: '몸과 마음' };
+      const fl = Object.entries(mf.fields).sort((a, b) => b[1] - a[1]);
+      const label = `${yy}년 ${mm}월`;
+      lines.push(`${label}: 지수 ${mf.total} / 분야 ${fl.map(([k, v]) => `${FL[k] ?? k} ${v}`).join(', ')} / 좋은 날 ${best.join(', ')}일 / 조심할 날 ${low.join(', ')}일 / 키워드 ${mf.keyword}`);
+      const partLine = (xs: typeof days, nm: string) => { const a = avgT(xs), b = topD(xs, 2), w = lowD(xs, 1); return [`${nm}의 평균 흐름은 ${a}점이에요. ${a >= 70 ? '기운이 밝게 열리는 구간이라 미뤄 둔 일을 시작하기 좋아요.' : a >= 60 ? '잔잔하게 이어지는 구간이라 하던 일을 차분히 다지기 좋아요.' : '한 템포 쉬어 가는 구간이라 무리한 약속은 줄이는 게 좋아요.'}`, `이 구간에서 가장 좋은 날은 ${b.join('·')}일이고, ${w[0]}일에는 컨디션과 말에 조금 더 신경 써 주세요.`]; };
+      sectionsOut = [
+        [`${p0.name} 님의 ${label} 흐름은 ${mf.total}점이에요. ${mf.line}`, `이달의 키워드는 '${mf.keyword}'예요. 분야별로는 ${FL[fl[0][0]] ?? fl[0][0]}(${fl[0][1]}점)의 기운이 가장 밝고, ${FL[fl[fl.length - 1][0]] ?? ''}(${fl[fl.length - 1][1]}점)은 조금 아껴 써야 해요.`],
+        partLine(parts[0], '1~10일'), partLine(parts[1], '11~20일'), partLine(parts[2], `21~${last}일`),
+        [`${label}에 기운이 가장 좋은 날은 ${best.join(', ')}일이에요. 중요한 약속·고백·계약·면접처럼 마음을 정하는 일은 이 날에 두면 좋아요.`, `속도를 늦추면 좋은 날은 ${low.join(', ')}일이에요. 이 날에는 큰 결정보다 정리와 휴식을 먼저 챙겨 보세요.`, map.elementAdvice],
+      ];
       keywords = [mf.keyword, ...keywords];
+      summaryOut = { tone: 'time', headline: `${label}, '${mf.keyword}'의 한 달`, lead: mf.line,
+        metrics: fl.slice(0, 3).map(([k, v]) => ({ label: FL[k] ?? k, score: v })),
+        steps: [['초순 1~10일', parts[0]], ['중순 11~20일', parts[1]], [`하순 21~${last}일`, parts[2]]].map(([l, xs]) => ({ label: l as string, text: `좋은 날 ${topD(xs as typeof days, 2).join('·')}일 · 흐름 ${avgT(xs as typeof days)}점` })),
+        action: `${best[0]}일을 달력에 표시하고, 미뤄 둔 일 하나를 그날로 옮겨 보세요.` };
     }
   } else if (productId === 'love_flow' || productId === 'reunion') {
     // 연애·재회 — 사랑을 깊게(대표님 요청: 2030 여성 타깃, 사랑 상품 특히 신경)
@@ -185,11 +207,74 @@ export function buildFacts(productId: string, people: Person[], sajus: SajuResul
       [mb.work, mb.money, map.areas.find((a) => a.id === 'money')!.line],
       [`채우면 좋은 기운은 '${map.need}'이에요. ${map.elementAdvice}`, `${mb.info.traits.join('·')}이 ${p0.name} 님의 무기예요. 지칠 때는 사주가 말하는 본래의 리듬(${mb.sajuType})으로 잠시 돌아가 보세요.`],
     ];
+  } else if (productId === 'marriage') {
+    const r = marriageReport(s, p0.name, id, now);
+    lines.push(...r.facts);
+    sectionsOut = r.sections;
+    keywords = ['결혼', '배우자', ...keywords];
+    summaryOut = { tone: 'love', headline: `결혼의 기운이 가까워지는 때 · ${r.good}`, lead: r.sections[1][0],
+      metrics: r.metrics, steps: [{ label: '인연이 들어오는 달', text: r.meet }, { label: '약속·결정하기 좋은 달', text: r.good }, { label: '서두르지 않을 달', text: r.careful }], action: r.action };
+  } else if (productId === 'career') {
+    const r = careerReport(s, p0.name, id, now);
+    lines.push(...r.facts);
+    sectionsOut = r.sections;
+    keywords = ['일', '진로', ...keywords];
+    summaryOut = { tone: 'money', headline: `이직·취업이 열리는 달 · ${r.good}`, lead: r.sections[0][0], metrics: r.metrics, steps: r.steps, action: r.action };
+  } else if (productId === 'tarot_some') {
+    const cards = parseCards(meta?.cards) ?? parseCards('6,47,19')!;
+    const r = tarotReading(cards, p0.name, s, id, now);
+    lines.push(...r.facts);
+    sectionsOut = r.sections;
+    keywords = cards.map((d) => (d.rev ? d.card.rkw : d.card.kw));
+    summaryOut = { tone: 'love', headline: r.verdict, lead: `세 장의 흐름: ${keywords.join(' → ')}`, metrics: r.metrics,
+      steps: [{ label: '지금 분위기', text: r.verdict }, { label: '마음이 닿기 쉬운 달', text: r.good }, { label: '서두르지 않을 달', text: r.careful }], action: r.action,
+      cards: cards.map((d) => ({ id: d.card.id, rev: d.rev })) };
+  }
+  // 요약 카드가 따로 없는 상품 — 엔진 지수(앞으로 12달 평균)와 실제 좋은 달로 채운다
+  if (!summaryOut) {
+    const M = (d: Parameters<typeof nextMonths>[1]) => nextMonths(s, d, id, now);
+    const avg6 = (xs: { score: number }[]) => Math.round(xs.slice(0, 6).reduce((a, x) => a + x.score, 0) / 6);
+    const thirds = (xs: { year: number; month: number; score: number }[], labels: [string, string, string]) =>
+      [xs.slice(0, 4), xs.slice(4, 8), xs.slice(8, 12)].map((g, i) => { const b = [...g].sort((x, y) => y.score - x.score)[0]; return { label: labels[i], text: `${monthsLabel([b], now)}에 기운이 가장 밝아요` }; });
+    const goodOf = (xs: { year: number; month: number; score: number }[], n = 3) => monthsLabel([...xs].sort((a, b) => b.score - a.score).slice(0, n), now);
+    const action = tips[0] ?? map.elementAdvice;
+    if (productId === 'love_flow' || productId === 'reunion' || productId === 'gunghap' || productId === 'adult_gunghap') {
+      const love = M('love'), partner = M('partner'), growth = M('growth'), family = M('family');
+      const blend = love.map((x, i) => ({ ...x, score: Math.round((x.score + partner[i].score) / 2) }));
+      const L = productId === 'reunion' ? [['다시 닿을 기운', partner], ['마음의 온도', love], ['나를 지키는 힘', growth]] as const
+        : productId === 'love_flow' ? [['연애 기운', love], ['관계의 깊이', partner], ['나를 아끼는 힘', growth]] as const
+          : [['끌림', love], ['관계의 리듬', partner], ['함께하는 안정', family]] as const;
+      summaryOut = { tone: 'love', headline: `마음이 닿기 쉬운 달 · ${goodOf(blend)}`, lead: map.dayMaster.love,
+        metrics: L.map(([label, xs]) => ({ label, score: avg6(xs) })), steps: thirds(blend, ['가까운 넉 달', '그다음 넉 달', '한 해의 끝 무렵']), action: sectionsOut?.[3]?.[1] ?? action };
+    } else if (productId === 'newyear_2027') {
+      const ny = newYearPreview(s, 2027, id);
+      const b = (a: number, z: number) => [...ny.months.slice(a - 1, z)].sort((x, y) => y.score - x.score)[0].month;
+      summaryOut = { tone: 'time', headline: `2027년, '${ny.keyword}'이 열쇠가 되는 해`, lead: `한 해 총운 ${ny.total}점 · 가장 기운이 좋은 달 ${ny.good}`,
+        metrics: [...ny.fields].sort((a, z) => z.score - a.score).slice(0, 3).map((f) => ({ label: f.label, score: f.score })),
+        steps: [{ label: '1~4월', text: `${b(1, 4)}월에 시작의 기운이 가장 밝아요` }, { label: '5~8월', text: `${b(5, 8)}월에 힘이 가장 크게 붙어요` }, { label: '9~12월', text: `${b(9, 12)}월에 거두기 좋아요` }],
+        action: `좋은 달(${ny.good})을 달력에 표시하고, 그때 할 일을 하나씩 미리 적어 두세요.` };
+    } else if (productId.startsWith('money_')) {
+      const kind = (kindOf(productId) ?? 'wealth') as MoneyKind;
+      const f = moneyFlow(s, kind, year, id, { now });
+      const fl = f.flow;
+      summaryOut = { tone: 'money', headline: `${f.title}, ${f.headline}`, lead: f.summary, metrics: f.subs.slice(0, 3),
+        steps: [[1, 4], [5, 8], [9, 12]].map(([a, z]) => { const b = [...fl.slice(a - 1, z)].sort((x, y) => y.score - x.score)[0]; return { label: `${a}~${z}월`, text: `${b.month}월에 흐름이 가장 좋아요` }; }),
+        action: f.tips[0] ?? action };
+    } else {
+      const work = M('work'), wealth = M('wealth'), love = M('love');
+      const best = work.map((x, i) => ({ ...x, score: Math.round((x.score + wealth[i].score + love[i].score) / 3) }));
+      const mbtiMatch = productId === 'mbti_deep' && meta?.mbti ? sajuMbti(s, meta.mbti, id).match : null;
+      summaryOut = { tone: 'saju', headline: `${map.dayMaster.title}`, lead: map.dayMaster.line,
+        metrics: [...(mbtiMatch != null ? [{ label: '사주·MBTI 일치도', score: mbtiMatch }] : []), { label: '일과 성취', score: avg6(work) }, { label: '재물의 흐름', score: avg6(wealth) }, { label: '관계와 사랑', score: avg6(love) }].slice(0, 3),
+        steps: map.period.now ? [{ label: '지금의 큰 흐름', text: `${map.period.now.fromYear}~${map.period.now.toYear}년 · ${map.period.now.theme}` }, ...(map.period.next ? [{ label: '다음 큰 흐름', text: `${map.period.next.fromYear}년부터 · ${map.period.next.theme}` }] : []), { label: '앞으로 좋은 달', text: goodOf(best) }]
+          : thirds(best, ['가까운 넉 달', '그다음 넉 달', '한 해의 끝 무렵']),
+        action: `채우면 좋은 기운은 '${map.need}'이에요. ${map.elementAdvice}` };
+    }
   }
   // 공통 — 사주지도
   paras.push(...map.areas.map((a) => `${a.label}: ${a.line}`));
   if (map.period.now) paras.push(`지금은 ${map.period.now.fromYear}~${map.period.now.toYear}년 ${map.period.now.text} 대운, '${map.period.now.theme}'예요.${map.period.next ? ` 다음 ${map.period.next.fromYear}년부터는 '${map.period.next.theme}'로 이어져요.` : ''}`);
-  return { lines, paras, keywords: [...new Set(keywords)], tips: [...new Set(tips)], sections: sectionsOut, meta: metaOut, visual };
+  return { lines, paras, keywords: [...new Set(keywords)], tips: [...new Set(tips)], sections: sectionsOut, meta: metaOut, visual, summary: summaryOut };
 }
 
 /* ---------- 프롬프트 ---------- */
@@ -225,8 +310,9 @@ export function engineContent(product: { id: string; title: string }, people: Pe
     return { id: `c${i + 1}`, title, say: m?.say ?? facts.keywords[i % facts.keywords.length] ?? title, body: m || body.startsWith(name) ? body : `${name} 님, ${body}`, highlight: m?.highlight ?? (chunk[0] ?? body).split(/(?<=요\.)\s/)[0], ...(m ? { points: m.points, basis: m.basis } : {}) };
   });
   return {
-    productId: product.id, title: product.title, generatedBy: 'engine', ...(facts.visual ? { visual: facts.visual } : {}),
-    intro: `${name} 님의 사주와 올해의 흐름을 바탕으로 '${product.title}'을 정리했어요. 숫자와 시기는 무료 요약과 같은 계산에서 나왔어요.`,
+    productId: product.id, title: product.title, generatedBy: 'engine', ...(facts.visual ? { visual: facts.visual } : {}), ...(facts.summary ? { summary: facts.summary } : {}),
+    intro: product.id === 'tarot_some' ? `${name} 님이 직접 고른 카드 3장의 해석에, 사주로 본 '마음이 닿기 쉬운 달'을 함께 묶었어요. 카드는 지금 이 순간의 분위기를 비추는 거울이에요.`
+      : `${name} 님의 사주와 올해의 흐름을 바탕으로 '${product.title}'을 정리했어요. 숫자와 시기는 무료 요약과 같은 계산에서 나왔어요.`,
     chapters,
     closing: { title: '달새김이 남기는 말', body: `오늘 읽은 흐름을 기록해 두면, 몇 달 뒤 실제로 어땠는지 함께 돌아볼 수 있어요. ${name} 님의 시간이 차곡차곡 새겨지기를 바라요.`, tips: facts.tips.slice(0, 3) },
   };
@@ -252,11 +338,13 @@ const rate = () => ({ inp: +(process.env.AI_PRICE_IN_PER_M ?? 3), out: +(process
 export const costKrwOf = (tin: number, tout: number) => Math.round(((tin * rate().inp + tout * rate().out) / 1e6) * KRW_PER_USD);
 
 export async function generateReading(product: { id: string; title: string }, people: Person[], opts: { meta?: OrderMeta; market?: { body: string; flow: number[] | null } | null; http?: typeof fetch; now?: Date } = {}) {
+  const ym = product.id === 'month_detail' ? opts.meta?.ym : undefined;
+  if (ym) product = { ...product, title: `${ym.slice(0, 4)}년 ${Number(ym.slice(5))}월 상세운세` }; // 고른 달이 제목에 보이게
   const ps = people.length ? people : [{ name: '달님', gender: 'F', year: 1995, month: 5, day: 15, calendar: 'solar', hour: null } as Person];
   const sajus = ps.map(sajuOfP);
   const facts = buildFacts(product.id, ps, sajus, opts.meta ?? null, opts.market ?? null, opts.now);
   const titles = chaptersFor(product.id);
-  if (!liveAI()) { const content = engineContent(product, ps, facts); return { content: { ...content, facts: facts.lines }, tokensIn: 0, tokensOut: 0, costKrw: 0, issues: [] as string[] }; }
+  if (!liveAI() || product.id === 'tarot_some') { const content = engineContent(product, ps, facts); return { content: { ...content, facts: facts.lines }, tokensIn: 0, tokensOut: 0, costKrw: 0, issues: [] as string[] }; }
   const half = Math.ceil(titles.length / 2);
   let tokensIn = 0, tokensOut = 0, intro = '';
   const chapters: Chapter[] = [];
@@ -274,7 +362,7 @@ export async function generateReading(product: { id: string; title: string }, pe
   }
   // 근거 번호·소제목·그림 자료는 계산값 그대로 붙인다(AI 가 바꾸지 못하게)
   chapters.forEach((c, i) => { const m = facts.meta?.[i]; if (m) Object.assign(c, { points: m.points, basis: m.basis }); });
-  const content: ReadingContent = { productId: product.id, title: product.title, intro, chapters, closing, facts: facts.lines, ...(facts.visual ? { visual: facts.visual } : {}), generatedBy: 'ai' };
+  const content: ReadingContent = { productId: product.id, title: product.title, intro, chapters, closing, facts: facts.lines, ...(facts.visual ? { visual: facts.visual } : {}), ...(facts.summary ? { summary: facts.summary } : {}), generatedBy: 'ai' };
   return { content, tokensIn, tokensOut, costKrw: costKrwOf(tokensIn, tokensOut), issues: checkQuality(content, ps.map((p) => p.name), titles) };
 }
 

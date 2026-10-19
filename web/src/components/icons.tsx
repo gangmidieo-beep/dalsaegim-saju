@@ -41,6 +41,9 @@ export const I = {
   edit: ({ size, ...p }: P) => <svg {...base(size)} {...p}><path d="M5 19h3.5L19 8.5 15.5 5 5 15.5z" /></svg>,
   sparkle: ({ size, ...p }: P) => <svg {...base(size)} {...p}><path d="M12 3.5c.6 4 2.4 5.9 6.5 6.5-4.1.6-5.9 2.5-6.5 6.5-.6-4-2.4-5.9-6.5-6.5 4.1-.6 5.9-2.5 6.5-6.5zM18.5 16c.2 1.3.8 1.9 2 2-1.2.2-1.8.8-2 2-.2-1.2-.8-1.8-2-2 1.2-.1 1.8-.7 2-2z" /></svg>,
   shield: ({ size, ...p }: P) => <svg {...base(size)} {...p}><path d="M12 3.5 19 6v5.5c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z" /><path d="m9 12 2 2 4-4" /></svg>,
+  ring: ({ size, ...p }: P) => <svg {...base(size)} {...p}><circle cx="9.5" cy="14" r="5.5" /><circle cx="14.5" cy="14" r="5.5" /><path d="m10.5 4.5 1.5-1.5 1.5 1.5-1.5 2z" /></svg>,
+  tarot: ({ size, ...p }: P) => <svg {...base(size)} {...p}><rect x="4" y="5" width="9.5" height="14.5" rx="1.6" transform="rotate(-8 8.7 12.2)" /><rect x="10.5" y="4.5" width="9.5" height="14.5" rx="1.6" transform="rotate(8 15.2 11.7)" /><path d="m15.4 9.2.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6z" /></svg>,
+  stairs: ({ size, ...p }: P) => <svg {...base(size)} {...p}><path d="M4 19h4.5v-4.5H13V10h4.5V5.5H20" /><path d="m15.5 4.5 2-1.5" /></svg>,
   people: ({ size, ...p }: P) => <svg {...base(size)} {...p}><circle cx="9" cy="9" r="3.2" /><circle cx="16.5" cy="10" r="2.6" /><path d="M3.5 19c.9-3 3-4.4 5.5-4.4s4.6 1.4 5.5 4.4M14.5 15c2.4-.4 4.5.9 5.5 3.6" /></svg>,
 };
 export type IconName = keyof typeof I;

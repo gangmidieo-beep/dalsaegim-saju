@@ -27,6 +27,8 @@ export default function Friend() {
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState<{ d: Draft; state: 'open' | 'saved' | 'skip' } | null>(null);
   const [remaining, setRemaining] = useState<number | null>(null);
+  const [left, setLeft] = useState<{ free: number; credits: number | null } | null>(null);
+  const leftText = left ? (left.credits != null && left.credits > 0 ? `오늘 무료 ${left.free}번 · 이용권 질문 ${left.credits}번 남았어요` : `오늘 무료 상담 ${left.free}번 남았어요`) : remaining != null ? `오늘 무료 상담 ${remaining}번 남았어요` : '';
   const [limit, setLimit] = useState(false);
   const [rec, setRec] = useState(false);
   const [read, setRead] = useState(false); // 답을 소리로 읽어 주기
@@ -43,7 +45,7 @@ export default function Friend() {
 
   useEffect(() => {
     if (isSample) return;
-    apiAuth<{ remaining: number | null; pass: boolean }>('/friend/status').then((s) => { setRemaining(s.remaining); setPass(s.pass); }).catch(() => {});
+    apiAuth<{ remaining: number | null; pass: boolean; free: number; credits: number | null }>('/friend/status').then((s) => { setRemaining(s.remaining); setPass(s.pass); setLeft({ free: s.free, credits: s.credits }); }).catch(() => {});
     if (friendChatId && !sp.get('q')) apiAuth<{ id: string; persona: string | null; messages: Msg[] }>(`/friend/chats/${friendChatId}`).then((c) => { setChatId(c.id); setMsgs(c.messages); setChatPersona(c.persona); }).catch(() => setFriendChat(null));
     return () => { stopVoice(); };
   }, [isSample]);
@@ -60,12 +62,12 @@ export default function Friend() {
     setBusy(true);
     try {
       await syncProfile(profile, true);
-      const r = await apiAuth<{ chatId: string; reply: string; draft: Draft; remaining: number | null; pass: boolean }>('/friend/chat', { method: 'POST', json: { chatId, profileId: profile.id, text: t, topic: opt.topic ?? topic, persona: opt.persona ?? pe.id, source: sp.get('q') ? 'path' : 'home' } });
+      const r = await apiAuth<{ chatId: string; reply: string; draft: Draft; remaining: number | null; pass: boolean; free: number; credits: number | null }>('/friend/chat', { method: 'POST', json: { chatId, profileId: profile.id, text: t, topic: opt.topic ?? topic, persona: opt.persona ?? pe.id, source: sp.get('q') ? 'path' : 'home' } });
       // 상담사를 고르자마자 첫 질문을 보내는 경우, 이 시점의 pe 는 이전 상담사라 고른 id 를 쓴다
       const used = personaOf(opt.persona ?? pe.id);
       setChatId(r.chatId); setFriendChat(r.chatId); setChatPersona(used.id);
       setMsgs((m) => [...m, { role: 'friend', text: r.reply }]);
-      setRemaining(r.remaining); setPass(r.pass);
+      setRemaining(r.remaining); setPass(r.pass); setLeft({ free: r.free, credits: r.credits });
       setDraft({ d: r.draft, state: 'open' });
       if (read || viaVoice) speak(r.reply, used.gender);
       track('friend_send', { topic: r.draft.category, persona: used.id, voice: viaVoice });
@@ -105,7 +107,7 @@ export default function Friend() {
   const sheets = (
     <Sheet open={limit} onClose={() => setLimit(false)} label="이용권 안내">
       <h2 className="h2">오늘의 무료 상담을 모두 썼어요</h2>
-      <p className="muted mt8">무료 상담은 하루 {brand.friend.freePerDay}번이에요. 내일 다시 이어서 이야기하거나, 이용권으로 제한 없이 상담할 수 있어요.</p>
+      <p className="muted mt8">무료 상담은 하루 {brand.friend.freePerDay}번이에요. 내일 다시 이어서 이야기하거나, 이용권으로 질문 {(pass as any).questions ?? 10}번을 더 할 수 있어요({(pass as any).days ?? 90}일 동안).</p>
       <div className="card gold mt16"><b>{pass.title}</b><div className="small muted">{pass.cardCopy}</div><div className="mt8 hl-gold" style={{ fontSize: 20 }}>{won(pass.price)}</div></div>
       <Link to="/checkout/friend_pass" className="btn primary mt16">이용권으로 계속 상담하기</Link>
       <button className="btn line mt8" onClick={() => setLimit(false)}>내일 다시 올게요</button>
@@ -135,7 +137,7 @@ export default function Friend() {
         </div>
         <button className="pill mt12" style={{ width: '100%' }} onClick={() => setTyping(true)}><I.chat size={18} />글로 상담하기</button>
         <div className="chips mt12">{STARTERS.map((s) => <button key={s} className="chip" onClick={() => send(s)}>{s}</button>)}</div>
-        {remaining != null && <p className="notice" style={{ margin: '10px 0 0' }}>오늘 무료 상담 {remaining}번 남았어요</p>}
+        {leftText && <p className="notice" style={{ margin: '10px 0 0' }}>{leftText}</p>}
       </section>
       <div style={{ height: 'calc(16px + var(--safe-b))' }} />
       {sheets}
@@ -174,7 +176,7 @@ export default function Friend() {
         )}
         <div ref={end} />
       </div>
-      {remaining != null && <p className="notice" style={{ margin: '0 0 4px' }}>오늘 무료 상담 {remaining}번 남았어요</p>}
+      {leftText && <p className="notice" style={{ margin: '0 0 4px' }}>{leftText}</p>}
       <div className="composer">
         <button className={`round light${rec ? ' rec' : ''}`} aria-label="말로 하기" onClick={listen}><I.mic size={22} /></button>
         <textarea ref={input} value={text} rows={1} maxLength={500} placeholder={`${pe.name}에게 편하게 말해 주세요`} aria-label="메시지" onChange={(e) => setText(e.target.value)}

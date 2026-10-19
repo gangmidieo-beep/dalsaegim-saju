@@ -2,10 +2,14 @@
 import { and, eq, gt } from 'drizzle-orm';
 import { schema as S, type Db } from '../../db/index.ts';
 import { newId } from '../auth.ts';
+import brand from '../../../../brand.config.json' with { type: 'json' };
 
 type Order = typeof S.orders.$inferSelect;
 const DAY = 86_400_000;
-export const passDays = (productId: string) => (productId ? 30 : 30); // AI 사주친구 30일 이용권
+// AI 사주친구 이용권 — 기간(일)과 질문 수는 brand.config.json(friend_pass: 90일·10회)
+const passOf = (productId: string) => (brand.products as any[]).find((p) => p.id === productId) ?? {};
+export const passDays = (productId: string) => Number(passOf(productId).days ?? 30);
+export const passQuestions = (productId: string): number | null => (passOf(productId).questions ? Number(passOf(productId).questions) : null);
 
 export async function fulfillOrder(db: Db, order: Order, opts: { ref?: string; method?: string; expiresAt?: Date; subStatus?: string } = {}): Promise<Order> {
   if (order.status === 'paid') return order;
@@ -24,11 +28,13 @@ export async function fulfillOrder(db: Db, order: Order, opts: { ref?: string; m
     if (cur) {
       // 이용권은 남은 기간 뒤에 이어 붙인다
       const expiresAt = opts.expiresAt ?? new Date(cur.expiresAt.getTime() + passDays(o.productId) * DAY);
-      await db.update(S.subscriptions).set({ plan, status: opts.subStatus ?? 'active', amount: o.amount, renewedAt: new Date(), expiresAt, canceledAt: null }).where(eq(S.subscriptions.id, cur.id));
+      const q = passQuestions(o.productId);
+      const credits = q == null ? cur.credits : (cur.credits ?? 0) + q; // 남은 질문에 더한다
+      await db.update(S.subscriptions).set({ plan, status: opts.subStatus ?? 'active', amount: o.amount, renewedAt: new Date(), expiresAt, canceledAt: null, credits }).where(eq(S.subscriptions.id, cur.id));
     } else {
       await db.insert(S.subscriptions).values({
         id: newId('s_'), userId: o.userId, plan, status: opts.subStatus ?? 'active', channel: o.channel, amount: o.amount,
-        expiresAt: opts.expiresAt ?? new Date(Date.now() + passDays(o.productId) * DAY),
+        expiresAt: opts.expiresAt ?? new Date(Date.now() + passDays(o.productId) * DAY), credits: passQuestions(o.productId),
       });
     }
   }

@@ -6,9 +6,19 @@ import brand from '../../../brand.config.json';
 
 export const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 
-// 펄 라벤더·샴페인 골드 아이콘(/img/ui/ic-*.webp) — 이미지는 1년 캐시라 바꾸면 ?v= 를 올린다
-export type PicName = 'today' | 'path' | 'friend' | 'map' | 'love' | 'work' | 'money' | 'family' | 'future' | 'self' | 'health' | 'moon';
-export const Pic = ({ n, size, className = '' }: { n: PicName; size?: 's' | 'l'; className?: string }) => <img className={`pico${size ? ` ${size}` : ''} ${className}`} src={`/img/ui/ic-${n}.webp?v=2`} alt="" loading="lazy" decoding="async" />;
+// 분야 아이콘 — 은은한 색 타일 위 가는 선 아이콘(고급 야경 톤, 10/19 대표님 요청: 3D 파스텔 아이콘은 '애기애기'해 보여 교체)
+export type PicName = 'today' | 'path' | 'friend' | 'map' | 'love' | 'work' | 'money' | 'family' | 'future' | 'self' | 'health' | 'moon' | 'ring' | 'tarot' | 'compat' | 'month' | 'year' | 'career';
+const PIC: Record<PicName, [keyof typeof I, string]> = {
+  today: ['sunmoon', 'sky'], moon: ['moon', 'sky'], future: ['sparkle', 'sky'], year: ['sparkle', 'sky'], month: ['calendar', 'sky'],
+  love: ['heart', 'rose'], family: ['people', 'rose'], ring: ['ring', 'rose'], compat: ['people', 'rose'], tarot: ['tarot', 'rose'],
+  money: ['coin', 'gold'], work: ['briefcase', 'gold'], career: ['stairs', 'gold'],
+  map: ['map', 'lav'], self: ['user', 'lav'], path: ['path', 'lav'], friend: ['chat', 'lav'], health: ['sprout', 'sage'],
+};
+export const Pic = ({ n, size, className = '' }: { n: PicName; size?: 's' | 'l'; className?: string }) => {
+  const [ic, tone] = PIC[n] ?? PIC.moon;
+  const Ic = I[ic];
+  return <span className={`pico ${tone}${size ? ` ${size}` : ''} ${className}`} aria-hidden><Ic size={size === 's' ? 19 : size === 'l' ? 30 : 25} /></span>;
+};
 export const CAT_PIC: Record<string, PicName> = { love: 'love', work: 'work', money: 'money', family: 'family', growth: 'self', health: 'health', etc: 'moon', future: 'future', self: 'self' };
 
 export function Top({ title, dark, back = true, right }: { title?: string; dark?: boolean; back?: boolean | string; right?: ReactNode }) {
@@ -155,6 +165,7 @@ export function Foot() {
       <div className="row" style={{ gap: 12, marginBottom: 8 }}>
         <Link to="/terms">이용약관</Link><Link to="/privacy"><b>개인정보처리방침</b></Link><Link to="/refund">환불정책</Link>
       </div>
+      {b.kakao && <a className="kakao" href={b.kakao} target="_blank" rel="noopener noreferrer">카카오톡 채널로 문의하기</a>}<br />
       상호 {b.name} · 대표 {b.ceo}{b.regNo && ` · 사업자등록번호 ${b.regNo}`}{b.mailOrderNo && ` · 통신판매업 ${b.mailOrderNo}`}<br />
       {b.address && <>{b.address}<br /></>}
       {b.phone && <>고객센터 {b.phone} · </>}{b.email && <>{b.email}</>}<br />

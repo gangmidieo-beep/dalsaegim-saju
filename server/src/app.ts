@@ -24,6 +24,8 @@ import { SITE } from './services/seed.ts';
 import brand from '../../brand.config.json' with { type: 'json' };
 
 // 결제수단 id → PayApp openpaytype (brand.config.json payMethods, 꺼진 수단·모르는 값은 결제창 기본)
+// AI 없이도 완성도가 같은 상품(카드 해석 DB로 만드는 썸 타로 등) — 실결제에서 AI 꺼져 있어도 판매
+const ENGINE_OK = new Set((brand.products as any[]).filter((p) => p.engineOk).map((p) => p.id as string));
 const payOpenType = (method?: string) => (brand as any).payMethods?.list?.find((m: any) => m.id === method && m.on)?.open as string | undefined;
 
 const WEB = () => process.env.PUBLIC_WEB_ORIGIN || 'http://localhost:5391';
@@ -67,10 +69,13 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     if (!u) { rep.code(401).send({ error: '탈퇴한 계정이에요', code: 'deleted' }); return null; }
     return id;
   };
-  // AI 사주친구 이용권(30일) 보유 여부
-  const isPremium = async (userId: string) =>
-    !!(await db.select({ id: S.subscriptions.id }).from(S.subscriptions)
-      .where(and(eq(S.subscriptions.userId, userId), inArray(S.subscriptions.status, ['active', 'grace']), gt(S.subscriptions.expiresAt, new Date()))).limit(1))[0];
+  // AI 사주친구 이용권 — 기간 안이고 남은 질문이 있을 때(credits null = 예전 무제한 30일권)
+  const activePass = async (userId: string) =>
+    (await db.select().from(S.subscriptions)
+      .where(and(eq(S.subscriptions.userId, userId), inArray(S.subscriptions.status, ['active', 'grace']), gt(S.subscriptions.expiresAt, new Date()),
+        or(isNull(S.subscriptions.credits), gt(S.subscriptions.credits, 0))))
+      .orderBy(asc(S.subscriptions.expiresAt)).limit(1))[0] ?? null;
+  const isPremium = async (userId: string) => !!(await activePass(userId));
 
   app.get('/health', async () => ({ ok: true, mock: MOCK, ai: liveAI(), friendAi: friendLive(), tts: ttsLive() }));
   // 자연 음성 — 로그인한 사람만(비용 보호). 꺼져 있으면 503 → 화면이 브라우저 음성으로 대신 읽는다
@@ -212,8 +217,42 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     return { ok: true };
   });
 
+  /* ---------- 성인 본인인증 (속궁합 등 성인 상품) ----------
+     포트원 V2 본인인증: 화면이 인증창을 띄우고 → 받은 인증 id 를 서버가 포트원에 직접 조회해 만 19세 이상인지 확인.
+     키(PORTONE_STORE_ID·PORTONE_IDV_CHANNEL_KEY·PORTONE_API_SECRET)가 없고 시연 모드면 '시연 인증'으로 흐름만 완성. */
+  const idvConfigured = () => !!(process.env.PORTONE_STORE_ID && process.env.PORTONE_IDV_CHANNEL_KEY && process.env.PORTONE_API_SECRET);
+  app.get('/adult/status', async (req, rep) => {
+    const userId = await needUser(req, rep);
+    if (!userId) return;
+    const [u] = await db.select({ adultAt: S.users.adultAt }).from(S.users).where(eq(S.users.id, userId));
+    return { verified: !!u?.adultAt, mode: idvConfigured() ? 'portone' : MOCK ? 'mock' : 'off',
+      storeId: idvConfigured() ? process.env.PORTONE_STORE_ID : null, channelKey: idvConfigured() ? process.env.PORTONE_IDV_CHANNEL_KEY : null };
+  });
+  app.post('/adult/verify', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, rep) => {
+    const userId = await needUser(req, rep);
+    if (!userId) return;
+    const { identityVerificationId } = (req.body ?? {}) as { identityVerificationId?: string };
+    if (!idvConfigured()) {
+      if (!MOCK) return rep.code(503).send({ error: '성인 인증을 준비하고 있어요. 조금만 기다려 주세요.', code: 'idv_off' });
+      await db.update(S.users).set({ adultAt: new Date() }).where(eq(S.users.id, userId));
+      return { verified: true, mode: 'mock' };
+    }
+    if (!identityVerificationId) return rep.code(400).send({ error: '본인인증을 다시 진행해 주세요' });
+    const r = await http(`https://api.portone.io/identity-verifications/${encodeURIComponent(identityVerificationId)}`, { headers: { Authorization: `PortOne ${process.env.PORTONE_API_SECRET}` } });
+    if (!r.ok) return rep.code(400).send({ error: '본인인증 결과를 확인하지 못했어요. 다시 시도해 주세요.' });
+    const j = (await r.json()) as { status?: string; verifiedCustomer?: { birthDate?: string } };
+    const birth = j.verifiedCustomer?.birthDate;
+    if (j.status !== 'VERIFIED' || !birth) return rep.code(400).send({ error: '본인인증이 완료되지 않았어요' });
+    const [by, bm, bd] = birth.split('-').map(Number);
+    const k = new Date(Date.now() + 9 * 3600000);
+    const age = k.getUTCFullYear() - by - ((k.getUTCMonth() + 1 < bm || (k.getUTCMonth() + 1 === bm && k.getUTCDate() < bd)) ? 1 : 0);
+    if (age < 19) return rep.code(403).send({ error: '만 19세 이상만 이용할 수 있어요', code: 'minor' });
+    await db.update(S.users).set({ adultAt: new Date() }).where(eq(S.users.id, userId)); // 생년월일 자체는 저장하지 않는다
+    return { verified: true, mode: 'portone' };
+  });
+
   /* ---------- 상품·배너 (화면이 읽는 값) ---------- */
-  app.get('/products', async () => db.select().from(S.products).where(and(eq(S.products.siteId, SITE()), eq(S.products.visible, true), eq(S.products.adult, false))).orderBy(asc(S.products.sort)));
+  app.get('/products', async () => db.select().from(S.products).where(and(eq(S.products.siteId, SITE()), eq(S.products.visible, true))).orderBy(asc(S.products.sort)));
   app.get('/banners', async (req) => {
     const { slot = 'home' } = req.query as { slot?: string };
     const now = new Date();
@@ -229,7 +268,11 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     if (!userId) return;
     const b = (req.body ?? {}) as { productId: string; profileId?: string; method?: string; phone?: string; inApp?: boolean; meta?: Record<string, unknown> };
     const [p] = await db.select().from(S.products).where(eq(S.products.id, String(b.productId)));
-    if (!p || !p.visible || p.adult) return rep.code(404).send({ error: '없는 상품이에요' });
+    if (!p || !p.visible) return rep.code(404).send({ error: '없는 상품이에요' });
+    if (p.adult) { // 성인 상품 — 본인인증으로 만 19세 이상 확인된 사람만
+      const [u] = await db.select({ adultAt: S.users.adultAt }).from(S.users).where(eq(S.users.id, userId));
+      if (!u?.adultAt) return rep.code(403).send({ error: '성인 인증 후 이용할 수 있어요', code: 'adult' });
+    }
     const kind = p.kind === 'pass' ? 'subscription' : 'reading';
     // 풀이 상품은 사주가 필요한 수만큼(궁합 2명) — 내 사주인지 확인
     const pids = String(b.profileId ?? '').split('+').filter(Boolean);
@@ -238,7 +281,10 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
       const mine = await db.select({ id: S.profiles.id }).from(S.profiles).where(and(inArray(S.profiles.id, pids), eq(S.profiles.userId, userId)));
       if (mine.length !== new Set(pids).size) return rep.code(400).send({ error: '사주 정보를 다시 저장해 주세요', code: 'profile' });
     }
-    const meta = b.meta ? Object.fromEntries(Object.entries(b.meta).filter(([k]) => ['cat', 'sub', 'q', 'mbti'].includes(k)).map(([k, v]) => [k, String(v).slice(0, 80)])) : null;
+    const meta = b.meta ? Object.fromEntries(Object.entries(b.meta).filter(([k]) => ['cat', 'sub', 'q', 'mbti', 'ym', 'cards'].includes(k)).map(([k, v]) => [k, String(v).slice(0, 80)])) : null;
+    if (meta?.ym && !/^20\d\d-(0[1-9]|1[0-2])$/.test(meta.ym)) delete meta.ym;
+    if (meta?.cards && !/^(\d{1,2}r?,){2}\d{1,2}r?$/.test(meta.cards)) return rep.code(400).send({ error: '카드를 다시 골라 주세요', code: 'cards' });
+    if (p.id === 'tarot_some' && !meta?.cards) return rep.code(400).send({ error: '카드 3장을 먼저 골라 주세요', code: 'cards' });
     const amount = p.price;
     const channel = MOCK ? 'mock' : 'pg';
     const base = { id: newId('O'), userId, profileId: pids.join('+') || null, productId: p.id, kind, amount, discount: 0, method: b.method ?? 'card', channel, status: 'pending' as const, meta };
@@ -248,7 +294,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
       return fulfillOrder(db, o);
     }
     // 실결제인데 AI 풀이가 꺼져 있으면 유료 풀이는 팔지 않는다(돈 받고 엔진 요약만 나가는 사고 방지). 이용권은 판매
-    if (kind === 'reading' && !liveAI() && process.env.ALLOW_ENGINE_READING !== 'true') return rep.code(503).send({ error: '풀이 서비스를 준비하고 있어요. 조금만 기다려 주세요.', code: 'reading_off' });
+    if (kind === 'reading' && !liveAI() && !ENGINE_OK.has(p.id) && process.env.ALLOW_ENGINE_READING !== 'true') return rep.code(503).send({ error: '풀이 서비스를 준비하고 있어요. 조금만 기다려 주세요.', code: 'reading_off' });
     // 웹 — PayApp
     const env = payappEnv();
     if (PG() !== 'payapp' || !env) return rep.code(503).send({ error: '웹 결제 준비 중이에요. 잠시 후 다시 시도해 주세요.' });
@@ -331,9 +377,11 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
   app.get('/friend/status', async (req, rep) => {
     const userId = await needUser(req, rep);
     if (!userId) return;
-    const pass = await isPremium(userId);
+    const sub = await activePass(userId);
     const used = await turnsToday(userId);
-    return { pass, used, freePerDay: FREE_PER_DAY, remaining: pass ? null : Math.max(0, FREE_PER_DAY - used), ai: friendLive() };
+    const free = Math.max(0, FREE_PER_DAY - used);
+    return { pass: !!sub, used, freePerDay: FREE_PER_DAY, free, credits: sub?.credits ?? null, passUntil: sub?.expiresAt ?? null,
+      remaining: sub ? (sub.credits == null ? null : free + sub.credits) : free, ai: friendLive() };
   });
   app.post('/friend/chat', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, rep) => {
     const userId = await needUser(req, rep);
@@ -343,8 +391,11 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     if (!text) return rep.code(400).send({ error: '하고 싶은 이야기를 적어 주세요' });
     const [profile] = b.profileId ? await db.select().from(S.profiles).where(and(eq(S.profiles.id, b.profileId), eq(S.profiles.userId, userId))) : [];
     if (!profile) return rep.code(400).send({ error: '사주 정보를 먼저 입력해 주세요', code: 'profile' });
-    const pass = await isPremium(userId);
-    if (!pass && (await turnsToday(userId)) >= FREE_PER_DAY) return rep.code(402).send({ error: `오늘 무료 상담 ${FREE_PER_DAY}번을 모두 썼어요`, code: 'friend_limit' });
+    // 하루 무료 3번을 먼저 쓰고, 다 쓰면 이용권 질문(10회)을 하나씩 차감한다
+    const sub = await activePass(userId);
+    const usedBefore = await turnsToday(userId);
+    const useCredit = usedBefore >= FREE_PER_DAY;
+    if (useCredit && !sub) return rep.code(402).send({ error: `오늘 무료 상담 ${FREE_PER_DAY}번을 모두 썼어요`, code: 'friend_limit' });
     const [chat] = b.chatId ? await db.select().from(S.chats).where(and(eq(S.chats.id, b.chatId), eq(S.chats.userId, userId))) : [];
     const [u] = await db.select({ memoryAI: S.users.memoryAI }).from(S.users).where(eq(S.users.id, userId));
     const mems = u?.memoryAI ? await db.select({ happenedOn: S.memories.happenedOn, category: S.memories.category, title: S.memories.title, feedback: S.memories.feedback })
@@ -362,8 +413,14 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     let id = chat?.id;
     if (chat) await db.update(S.chats).set(v).where(eq(S.chats.id, chat.id));
     else { id = newId('c_'); await db.insert(S.chats).values({ id, userId, profileId: profile.id, topic: r.topic, source: b.source ?? null, persona: personaOf(b.persona).id, ...v }); }
-    const used = await turnsToday(userId);
-    return { chatId: id, reply: r.reply, draft: r.draft, topic: r.topic, remaining: pass ? null : Math.max(0, FREE_PER_DAY - used), pass, ai: r.ai };
+    let credits = sub?.credits ?? null;
+    if (useCredit && sub && sub.credits != null) {
+      const [u2] = await db.update(S.subscriptions).set({ credits: sql`${S.subscriptions.credits} - 1` }).where(eq(S.subscriptions.id, sub.id)).returning({ credits: S.subscriptions.credits });
+      credits = u2?.credits ?? 0;
+    }
+    const free = Math.max(0, FREE_PER_DAY - (await turnsToday(userId)));
+    const pass = !!sub && (credits == null || credits > 0);
+    return { chatId: id, reply: r.reply, draft: r.draft, topic: r.topic, remaining: sub ? (credits == null ? null : free + credits) : free, free, credits, pass, ai: r.ai };
   });
   app.get('/friend/chats', async (req, rep) => {
     const userId = await needUser(req, rep);
