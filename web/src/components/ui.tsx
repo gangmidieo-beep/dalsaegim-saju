@@ -168,7 +168,7 @@ export function Foot() {
       {b.kakao && <a className="kakao" href={b.kakao} target="_blank" rel="noopener noreferrer">카카오톡 채널로 문의하기</a>}<br />
       상호 {b.name} · 대표 {b.ceo}{b.regNo && ` · 사업자등록번호 ${b.regNo}`}{b.mailOrderNo && ` · 통신판매업 ${b.mailOrderNo}`}<br />
       {b.address && <>{b.address}<br /></>}
-      {b.phone && <>고객센터 {b.phone} · </>}{b.email && <>{b.email}</>}<br />
+      {b.phone && <>고객센터 {b.phone} · </>}{b.email && <>이메일 {b.email}</>}<br />
       달새김사주의 풀이는 자기 이해를 돕는 참고 정보이며, 의료·법률·투자 판단을 대신하지 않습니다.
     </footer>
   );
