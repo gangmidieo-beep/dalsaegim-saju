@@ -69,10 +69,15 @@ export function GuideWidget() {
   const [mini, setMini] = useState(false); // 스크롤하면 사진만 남게 작게(상품 카드를 가리지 않게 · R5 N5)
   useEffect(() => { end.current?.scrollIntoView({ block: 'end' }); }, [log, open]);
   useEffect(() => {
-    let last = scrollY;
-    const on = () => { const y = scrollY; setMini(y > 160 && y >= last - 4); last = y; };
+    // 좁은 화면(360px 이하)은 처음부터 사진만, 넓은 화면은 맨 위에서만 문구를 보여 준다
+    // 넓은 화면도 4초 뒤에는 사진만 남겨 상품 카드를 가리지 않는다
+    let late = false;
+    const on = () => setMini(late || innerWidth <= 360 || scrollY > 120);
+    on();
+    const t = setTimeout(() => { late = true; on(); }, 4000);
     addEventListener('scroll', on, { passive: true });
-    return () => removeEventListener('scroll', on);
+    addEventListener('resize', on);
+    return () => { clearTimeout(t); removeEventListener('scroll', on); removeEventListener('resize', on); };
   }, []);
   useEffect(() => {
     if (!open) return;

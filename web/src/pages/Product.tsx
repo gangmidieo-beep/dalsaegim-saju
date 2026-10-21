@@ -122,7 +122,7 @@ export function ProductDetail() {
 
         <section className="card mt12" aria-label="무료와 유료 비교">
           <h3 className="h3">무료와 결제 후, 무엇이 다른가요?</h3>
-          <div className="cmp mt12">
+          <div className={`cmp mt12${p.kind === 'pass' ? ' wide' : ''}`}>
             <div><small>무료로 보는 것</small>{(p.id === 'tarot_some' ? ['오늘의 타로 한 장과 메시지', '카드 3장 직접 고르기'] : FREE_BY[p.id] ?? FREE[p.series] ?? ['오늘의 운세', '나의 사주지도 요약']).map((x) => <p key={x}>· {x}</p>)}</div>
             <div className="paid"><small>결제 후 받는 것</small>
               {p.kind === 'pass'
@@ -403,7 +403,7 @@ export function ReadingPage() {
   const share = (text: string) => openShare({ title: `달새김사주 ${r?.content?.title ?? ''}`.trim(), text, path: r ? `/product/${r.productId}` : '/', contentId: `reading_${r?.productId}`, note: '고른 한 문장만 보내요. 풀이 전체와 사주 정보는 나만 볼 수 있어요.' });
   const tabs = r?.parts && r.parts.length > 1 && (
     <nav className="rp-parts" aria-label="묶음 풀이">
-      {r.parts.map((x) => <button key={x.productId} aria-pressed={x.productId === r.productId} className={x.productId === r.productId ? 'on' : ''} onClick={() => setSp({ part: x.productId }, { replace: true })}>{x.title}{x.status !== 'done' ? ' · 준비 중' : ''}</button>)}
+      {r.parts.map((x) => <button key={x.productId} ref={(el) => { if (el && x.productId === r.productId) el.scrollIntoView({ block: 'nearest', inline: 'center' }); }} aria-pressed={x.productId === r.productId} className={x.productId === r.productId ? 'on' : ''} onClick={() => setSp({ part: x.productId }, { replace: true })}>{x.title}{x.status !== 'done' ? ' · 준비 중' : ''}</button>)}
     </nav>
   );
   if (err) return <><Top title="풀이" back="/me" /><main className="screen"><p>{err}</p><Link to="/me" className="btn primary">마이로 가기</Link></main></>;

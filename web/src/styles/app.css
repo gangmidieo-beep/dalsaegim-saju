@@ -1197,3 +1197,15 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .rp-toc a span { flex: none; width: 28px; font-size: 13px; font-weight: 800; color: var(--gold-ink); }
 .prod-row .grow { flex: 1; min-width: 0; }
 .prod-row .price { flex: none; min-width: 74px; text-align: right; }
+@media (max-width: 380px) {
+  .nh-tabs { justify-content: space-between; padding: 0 4px; gap: 0; }
+  .nh-tabs a { padding: 11px 4px 10px; font-size: 13px; letter-spacing: -0.02em; }
+  .prow { gap: 10px; padding: 12px; }
+}
+.nh-today h2 { flex-wrap: wrap; }
+.nh-today h2 em { white-space: nowrap; }
+.cmp.wide { grid-template-columns: 1fr; }
+.read .rp-cover p.rp-keys { color: #cfd6e6; font-size: 14px; }
+.read .rp-cover p.rp-note { color: #aeb7cc; font-size: 12.5px; }
+.read .rp-cover h1 { color: #eef1f8; }
+.read .rp-book span { color: #d6dcea; }

@@ -62,7 +62,9 @@ export async function friendReply(o: {
     if (!det.topic && (o.history.length === 0 || det.negated.size > 0) && o.text.replace(/\s/g, '').length < 25) {
       return { reply: `${pick(pe.empathy, `${o.text}:e`)} ${CLARIFY}`, draft: { ...draft, category: 'etc', summary: '상담 주제를 묻는 중' }, topic: 'etc', tokensIn: 0, tokensOut: 0, costKrw: 0, ai: false };
     }
-    const empathy = pick(pe.empathy, `${o.text}:e`);
+    // 연애가 아닌 주제에는 '그 장면·그 사람' 같은 연애용 공감 문장을 쓰지 않는다
+    const emp = topic.id === 'love' ? pe.empathy : pe.empathy.filter((x) => !/장면|그 사람/.test(x));
+    const empathy = pick(emp.length ? emp : pe.empathy, `${o.text}:e`);
     const areaId = ({ money: 'money', work: 'work', promo: 'work', family: 'family', pet: 'family', love: 'love' } as Record<string, string>)[topic.id] ?? 'growth';
     const area = b.map.areas.find((a) => a.id === areaId);
     const FB: Record<string, string> = { good: '잘 풀렸다고', same: '비슷하다고', changed: '달라졌다고' };
