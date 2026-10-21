@@ -66,13 +66,15 @@ export function GuideWidget() {
   const [log, setLog] = useState<Msg[]>([HELLO]);
   const [text, setText] = useState('');
   const end = useRef<HTMLDivElement>(null);
-  const [mini, setMini] = useState(false); // 스크롤하면 사진만 남게 작게(상품 카드를 가리지 않게 · R5 N5)
+  const [mini, setMini] = useState(false);
+  const [away, setAway] = useState(false); // 스크롤하면 사진만 남게 작게(상품 카드를 가리지 않게 · R5 N5)
   useEffect(() => { end.current?.scrollIntoView({ block: 'end' }); }, [log, open]);
   useEffect(() => {
     // 좁은 화면(360px 이하)은 처음부터 사진만, 넓은 화면은 맨 위에서만 문구를 보여 준다
     // 넓은 화면도 4초 뒤에는 사진만 남겨 상품 카드를 가리지 않는다
-    let late = false;
-    const on = () => setMini(late || innerWidth <= 360 || scrollY > 120);
+    // 아래로 내리는 중에는 숨겨 상품 가격·버튼을 가리지 않고, 위로 올리면 다시 보인다
+    let late = false, last = scrollY;
+    const on = () => { const y = scrollY; setMini(late || innerWidth <= 360 || y > 120); if (y <= 120) setAway(false); else if (Math.abs(y - last) > 2) setAway(y > last); if (Math.abs(y - last) > 2) last = y; };
     on();
     const t = setTimeout(() => { late = true; on(); }, 4000);
     addEventListener('scroll', on, { passive: true });
@@ -97,7 +99,7 @@ export function GuideWidget() {
   return (
     <>
       {!open && (
-        <div className={`gd-fab${mini ? ' mini' : ''}`} role="group" aria-label="고민 길잡이">
+        <div className={`gd-fab${mini ? ' mini' : ''}${away ? ' away' : ''}`} role="group" aria-label="고민 길잡이">
           <button className="row" style={{ gap: 10, textAlign: 'left' }} aria-label="고민 길잡이 열기" onClick={() => { setOpen(true); track('guide_open'); }}>
             <img src="/img/ui/guide.webp" alt="" />
             <span><b>어떤 고민이 있으세요?</b><small>맞춤 운세 찾기 · 무료</small></span>

@@ -1209,3 +1209,5 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .read .rp-cover p.rp-note { color: #aeb7cc; font-size: 12.5px; }
 .read .rp-cover h1 { color: #eef1f8; }
 .read .rp-book span { color: #d6dcea; }
+.gd-fab { transition: padding .2s, gap .2s, transform .25s, opacity .25s; }
+.gd-fab.away { transform: translateY(140%); opacity: 0; pointer-events: none; }
