@@ -31,7 +31,7 @@ export default function All() {
               <div className="stack mt12">
                 {ps.map((p) => (
                   <Link key={p.id} to={`/product/${p.id}`} className="card prod-row">
-                    <span className="grow"><span className="row" style={{ gap: 6 }}><b>{p.title}</b>{p.badge && <span className="badge">{p.badge}</span>}{(p as { adult?: boolean }).adult && <span className="badge" style={{ background: '#3a2433', color: '#f3d3dc' }}>19</span>}</span><small>{p.cardCopy}</small></span>
+                    <span className="grow">{(p as { adult?: boolean }).adult ? <em className="pbadge adult">19세 이상</em> : p.badge ? <em className="pbadge">{p.badge}</em> : null}<b style={{ display: 'block' }}>{p.title}</b><small>{p.cardCopy}</small></span>
                     <b className="price">{won(p.price)}</b>
                   </Link>
                 ))}

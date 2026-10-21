@@ -60,7 +60,7 @@ export default function Love() {
             {LOVE_PRODUCTS.map((id) => brand.products.find((p) => p.id === id)!).map((p) => (
               <Link key={p.id} to={`/product/${p.id}`} className="card prod-row">
                 <Pic n={p.id === 'gunghap' ? 'family' : p.id === 'reunion' ? 'moon' : 'love'} />
-                <span className="grow"><span className="row" style={{ gap: 6 }}><b>{p.title}</b>{p.badge && <span className="badge">{p.badge}</span>}</span><small>{p.cardCopy}</small></span>
+                <span className="grow">{p.badge && <em className="pbadge">{p.badge}</em>}<b style={{ display: 'block' }}>{p.title}</b><small>{p.cardCopy}</small></span>
                 <b className="price">{won(p.price)}</b>
               </Link>
             ))}

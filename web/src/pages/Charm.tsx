@@ -2,7 +2,7 @@
 // 실제 금전적 성과나 수익을 보장하지 않는다(행운을 비는 디지털 카드).
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CHARMS, CHARM_GOAL_HINT, CHARM_LINK, CHARM_STATUS, charmOf, type CharmType } from '@dalsaegim/content';
+import { ALL_CHARMS, CHARMS, CHARM_GOAL_HINT, CHARM_LINK, CHARM_STATUS, charmOf, type CharmType } from '@dalsaegim/content';
 import { useShare } from '../components/share';
 import { useMain } from '../store/app';
 import { apiAuth } from '../lib/api';
@@ -82,7 +82,9 @@ function useSound() {
 export default function CharmPage() {
   const [sp] = useSearchParams();
   const { profile, isSample } = useMain();
-  const [type, setType] = useState<CharmType>((CHARMS.find((c) => c.id === sp.get('type'))?.id ?? 'wealth') as CharmType);
+  // 링크로 들어온 부적(숨김 부적인 안택부 포함)을 그대로 고른다 — 다른 부적으로 바뀌지 않게(R5 N8)
+  const [type, setType] = useState<CharmType>((ALL_CHARMS.find((c) => c.id === sp.get('type'))?.id ?? 'wealth') as CharmType);
+  const shown = CHARMS.some((x) => x.id === type) ? CHARMS : [charmOf(type), ...CHARMS];
   const c = charmOf(type);
   const [name, setName] = useState(isSample ? '' : profile.name);
   const [wi, setWi] = useState(0);
@@ -172,7 +174,7 @@ export default function CharmPage() {
         <section className="qblock">
           <h3 className="gold-h">1. 어떤 소망인가요?</h3>
           <div className="charm-types">
-            {CHARMS.map((x) => (
+            {shown.map((x) => (
               <button key={x.id} className={type === x.id ? 'on' : ''} onClick={() => setType(x.id)} aria-pressed={type === x.id}>
                 <span className="ct-img" style={{ backgroundImage: `url(${imgOf(x.id)})`, ['--tint' as string]: x.tint }}><i className="ct-mark" aria-hidden>{x.mark}</i></span>
                 <b>{x.label}</b><small>{x.sub}</small>

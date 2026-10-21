@@ -148,6 +148,23 @@ describe('결제 → 풀이 생성 → 결과 조회 (엔진 풀이)', () => {
     const other = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'rd-2' } })).json().token;
     expect((await app.inject({ url: `/readings/${o.id}`, headers: { authorization: `Bearer ${other}` } })).statusCode).toBe(404);
   });
+  it('R5 N3 — 돈의 흐름 4종 묶음은 풀이 4개를 각각 만들고, part 로 골라 연다', async () => {
+    const t = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'rd-pack' } })).json().token;
+    const h = { authorization: `Bearer ${t}` };
+    const prof = (await app.inject({ method: 'POST', url: '/profiles', headers: h, payload: { ...ME, isMain: true } })).json();
+    const o = (await app.inject({ method: 'POST', url: '/orders', headers: h, payload: { productId: 'money_pack', profileId: prof.id } })).json();
+    const w = startReadingWorker(db, { warn: () => {} });
+    await w.tick(); await w.tick(); w.stop();
+    const r = (await app.inject({ url: `/readings/${o.id}`, headers: h })).json();
+    expect(r.parts.map((x: { productId: string }) => x.productId)).toEqual(['money_wealth', 'money_business', 'money_invest', 'money_estate']);
+    expect(r.productId).toBe('money_wealth');
+    expect(r.content.chapters).toHaveLength(7);
+    const e = (await app.inject({ url: `/readings/${o.id}?part=money_estate`, headers: h })).json();
+    expect(e.productId).toBe('money_estate');
+    expect(e.status).toBe('done');
+    expect(e.content.chapters).toHaveLength(5);
+    expect(e.content.who).toEqual(['김서윤']);
+  });
 });
 
 describe('10/19 추가 상품 — 결혼운·직업운·썸 타로·월간 선택·요약 카드', () => {
