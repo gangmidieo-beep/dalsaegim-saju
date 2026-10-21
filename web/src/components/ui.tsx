@@ -4,7 +4,8 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { I } from './icons';
 import brand from '../../../brand.config.json';
 
-export const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
+// 금액과 '원' 사이에 줄바꿈이 생기지 않게 단어 결합 문자(U+2060)를 넣는다(R5 E1)
+export const won = (n: number) => `${n.toLocaleString('ko-KR')}\u2060원`;
 
 // 분야 아이콘 — 은은한 색 타일 위 가는 선 아이콘(고급 야경 톤, 10/19 대표님 요청: 3D 파스텔 아이콘은 '애기애기'해 보여 교체)
 export type PicName = 'today' | 'path' | 'friend' | 'map' | 'love' | 'work' | 'money' | 'family' | 'future' | 'self' | 'health' | 'moon' | 'ring' | 'tarot' | 'compat' | 'month' | 'year' | 'career';

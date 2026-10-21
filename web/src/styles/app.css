@@ -1096,3 +1096,102 @@ textarea.input { min-height: 88px; padding: 12px 14px; line-height: 1.6; resize:
 .friend-stage .saju-gate { margin: 12px 16px 0; }
 /* R5 N10 — 사주 저장 시점 안내 */
 .saved-ok { margin: 0 0 12px; padding: 10px 14px; border-radius: 12px; background: #eef6ef; color: #285a36; font-size: 15px; font-weight: 600; }
+
+/* ===== R5(10/21) 홈 — 대표 운세 3가지 · 매일의 운세 · 상품 줄 정렬 ===== */
+.rep-list { display: grid; gap: 10px; margin-top: 12px; }
+.rep-card { display: flex; gap: 14px; align-items: flex-start; padding: 16px; border-radius: 18px; background: var(--paper); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.rep-card .pico { flex: none; width: 64px; height: 64px; border-radius: 16px; }
+.rep-img { flex: none; width: 64px; height: 64px; border-radius: 16px; background: #0b1a33 right center / cover no-repeat; border: 1px solid rgba(232, 201, 143, 0.4); }
+.rep-body { flex: 1; min-width: 0; display: block; }
+.rep-eye { display: block; font-size: 11.5px; font-weight: 800; letter-spacing: 0.06em; color: var(--gold-ink); }
+.rep-body b { display: block; margin-top: 2px; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink); line-height: 1.3; }
+.rep-copy { display: block; margin-top: 3px; font-size: 14.5px; color: var(--ink-2); line-height: 1.5; }
+.rep-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.rep-cta { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 999px; background: linear-gradient(180deg, #ecd3a1, #d9b56f); color: #2a2110; font-size: 14px; font-weight: 800; }
+.rep-price { margin-left: auto; text-align: right; font-size: 17px; font-weight: 800; color: var(--ink); white-space: nowrap; }
+.rep-price s { display: block; font-size: 12px; font-weight: 500; color: var(--ink-3); }
+.free-tag { font-size: 12px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: var(--night); color: #fff; }
+.nh-today { margin-top: 12px; }
+
+/* 월간운세 — 이번 달 라벨은 숫자 아래 작게(겹침 없음, 버튼 높이 같음) · C3 */
+.mgrid { gap: 7px; }
+.mgrid a { min-height: 50px; padding: 4px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+.mgrid a b { font-size: 15px; font-weight: 800; }
+.mgrid a i { position: static; transform: none; top: auto; left: auto; padding: 0 4px; font-size: 10px; line-height: 1.5; background: rgba(29, 36, 64, 0.12); color: #1d2440; }
+.mgrid a:not(.now) i { background: #f6dfb0; }
+@media (max-width: 360px) { .mgrid { grid-template-columns: repeat(4, 1fr); } }
+
+/* 상품 줄 — 설명은 줄어들고 가격은 고정 폭 오른쪽 정렬(E2), 금액 줄바꿈 없음(E1), 배지 1개 */
+.prow { align-items: center; }
+.prow .grow { flex: 1; min-width: 0; }
+.prow b { display: block; font-size: 16px; line-height: 1.4; }
+.prow small { white-space: normal; overflow: visible; display: block; }
+.prow .pp { flex: none; min-width: 74px; text-align: right; white-space: nowrap; align-self: center; }
+.pbadge { display: inline-block; margin-bottom: 3px; font-style: normal; font-size: 11px; font-weight: 800; letter-spacing: 0.03em; padding: 2px 7px; border-radius: 6px; background: var(--gold-soft); color: var(--gold-ink); }
+.pbadge.adult { background: #3a2433; color: #f3d3dc; }
+.price, .co-price, .co-price b, .pp, .rep-price { white-space: nowrap; }
+
+/* 지난 소망·고민 묻기 — 제목·버튼이 잘리지 않게(E6) */
+.wish-ask .grow { min-width: 0; }
+.wish-ask .h3 { white-space: normal; word-break: keep-all; overflow-wrap: anywhere; }
+.ask-btns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.ask-btns .btn { width: 100%; min-height: 44px; padding: 6px 4px; white-space: normal; line-height: 1.25; word-break: keep-all; background: var(--paper); font-size: 14px; }
+@media (max-width: 360px) { .ask-btns { grid-template-columns: 1fr 1fr; } .ask-btns .btn:last-child { grid-column: span 2; } }
+
+/* 위쪽 분류 탭 — 마지막 탭이 잘려 보이지 않게(N9) */
+.nh-tabs { padding: 0 6px; }
+.nh-tabs a { padding: 11px 9px 10px; font-size: 14px; }
+@media (max-width: 380px) { .nh-tabs a { padding: 11px 7px 10px; font-size: 13.5px; } }
+
+/* 고민 길잡이 — 스크롤하면 작게(N5) · 닫기 터치 영역 44px(N12) · 되묻기 버튼(E5) */
+.gd-fab { transition: padding .2s, gap .2s; }
+.gd-fab .x { width: 44px; height: 44px; margin: -6px -10px -6px -4px; }
+.gd-fab.mini { padding: 5px; gap: 0; }
+.gd-fab.mini span, .gd-fab.mini .x { display: none; }
+.gd-fab.mini img { width: 48px; height: 48px; }
+.gd-ask { display: flex; gap: 8px; flex-wrap: wrap; }
+.gd-ask button { min-height: 44px; padding: 8px 14px; border-radius: 999px; background: var(--night); color: #fff; font-size: 14px; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { .gd-fab { transition: none; } }
+
+/* 터치 영역 44px 목표(N12) — 아이콘 크기는 그대로, 누르는 영역만 */
+.icon-btn { width: 44px; height: 44px; }
+.nh-sec a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; }
+.foot .row a { display: inline-flex; align-items: center; min-height: 44px; }
+.foot .kakao { min-height: 44px; }
+/* 네이버 앱의 '맨 위로' 버튼이 하단 결제 버튼을 가리지 않게(N9) — 네이버 인앱에서만 오른쪽 여백 */
+html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
+
+/* 상세 — 이용 순서 제목과 여백(E3) · 묶음 목차(N3) · 달 고르기: 이번 달과 고른 달 구분(C3) */
+.pd-steps-t { margin: 18px 0 10px; font-size: 15px; font-weight: 800; color: var(--ink); }
+.pk-part { padding-top: 12px; border-top: 1px dashed var(--line-2); }
+.pk-part:first-of-type { border-top: 0; padding-top: 0; }
+.pk-part > b { font-size: 16px; color: var(--ink); }
+.mchips button { min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 4px 0; }
+.mchips button b { font-size: 14.5px; font-weight: 800; }
+.mchips button small { position: static; transform: none; font-size: 10px; line-height: 1.4; padding: 0 4px; }
+.mchips button.now { background: #fbf3e2; border-color: #e5cf9f; }
+.mchips button.on { background: var(--night); border: 2px solid var(--champ); color: #fff; box-shadow: 0 0 0 2px rgba(232, 201, 143, 0.35); }
+.mchips button.on small { background: var(--champ); }
+.mpick-sel { font-size: 14.5px; color: var(--ink); margin-bottom: 0; }
+@media (max-width: 360px) { .mchips { grid-template-columns: repeat(4, 1fr); } }
+
+/* 결과 표지·목차·묶음 탭(R5 S5·N3) */
+.rp-parts { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-bottom: 12px; }
+.rp-parts::-webkit-scrollbar { display: none; }
+.rp-parts button { flex: none; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--line-2); background: var(--paper); font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+.rp-parts button.on { background: var(--night); border-color: var(--night); color: #fff; }
+.rp-cover { padding: 26px 20px 22px; border-radius: 22px; background: linear-gradient(165deg, #13244a, #0c1a33); color: #fff; box-shadow: 0 14px 34px rgba(12, 26, 51, 0.25); }
+.rp-eye { font-size: 11.5px; font-weight: 800; letter-spacing: 0.14em; color: var(--champ); }
+.rp-cover h1 { margin: 12px 0 0; font-family: var(--letter-serif); font-size: 22px; line-height: 1.45; font-weight: 600; color: #eef1f8; }
+.rp-cover h1 em { font-style: normal; display: block; font-size: 32px; font-weight: 700; color: var(--champ); }
+.rp-book { margin-top: 18px; padding: 18px 16px; border-radius: 14px; border: 1.5px solid rgba(232, 201, 143, 0.6); background: rgba(255, 255, 255, 0.04); }
+.rp-book small { display: block; font-size: 13px; color: var(--champ-2); }
+.rp-book b { display: block; margin-top: 6px; font-family: var(--letter-serif); font-size: 22px; font-weight: 700; line-height: 1.35; color: #fff; }
+.rp-book span { display: block; margin-top: 8px; font-size: 14.5px; line-height: 1.65; color: #d6dcea; }
+.rp-keys { margin: 14px 0 0; font-size: 14px; color: #cfd6e6; }
+.rp-open { display: flex; align-items: center; justify-content: center; min-height: 52px; margin-top: 16px; border-radius: 14px; background: linear-gradient(180deg, #ecd3a1, #d9b56f); color: #2a2110; font-size: 17px; font-weight: 800; }
+.rp-note { margin: 12px 0 0; font-size: 12.5px; line-height: 1.6; color: #aeb7cc; }
+.rp-toc ol { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
+.rp-toc a { display: flex; gap: 10px; align-items: center; min-height: 44px; font-size: 15.5px; font-weight: 700; color: var(--ink); border-bottom: 1px solid var(--line); }
+.rp-toc li:last-child a { border-bottom: 0; }
+.rp-toc a span { flex: none; width: 28px; font-size: 13px; font-weight: 800; color: var(--gold-ink); }

@@ -346,10 +346,16 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     if (!userId) return;
     const [o] = await db.select().from(S.orders).where(and(eq(S.orders.id, (req.params as any).oid), eq(S.orders.userId, userId)));
     if (!o || o.status !== 'paid') return rep.code(404).send({ error: '결제된 풀이가 없어요' });
-    const [r] = await db.select().from(S.readings).where(eq(S.readings.orderId, o.id));
-    if (!r) return rep.code(404).send({ error: '풀이를 찾지 못했어요' });
+    // 묶음 주문은 풀이가 여러 개 — ?part=상품id 로 고르고, parts 로 목록을 함께 준다
+    const all = await db.select().from(S.readings).where(eq(S.readings.orderId, o.id)).orderBy(asc(S.readings.createdAt), asc(S.readings.id));
+    if (!all.length) return rep.code(404).send({ error: '풀이를 찾지 못했어요' });
+    const ORDER = ['money_wealth', 'money_business', 'money_invest', 'money_estate'];
+    all.sort((a, b) => ORDER.indexOf(a.productId) - ORDER.indexOf(b.productId));
+    const want = String((req.query as any)?.part ?? '');
+    const r = all.find((x) => x.productId === want) ?? all[0];
+    const titles = all.length > 1 ? await db.select({ id: S.products.id, title: S.products.title }).from(S.products).where(inArray(S.products.id, all.map((x) => x.productId))) : [];
     const { tokensIn, tokensOut, costKrw, model, ...pub } = r; void tokensIn; void tokensOut; void costKrw; void model; // 원가는 관리자만
-    return pub;
+    return { ...pub, packId: all.length > 1 ? o.productId : null, parts: all.length > 1 ? all.map((x) => ({ productId: x.productId, status: x.status, title: titles.find((t) => t.id === x.productId)?.title ?? x.productId })) : null };
   });
   app.get('/me/orders', async (req, rep) => {
     const userId = await needUser(req, rep);

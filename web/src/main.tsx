@@ -12,6 +12,8 @@ import { apiAuth, guestToken } from './lib/api';
 if (useApp.getState().account?.token || guestToken()) {
   apiAuth<{ premium: boolean }>('/me/entitlements').then((e) => useApp.getState().setPass(e.premium)).catch(() => {});
 }
+// 네이버 앱 안에서 열렸을 때 — 네이버의 '맨 위로' 버튼 자리를 비워 둔다(R5 N9)
+if (/NAVER\(inapp|NAVER\//i.test(navigator.userAgent)) document.documentElement.classList.add('inapp-naver');
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

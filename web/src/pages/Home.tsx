@@ -1,5 +1,5 @@
-// 홈 — 10/19 고급 야경 톤(대표님 V88): 남색 머리·분류 탭 → 2027 신년운세 큰 배너 → 월간운세 1~12월 → 오늘의 운세(무료)
-// → (지난 소망·고민 돌아보기) → 사랑·인연 / 재물·사업 / 정통사주 상품 → 달새김만의 경험 → 고민 길잡이(떠 있는 창).
+// 홈 — R5(10/21) 순서: 남색 머리·분류 탭 → 달새김 대표 운세 3가지(사랑·연애 / 프리미엄 재물사주 / 2027 신년운세, 자동 넘김 없이 세로로)
+// → 매일의 운세(오늘·월간, 무료) → (지난 소망·고민 돌아보기) → 분야별 상품 → 서월·편지·부적·타임라인 → 고민 길잡이(떠 있는 창).
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMain } from '../store/app';
@@ -23,6 +23,13 @@ const SECTIONS: { id: string; title: string; sub: string; more: string; items: [
   { id: 'love', title: '사랑·인연', sub: '그 사람과 나, 인연의 흐름', more: '/love', items: [['love_flow', 'love'], ['reunion', 'moon'], ['gunghap', 'compat'], ['marriage', 'ring'], ['adult_gunghap', 'family'], ['tarot_some', 'tarot']] },
   { id: 'money', title: '재물·사업', sub: '돈과 일, 기회가 들어오는 시기', more: '/money', items: [['money_wealth', 'money'], ['money_business', 'work'], ['career', 'career'], ['money_invest', 'money'], ['money_estate', 'family'], ['money_pack', 'money']] },
   { id: 'saju', title: '정통사주', sub: '타고난 나를 깊이 읽는 풀이', more: '/map', items: [['lifetime', 'map'], ['mbti_deep', 'self'], ['path_deep', 'path']] },
+];
+// 달새김 대표 운세 — 홈 첫 화면에 고정(대표님 R5 S2). 신년운세는 10월~1월에만 '시즌 추천'
+const SEASON = [10, 11, 12, 1].includes(kstMonth());
+const REP: { id: string; eye: string; name: string; copy: string; cta: string; pic?: PicName; img?: string }[] = [
+  { id: 'love_flow', eye: '달새김 대표 운세', name: '사랑·연애운', copy: '인연의 흐름과 마음이 닿는 시기', cta: '올해 나의 연애운 보기', pic: 'love' },
+  { id: 'money_wealth', eye: 'PREMIUM', name: '프리미엄 재물사주', copy: '돈의 흐름을 깊게 읽는 나만의 기록', cta: '재물사주 구성 보기', pic: 'money' },
+  { id: 'newyear_2027', eye: SEASON ? '시즌 추천' : '달새김 추천', name: '2027 신년운세', copy: '다가올 한 해의 재물·연애·일', cta: '신년운세 자세히 보기', img: '/img/ui/hero-newyear.webp' },
 ];
 const TABS: [string, string][] = [['/', '홈'], ['/all', '운세'], ['/love', '사랑·인연'], ['/money', '재물·사업'], ['/map', '정통사주'], ['/friend', '달빛 상담']];
 // 월간운세 — 1~12월 버튼, 지난 달은 내년 같은 달(=앞으로 12달)
@@ -66,32 +73,50 @@ export default function Home() {
         <nav className="nh-tabs" aria-label="분류">{TABS.map(([to, l]) => <Link key={to} to={to} className={to === '/' ? 'on' : ''}>{l}</Link>)}</nav>
       </header>
       <main className="screen nh-main">
-        <Link to="/product/newyear_2027" className="nh-hero" aria-label="2027 신년운세 자세히 보기">
-          <span className="kick">10월~1월 시즌 대표 상품 ✦</span>
-          <h1><span>2027</span>신년운세</h1>
-          <p>다가올 한 해의 재물·연애·일, 운세의 흐름을 살펴보세요.</p>
-          <span className="gbtn">신년운세 자세히 보기 <I.send size={16} /></span>
-        </Link>
-
-        <section className="nh-month" aria-labelledby="nh-month-t">
-          <div className="mh">
-            <span className="art" aria-hidden />
-            <div><small>MONTHLY FORTUNE</small><h2 id="nh-month-t">월간운세</h2><p>원하는 달을 선택해 운세를 살펴보세요.</p></div>
-          </div>
-          <div className="mgrid">
-            {MONTHS.map((m) => <Link key={m.ym} to={`/product/month_detail?ym=${m.ym}`} className={m.now ? 'now' : ''} aria-label={`${m.yy}년 ${m.mm}월 운세`}>{m.now && <i>이번 달</i>}{m.mm}월</Link>)}
+        <section aria-labelledby="rep-t">
+          <div className="nh-sec"><h2 id="rep-t">달새김 대표 운세</h2></div>
+          <p className="nh-sub">지금 궁금한 이야기부터 골라 보세요</p>
+          <div className="rep-list">
+            {REP.map((r) => {
+              const p = pOf(r.id);
+              if (!p) return null;
+              return (
+                <Link key={r.id} to={`/product/${r.id}`} className="rep-card" onClick={() => track('content_view', { content: 'home_rep', product: r.id })}>
+                  {r.img ? <span className="rep-img" style={{ backgroundImage: `url(${r.img})` }} aria-hidden /> : <Pic n={r.pic!} />}
+                  <span className="rep-body">
+                    <small className="rep-eye">{r.eye}</small>
+                    <b>{r.name}</b>
+                    <span className="rep-copy">{r.copy}</span>
+                    <span className="rep-foot"><span className="rep-cta">{r.cta} ›</span><span className="rep-price">{p.listPrice ? <s>{won(p.listPrice)}</s> : null}{won(p.price)}</span></span>
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </section>
 
-        <Link to={isSample ? '/profile/new' : '/today'} className="nh-today">
-          {isSample ? <span className="sc"><I.sunmoon size={28} /></span> : <span className="sc"><b>{t.total}</b><small>점</small></span>}
-          <span className="grow">
-            <small className="k">DAILY FORTUNE</small>
-            <h2>{isSample ? '오늘의 운세' : `${profile.name} 님의 오늘`}<em>무료</em></h2>
-            <p>{isSample ? '생년월일만 넣으면 오늘 하루의 흐름을 바로 알려 드려요.' : t.headline}</p>
-          </span>
-          <I.right />
-        </Link>
+        <section className="mt28" aria-labelledby="daily-t">
+          <div className="nh-sec"><h2 id="daily-t">매일의 운세</h2><span className="free-tag">무료</span></div>
+          <p className="nh-sub">오늘 하루와 이번 달의 흐름을 먼저 살펴보세요</p>
+          <Link to={isSample ? '/profile/new' : '/today'} className="nh-today">
+            {isSample ? <span className="sc"><I.sunmoon size={28} /></span> : <span className="sc"><b>{t.total}</b><small>점</small></span>}
+            <span className="grow">
+              <small className="k">DAILY FORTUNE</small>
+              <h2>{isSample ? '오늘의 운세' : `${profile.name} 님의 오늘`}<em>무료</em></h2>
+              <p>{isSample ? '생년월일만 넣으면 오늘 하루의 흐름을 바로 알려 드려요.' : t.headline}</p>
+            </span>
+            <I.right />
+          </Link>
+          <div className="nh-month" role="group" aria-labelledby="nh-month-t">
+            <div className="mh">
+              <span className="art" aria-hidden />
+              <div><small>MONTHLY FORTUNE</small><h2 id="nh-month-t">월간운세</h2><p>원하는 달을 골라 상세운세를 볼 수 있어요.</p></div>
+            </div>
+            <div className="mgrid">
+              {MONTHS.map((m) => <Link key={m.ym} to={`/product/month_detail?ym=${m.ym}`} className={m.now ? 'now' : ''} aria-label={`${m.yy}년 ${m.mm}월 운세${m.now ? ' (이번 달)' : ''}`}><b>{m.mm}월</b>{m.now && <i>이번 달</i>}</Link>)}
+            </div>
+          </div>
+        </section>
 
       {(due.length > 0 || count >= 3 || wish) && (
         <div className="stack mt16">
@@ -102,8 +127,8 @@ export default function Home() {
                 <small>{charmOf(wish.type).name}</small>
                 <h2 className="h3">지난번 새긴 소망은 어떻게 진행되고 있나요?</h2>
                 <p className="small" style={{ margin: '4px 0 0' }}>“{wish.goal ?? wish.wish}”</p>
-                <div className="row mt12" style={{ gap: 6 }}>
-                  {([['doing', '진행 중이에요'], ['done', '이루었어요'], ['later', '다음에']] as const).map(([k, l]) => <button key={k} className="btn line sm" style={{ flex: 1, background: 'var(--paper)' }} onClick={() => wishStep(k)}>{l}</button>)}
+                <div className="ask-btns mt12">
+                  {([['doing', '진행 중이에요'], ['done', '이루었어요'], ['later', '다음에']] as const).map(([k, l]) => <button key={k} className="btn line sm" onClick={() => wishStep(k)}>{l}</button>)}
                 </div>
               </div>
             </section>
@@ -112,8 +137,8 @@ export default function Home() {
             <section className="card lav" aria-label="지난 고민 돌아보기">
               <h2 className="h3">지난 고민은 어떻게 됐나요?</h2>
               <p className="small mt4" style={{ margin: '4px 0 0' }}>{due[0].happenedOn.replace(/-/g, '.')} · {CAT_LABEL[due[0].category]} · {due[0].title}</p>
-              <div className="row mt12" style={{ gap: 6 }}>
-                {([['good', '잘 풀렸어요'], ['same', '비슷해요'], ['changed', '달라졌어요']] as const).map(([k, l]) => <button key={k} className="btn line sm" style={{ flex: 1, background: 'var(--paper)' }} onClick={() => feedback(due[0].id, k)}>{l}</button>)}
+              <div className="ask-btns mt12">
+                {([['good', '잘 풀렸어요'], ['same', '비슷해요'], ['changed', '달라졌어요']] as const).map(([k, l]) => <button key={k} className="btn line sm" onClick={() => feedback(due[0].id, k)}>{l}</button>)}
               </div>
             </section>
           )}
@@ -131,7 +156,7 @@ export default function Home() {
                 {rows.map(([p, pic]) => (
                   <Link key={p.id} to={`/product/${p.id}`} className="prow">
                     <Pic n={pic} size="s" />
-                    <span className="grow"><b>{p.title}{p.badge && <span className="badge">{p.badge}</span>}{p.adult && <span className="badge" style={{ background: '#3a2433', color: '#f3d3dc' }}>19</span>}</b><small>{p.cardCopy}</small></span>
+                    <span className="grow">{p.adult ? <em className="pbadge adult">19세 이상</em> : p.badge ? <em className="pbadge">{p.badge}</em> : null}<b>{p.title}</b><small>{p.cardCopy}</small></span>
                     <span className="pp">{p.listPrice ? <s>{won(p.listPrice)}</s> : null}{won(p.price)}</span>
                   </Link>
                 ))}

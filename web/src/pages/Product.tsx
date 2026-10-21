@@ -30,6 +30,10 @@ const FREE: Record<string, string[]> = {
   mbti: ['사주 × MBTI 일치도와 한 줄 요약'],
   friend: [`달빛 상담사 하루 ${brand.friend.freePerDay}번 무료 상담`],
 };
+// 상품마다 다른 무료 범위(월간운세에 신년 안내가 섞이지 않게 · R5 N2)
+const FREE_BY: Record<string, string[]> = { month_detail: ['오늘의 운세(매일 무료)', '이번 달 흐름 한 줄'], newyear_2027: ['2027 신년운세 미리보기(총운·좋은 달)', '이번 달 흐름 한 줄'] };
+// 묶음 상품 — 실제로 받는 풀이와 각 목차(R5 N3)
+const PACK: Record<string, string[]> = { money_pack: ['money_wealth', 'money_business', 'money_invest', 'money_estate'] };
 const findP = (id?: string) => brand.products.find((p) => p.id === id) as Prod | undefined;
 
 type Detail = { sub: string; target: string[]; why: string; sample?: { title: string; body: string; q: string } };
@@ -42,6 +46,8 @@ export function ProductDetail() {
   const [cards, setCards] = useState<{ id: number; rev: boolean }[]>([]);
   const nav = useNavigate();
   const ch = (reading.chapters as Record<string, string[]>)[id ?? ''];
+  const pack = PACK[id ?? ''];
+  const packTotal = pack ? pack.reduce((n, pid) => n + ((reading.chapters as Record<string, string[]>)[pid]?.length ?? 0), 0) : 0;
   useEffect(() => { if (p) track('product_view', { product: p.id }); }, [p?.id]);
   if (!p || !p.visible) return <><Top title="풀이" /><main className="screen"><p>없는 상품이에요.</p><Link to="/" className="btn primary">홈으로</Link></main></>;
   const isMonth = p.id === 'month_detail', isTarot = p.id === 'tarot_some';
@@ -72,14 +78,26 @@ export function ProductDetail() {
         {isTarot && <TarotPick picked={cards} onChange={setCards} />}
         {p.adult && <div className="adult-box mt16"><b>19세 이상 이용 상품이에요</b><p>결제 전에 휴대폰 본인인증으로 만 19세 이상인지 한 번만 확인해요. 생년월일은 저장하지 않아요. 표현은 자극적이지 않게, 두 사람의 친밀감·속도·배려를 중심으로 풀어 드려요.</p></div>}
 
-        <ol className="pd-steps mt16" aria-label="이용 순서">
+        <h3 className="pd-steps-t">이용 순서</h3>
+        <ol className="pd-steps" aria-label="이용 순서">
           {STEPS.map((t, i) => <li key={t} className={i === 0 && !isSample && p.kind !== 'pass' ? 'done' : ''}><span>{i === 0 && !isSample && p.kind !== 'pass' ? '✓' : `0${i + 1}`}</span>{t}</li>)}
         </ol>
 
-        {ch && (
+        {pack ? (
           <section className="card mt16" aria-labelledby="pd-guide">
             <small className="pd-eye dark">READING GUIDE</small>
-            <h3 className="h3 mt4" id="pd-guide">이 리포트에서 확인할 내용 · {ch.length}장</h3>
+            <h3 className="h3 mt4" id="pd-guide">{pack.length}가지 풀이를 각각 받아요 · 모두 {packTotal}가지 핵심 분석</h3>
+            {pack.map((pid) => { const pp = findP(pid); const cc = (reading.chapters as Record<string, string[]>)[pid] ?? []; return (
+              <div key={pid} className="pk-part mt12">
+                <b>{pp?.title} <span className="faint">· {cc.length}가지 분석</span></b>
+                <ol className="pd-toc mt8">{cc.map((c, i) => <li key={c}><span>{String(i + 1).padStart(2, '0')}</span>{c}</li>)}</ol>
+              </div>); })}
+            <p className="faint mt8">결제하면 보관함에서 네 가지 풀이를 하나씩 따로 열어 볼 수 있어요.</p>
+          </section>
+        ) : ch && (
+          <section className="card mt16" aria-labelledby="pd-guide">
+            <small className="pd-eye dark">READING GUIDE</small>
+            <h3 className="h3 mt4" id="pd-guide">이 리포트의 {ch.length}가지 핵심 분석</h3>
             <ol className="pd-toc mt12">{ch.map((c, i) => <li key={c}><span>{String(i + 1).padStart(2, '0')}</span>{c}</li>)}</ol>
           </section>
         )}
@@ -105,12 +123,12 @@ export function ProductDetail() {
         <section className="card mt12" aria-label="무료와 유료 비교">
           <h3 className="h3">무료와 결제 후, 무엇이 다른가요?</h3>
           <div className="cmp mt12">
-            <div><small>무료로 보는 것</small>{(p.id === 'tarot_some' ? ['오늘의 타로 한 장과 메시지', '카드 3장 직접 고르기'] : FREE[p.series] ?? ['오늘의 운세', '나의 사주지도 요약']).map((x) => <p key={x}>· {x}</p>)}</div>
+            <div><small>무료로 보는 것</small>{(p.id === 'tarot_some' ? ['오늘의 타로 한 장과 메시지', '카드 3장 직접 고르기'] : FREE_BY[p.id] ?? FREE[p.series] ?? ['오늘의 운세', '나의 사주지도 요약']).map((x) => <p key={x}>· {x}</p>)}</div>
             <div className="paid"><small>결제 후 받는 것</small>
               {p.kind === 'pass'
                 ? <>{PASS_TERMS.slice(0, 4).map((t) => <p key={t}>· {t}</p>)}</>
                 : p.id === 'tarot_some' ? <><p>· 고른 카드 3장의 자리별 해석(정·역방향)</p><p>· 세 장이 함께 말하는 흐름</p><p>· 내 사주로 본 마음이 닿는 달</p><p>· 언제든 다시 보기(보관함)</p></>
-                : <><p>· 내 사주 맞춤 상세 풀이 {ch?.length ?? ''}장</p><p>· 좋은 시기·조심할 시기와 그 이유</p><p>· 바로 할 수 있는 조언</p><p>· 언제든 다시 보기(보관함)</p></>}
+                : <><p>· {pack ? `${pack.length}가지 풀이 · 모두 ${packTotal}가지 핵심 분석` : `내 사주 맞춤 ${ch?.length ?? ''}가지 핵심 분석`}</p><p>· 좋은 시기·조심할 시기와 그 이유</p><p>· 바로 할 수 있는 조언</p><p>· 언제든 다시 보기(보관함)</p></>}
             </div>
           </div>
         </section>
@@ -151,9 +169,10 @@ export function MonthPick({ ym, onPick }: { ym: string; onPick: (ym: string) => 
     <section className="card mt16" aria-label="운세를 볼 달 고르기">
       <h3 className="h3">궁금한 달을 골라 주세요</h3>
       <div className="mchips mt12">
-        {Array.from({ length: 12 }, (_, i) => { const mm = i + 1; const yy = mm < m ? y + 1 : y; const v = `${yy}-${String(mm).padStart(2, '0')}`; return <button key={v} className={v === ym ? 'on' : ''} aria-pressed={v === ym} onClick={() => onPick(v)}>{mm === m && <small>이번 달</small>}{mm}월</button>; })}
+        {Array.from({ length: 12 }, (_, i) => { const mm = i + 1; const yy = mm < m ? y + 1 : y; const v = `${yy}-${String(mm).padStart(2, '0')}`; return <button key={v} className={`${v === ym ? 'on' : ''}${mm === m ? ' now' : ''}`} aria-pressed={v === ym} aria-label={`${yy}년 ${mm}월${mm === m ? ' (이번 달)' : ''}${v === ym ? ' · 선택됨' : ''}`} onClick={() => onPick(v)}><b>{v === ym && <span aria-hidden>✓ </span>}{mm}월</b>{mm === m && <small>이번 달</small>}</button>; })}
       </div>
-      <p className="faint mt8">{ym.slice(0, 4)}년 {Number(ym.slice(5))}월의 날짜별 흐름과 좋은 날을 풀어 드려요.</p>
+      <p className="mpick-sel mt8">선택한 달: <b>{ym.slice(0, 4)}년 {Number(ym.slice(5))}월</b> · 날짜별 흐름과 좋은 날을 풀어 드려요.</p>
+      <p className="faint" style={{ margin: '2px 0 0' }}>✓ 표시 = 내가 고른 달 · ‘이번 달’ = 오늘이 속한 달</p>
     </section>
   );
 }
@@ -347,9 +366,15 @@ export function PayReturn() {
   return <main className="screen center" style={{ paddingTop: 120 }}><div style={{ display: 'grid', placeItems: 'center' }}><Moon size={100} /></div><p className="mt16">{msg}</p>{retry && <Link to={`/checkout/${retry}`} replace className="btn primary mt16" style={{ maxWidth: 280, margin: '16px auto 0' }}>다시 결제하기</Link>}<Link to="/box" className="link mt16" style={{ display: 'block' }}>보관함으로 가기</Link></main>;
 }
 
-type Reading = { status: 'queued' | 'generating' | 'done' | 'failed'; productId: string; content: { title: string; intro: string; visual?: Visual; summary?: Summary; chapters: { id: string; title: string; say: string; body: string; highlight: string; points?: string[]; basis?: Basis[] }[]; closing: { title: string; body: string; tips: string[] } } | null };
+type Part = { productId: string; status: string; title: string };
+type Reading = { status: 'queued' | 'generating' | 'done' | 'failed'; productId: string; parts?: Part[] | null; packId?: string | null; content: { who?: string[]; generatedBy?: 'ai' | 'engine'; title: string; intro: string; visual?: Visual; summary?: Summary; chapters: { id: string; title: string; say: string; body: string; highlight: string; points?: string[]; basis?: Basis[] }[]; closing: { title: string; body: string; tips: string[] } } | null };
+// 결과 표지에 쓰는 '무엇의 이야기'
+const STORY: [RegExp, string][] = [[/^money_wealth|^money_pack/, '재물 이야기'], [/^money_business/, '사업 이야기'], [/^money_invest/, '투자 흐름 이야기'], [/^money_estate/, '집과 자리 이야기'], [/^love_flow|^reunion|^marriage/, '사랑 이야기'], [/gunghap/, '두 사람의 이야기'], [/^tarot/, '썸 이야기'], [/^newyear/, '2027년 이야기'], [/^month/, '한 달 이야기'], [/^career/, '일 이야기'], [/^lifetime/, '사주 이야기'], [/^mbti/, '나의 이야기'], [/^path/, '고민 이야기']];
+const storyOf = (pid: string) => STORY.find(([re]) => re.test(pid))?.[1] ?? '이야기';
 export function ReadingPage() {
   const { orderId } = useParams();
+  const [sp, setSp] = useSearchParams();
+  const part = sp.get('part');
   const [r, setR] = useState<Reading | null>(null);
   const [err, setErr] = useState('');
   const [saved, setSaved] = useState(false);
@@ -359,15 +384,16 @@ export function ReadingPage() {
     let stop = false;
     const tick = async () => {
       try {
-        const x = await apiAuth<Reading>(`/readings/${orderId}`);
+        const x = await apiAuth<Reading>(`/readings/${orderId}${part ? `?part=${encodeURIComponent(part)}` : ''}`);
         if (stop) return;
         setR(x);
         if (x.status === 'queued' || x.status === 'generating') setTimeout(tick, 3000);
       } catch (e: any) { setErr(e.message); }
     };
+    setR(null);
     void tick();
     return () => { stop = true; };
-  }, [orderId]);
+  }, [orderId, part]);
   const keep = async () => {
     if (!r?.content) return;
     await apiAuth('/memories', { method: 'POST', json: { kind: 'reading', category: r.productId.startsWith('money') ? 'money' : ['love_flow', 'gunghap', 'reunion'].includes(r.productId) ? 'love' : 'growth', title: `${r.content.title} 풀이를 받음`, summary: r.content.chapters[0]?.highlight, refId: orderId, profileId: isSample ? null : profile.id } }).catch(() => {});
@@ -375,12 +401,18 @@ export function ReadingPage() {
   };
   const openShare = useShare();
   const share = (text: string) => openShare({ title: `달새김사주 ${r?.content?.title ?? ''}`.trim(), text, path: r ? `/product/${r.productId}` : '/', contentId: `reading_${r?.productId}`, note: '고른 한 문장만 보내요. 풀이 전체와 사주 정보는 나만 볼 수 있어요.' });
+  const tabs = r?.parts && r.parts.length > 1 && (
+    <nav className="rp-parts" aria-label="묶음 풀이">
+      {r.parts.map((x) => <button key={x.productId} aria-pressed={x.productId === r.productId} className={x.productId === r.productId ? 'on' : ''} onClick={() => setSp({ part: x.productId }, { replace: true })}>{x.title}{x.status !== 'done' ? ' · 준비 중' : ''}</button>)}
+    </nav>
+  );
   if (err) return <><Top title="풀이" back="/me" /><main className="screen"><p>{err}</p><Link to="/me" className="btn primary">마이로 가기</Link></main></>;
   if (!r || !r.content) return (
     <>
       <Top title="풀이" back="/me" />
       <main className="screen center" style={{ paddingTop: 60 }}>
         <div style={{ display: 'grid', placeItems: 'center' }}><Moon size={110} /></div>
+        {tabs}
         <h2 className="h2 mt16">{r?.status === 'failed' ? '풀이를 다시 준비하고 있어요' : '달새김이 풀이를 새기고 있어요'}</h2>
         <p className="muted small mt8">보통 1~2분이면 완성돼요. 이 화면을 닫아도 하단 보관함에서 다시 볼 수 있어요.</p>
         <div className="stack mt24"><Skeleton h={18} /><Skeleton h={18} /><Skeleton h={18} /></div>
@@ -388,46 +420,61 @@ export function ReadingPage() {
     </>
   );
   const c = r.content;
+  const who = c.who?.length ? c.who.join('·') : null;
   return (
     <>
       <Top title={c.title} back="/box" />
       <main className="screen read">
-        <section className="card navy"><div className="eyebrow" style={{ color: 'var(--gold)' }}>달새김사주 풀이</div><h1 className="h1 mt8" style={{ fontSize: 23 }}>{c.title}</h1><p className="mt8" style={{ color: '#d9d6ea', margin: '8px 0 0' }}>{c.intro}</p></section>
+        {tabs}
+        {/* 표지 → 요약 → 목차 → 본문 → 실천 가이드(R5 S5) */}
+        <section className="rp-cover" aria-labelledby="rp-t">
+          <small className="rp-eye">DALSAEGIM PERSONAL REPORT</small>
+          <h1 id="rp-t">{who ? <>{who}님을 위해 정리한<br /></> : null}<em>{storyOf(r.productId)}</em></h1>
+          <div className="rp-book"><small>달새김사주</small><b>{c.title}</b><span>{c.intro}</span></div>
+          <p className="rp-keys">나의 흐름 · 시기 · 실천 가이드 · {c.chapters.length}가지 핵심 분석</p>
+          <a href="#rp-sum" className="rp-open">내 풀이 열기</a>
+          <p className="rp-note">{c.generatedBy === 'ai' ? 'AI가 사주 계산 결과를 바탕으로 작성한 풀이' : '사주 계산 결과를 바탕으로 자동으로 정리한 풀이'} · 자기 이해를 위한 참고 정보예요. 보관함에서 언제든 다시 열 수 있어요.</p>
+        </section>
+        <div id="rp-sum" style={{ scrollMarginTop: 70 }} />
         {c.summary && <div className="mt16"><ReportSummary s={c.summary} title={c.title} cardsNode={c.summary.cards && (
           <div className="rs-cards">{c.summary.cards.map((x, i) => <figure key={i}><span className="tr-flip" style={{ display: "block" }}><TarotCard id={x.id} rev={x.rev} size={86} /></span><figcaption><b>{CARDS[x.id]?.name}{x.rev ? ' · 역' : ''}</b>{['그 사람의 마음', '우리 사이의 흐름', '다가올 결과'][i]}</figcaption></figure>)}</div>
         )} /></div>}
-        <nav className="chips mt16" aria-label="목차">{c.chapters.map((x, i) => <a key={x.id} href={`#${x.id}`} className="chip sm">{i + 1}. {x.title}</a>)}</nav>
+        <nav className="card rp-toc mt16" aria-label="목차">
+          <div className="eyebrow">목차</div>
+          <ol>{c.chapters.map((x, i) => <li key={x.id}><a href={`#${x.id}`}><span>{String(i + 1).padStart(2, '0')}</span>{x.title}</a></li>)}<li><a href="#rp-act"><span>✦</span>실천 가이드</a></li></ol>
+        </nav>
         {c.visual && (
           <section className="card mt16" aria-labelledby="st-full">
             <div className="eyebrow">사주원국</div>
-            <h2 className="mt4" id="st-full">{profile.name} 님의 사주 구성표</h2>
+            <h2 className="mt4" id="st-full">{who ?? profile.name} 님의 사주 구성표</h2>
             <p className="faint" style={{ marginBottom: 12 }}>시주·일주·월주·연주의 균형을 보는 기본표예요. 장마다 근거가 되는 자리를 ①②③으로 표시했어요.</p>
-            <SajuTableView table={c.visual.table} full name={profile.name} />
+            <SajuTableView table={c.visual.table} full name={who ?? profile.name} />
           </section>
         )}
         {c.chapters.map((x, i) => (
           <section key={x.id} id={x.id} className="card mt16" style={{ scrollMarginTop: 70 }}>
-            <div className="eyebrow">제 {i + 1}장</div>
+            <div className="eyebrow">핵심 분석 {String(i + 1).padStart(2, '0')}</div>
             <h2 className="mt4">{x.title}</h2>
             {x.points && <div className="chips mt8">{x.points.map((t) => <span key={t} className="chip sm lav">{t}</span>)}</div>}
             <p className="faint" style={{ margin: '10px 0 12px' }}>{x.say}</p>
             {c.visual && x.basis && x.basis.length > 0 && <div className="mb12"><SajuTableView table={c.visual.table} basis={x.basis} /></div>}
-            {c.visual?.flow && c.visual.flowAt === i && <Flow36 flow={c.visual.flow} name={profile.name} />}
+            {c.visual?.flow && c.visual.flowAt === i && <Flow36 flow={c.visual.flow} name={who ?? profile.name} />}
             {x.body.split(/\n\n+/).map((t, k) => <p key={k}>{t}</p>)}
             {c.visual?.lucky && c.visual.luckyAt === i && <LuckyCard l={c.visual.lucky as any} />}
             <div className="quote">{x.highlight}</div>
             <button className="link mt8" onClick={() => share(x.highlight)}>이 문장 공유하기</button>
           </section>
         ))}
-        <section className="card lav mt16">
-          <h2>{c.closing.title}</h2>
+        <section id="rp-act" className="card lav mt16" style={{ scrollMarginTop: 70 }}>
+          <div className="eyebrow">실천 가이드</div>
+          <h2 className="mt4">{c.closing.title}</h2>
           <p>{c.closing.body}</p>
           {c.closing.tips.map((t) => <p key={t} className="small" style={{ margin: '4px 0' }}>· {t}</p>)}
         </section>
         <button className="btn primary mt16" disabled={saved} onClick={keep}>{saved ? '✓ 타임라인에 새겼어요' : '이 풀이를 타임라인에 새기기'}</button>
         <div className="grid2 mt8">
-          <Link to="/friend" className="btn line sm" style={{ width: '100%' }}><I.chat size={18} />친구에게 묻기</Link>
-          <button className="btn line sm" style={{ width: '100%' }} onClick={() => { const el = document.querySelector('.read') as HTMLElement; if (el) void saveImage(el, `reading_${orderId}`, '#F7F3EE'); }}><I.download size={18} />저장</button>
+          <Link to="/friend" className="btn line sm" style={{ width: '100%' }}><I.chat size={18} />상담사에게 묻기</Link>
+          <button className="btn line sm" style={{ width: '100%' }} onClick={() => { const el = document.querySelector('.read') as HTMLElement; if (el) void saveImage(el, `reading_${orderId}`, '#F7F3EE'); }}><I.download size={18} />이미지로 저장</button>
         </div>
       </main>
     </>

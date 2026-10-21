@@ -5,8 +5,11 @@ import { newId } from '../auth.ts';
 import brand from '../../../../brand.config.json' with { type: 'json' };
 
 type Order = typeof S.orders.$inferSelect;
+/** 묶음 상품이 실제로 만드는 풀이들 */
+export const PACK_PARTS: Record<string, string[]> = { money_pack: ['money_wealth', 'money_business', 'money_invest', 'money_estate'] };
+export const partsOf = (productId: string) => PACK_PARTS[productId] ?? [productId];
 const DAY = 86_400_000;
-// AI 사주친구 이용권 — 기간(일)과 질문 수는 brand.config.json(friend_pass: 90일·10회)
+// 달빛 상담 이용권 — 기간(일)과 질문 수는 brand.config.json(friend_pass: 90일·10회)
 const passOf = (productId: string) => (brand.products as any[]).find((p) => p.id === productId) ?? {};
 export const passDays = (productId: string) => Number(passOf(productId).days ?? 30);
 export const passQuestions = (productId: string): number | null => (passOf(productId).questions ? Number(passOf(productId).questions) : null);
@@ -40,7 +43,8 @@ export async function fulfillOrder(db: Db, order: Order, opts: { ref?: string; m
   }
   if (o.kind === 'reading') {
     const [r] = await db.select({ id: S.readings.id }).from(S.readings).where(eq(S.readings.orderId, o.id));
-    if (!r) await db.insert(S.readings).values({ id: newId('r_'), orderId: o.id, profileId: o.profileId, productId: o.productId, status: 'queued' });
+    // 돈의 흐름 4종 묶음은 4가지 풀이를 각각 만든다(재물 7·사업 5·투자 5·부동산 5장 — R5 N3)
+    if (!r) await db.insert(S.readings).values(partsOf(o.productId).map((pid) => ({ id: newId('r_'), orderId: o.id, profileId: o.profileId, productId: pid, status: 'queued' })));
   }
   return o;
 }

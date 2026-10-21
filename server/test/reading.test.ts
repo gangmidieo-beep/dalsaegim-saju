@@ -108,7 +108,7 @@ describe('AI 사주친구(키 없음 → 계산 답변)', () => {
     const s2 = await say('직장 상담 아니에요. 점수랑 시기 없이 공부 행동 세 가지만 짧게요');
     expect(s2.topic).toBe('study');
     expect(s2.reply).not.toMatch(/점이에요|\d+월|직장/);
-    expect(s2.reply.split('\n').filter((x) => /^[①②③]/.test(x))).toHaveLength(3);
+    expect(s2.reply.split('\n').filter((x: string) => /^[①②③]/.test(x))).toHaveLength(3);
     const pet = await say('이번엔 반려견 이야기요. 우리 강아지랑 오늘 뭐 하면 좋을까요');
     expect(pet.topic).toBe('pet');
     expect(pet.draft.category).toBe('family');

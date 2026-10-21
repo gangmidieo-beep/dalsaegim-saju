@@ -17,7 +17,7 @@ export type Visual = { table: SajuTable; flow?: { points: { y: number; m: number
 export type Closing = { title: string; body: string; tips: string[] };
 /** 결과 맨 위 요약 카드(대표님 V88 리포트 틀) — 막대는 엔진이 계산한 지수, 단계는 실제 좋은 달·날 */
 export type Summary = { tone: 'love' | 'money' | 'saju' | 'time'; headline: string; lead: string; metrics: { label: string; score: number; note?: string }[]; steps: { label: string; text: string }[]; action: string; cards?: { id: number; rev: boolean }[] };
-export type ReadingContent = { productId: string; title: string; intro: string; chapters: Chapter[]; closing: Closing; facts?: unknown; visual?: Visual; summary?: Summary; generatedBy: 'ai' | 'engine' };
+export type ReadingContent = { productId: string; title: string; intro: string; chapters: Chapter[]; closing: Closing; facts?: unknown; visual?: Visual; summary?: Summary; who?: string[]; generatedBy: 'ai' | 'engine' };
 export type Person = { name: string; gender: 'M' | 'F'; year: number; month: number; day: number; calendar: 'solar' | 'lunar'; leap?: boolean; hour?: number | null };
 export type OrderMeta = { cat?: string; sub?: string; q?: string; mbti?: string; ym?: string; cards?: string } | null;
 
@@ -344,7 +344,7 @@ export async function generateReading(product: { id: string; title: string }, pe
   const sajus = ps.map(sajuOfP);
   const facts = buildFacts(product.id, ps, sajus, opts.meta ?? null, opts.market ?? null, opts.now);
   const titles = chaptersFor(product.id);
-  if (!liveAI() || product.id === 'tarot_some') { const content = engineContent(product, ps, facts); return { content: { ...content, facts: facts.lines }, tokensIn: 0, tokensOut: 0, costKrw: 0, issues: [] as string[] }; }
+  if (!liveAI() || product.id === 'tarot_some') { const content = engineContent(product, ps, facts); return { content: { ...content, who: ps.map((p) => p.name), facts: facts.lines }, tokensIn: 0, tokensOut: 0, costKrw: 0, issues: [] as string[] }; }
   const half = Math.ceil(titles.length / 2);
   let tokensIn = 0, tokensOut = 0, intro = '';
   const chapters: Chapter[] = [];
@@ -362,7 +362,7 @@ export async function generateReading(product: { id: string; title: string }, pe
   }
   // 근거 번호·소제목·그림 자료는 계산값 그대로 붙인다(AI 가 바꾸지 못하게)
   chapters.forEach((c, i) => { const m = facts.meta?.[i]; if (m) Object.assign(c, { points: m.points, basis: m.basis }); });
-  const content: ReadingContent = { productId: product.id, title: product.title, intro, chapters, closing, facts: facts.lines, ...(facts.visual ? { visual: facts.visual } : {}), ...(facts.summary ? { summary: facts.summary } : {}), generatedBy: 'ai' };
+  const content: ReadingContent = { productId: product.id, title: product.title, intro, chapters, closing, who: ps.map((p) => p.name), facts: facts.lines, ...(facts.visual ? { visual: facts.visual } : {}), ...(facts.summary ? { summary: facts.summary } : {}), generatedBy: 'ai' };
   return { content, tokensIn, tokensOut, costKrw: costKrwOf(tokensIn, tokensOut), issues: checkQuality(content, ps.map((p) => p.name), titles) };
 }
 
