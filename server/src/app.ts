@@ -402,17 +402,17 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
       .from(S.memories).where(and(eq(S.memories.userId, userId), ne(S.memories.visibility, 'private'))).orderBy(desc(S.memories.happenedOn)).limit(5) : [];
     let r;
     try {
-      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: b.topic ?? chat?.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http });
+      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: chat?.topic ?? b.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http });
     } catch (e: any) {
       req.log.warn(`[friend] ${e.message}`);
       return rep.code(502).send({ error: '달새김이 잠시 생각에 잠겼어요. 조금 뒤에 다시 말을 걸어 주세요.' });
     }
     const at = new Date().toISOString();
     const messages: ChatMsg[] = [...(chat?.messages ?? []), { role: 'user', text, at }, { role: 'friend', text: r.reply, at }];
-    const v = { messages, turns: (chat?.turns ?? 0) + 1, tokensIn: (chat?.tokensIn ?? 0) + r.tokensIn, tokensOut: (chat?.tokensOut ?? 0) + r.tokensOut, costKrw: (chat?.costKrw ?? 0) + r.costKrw, updatedAt: new Date() };
+    const v = { messages, topic: r.topic === 'etc' ? chat?.topic ?? r.topic : r.topic, turns: (chat?.turns ?? 0) + 1, tokensIn: (chat?.tokensIn ?? 0) + r.tokensIn, tokensOut: (chat?.tokensOut ?? 0) + r.tokensOut, costKrw: (chat?.costKrw ?? 0) + r.costKrw, updatedAt: new Date() };
     let id = chat?.id;
     if (chat) await db.update(S.chats).set(v).where(eq(S.chats.id, chat.id));
-    else { id = newId('c_'); await db.insert(S.chats).values({ id, userId, profileId: profile.id, topic: r.topic, source: b.source ?? null, persona: personaOf(b.persona).id, ...v }); }
+    else { id = newId('c_'); await db.insert(S.chats).values({ id, userId, profileId: profile.id, source: b.source ?? null, persona: personaOf(b.persona).id, ...v }); }
     let credits = sub?.credits ?? null;
     if (useCredit && sub && sub.credits != null) {
       const [u2] = await db.update(S.subscriptions).set({ credits: sql`${S.subscriptions.credits} - 1` }).where(and(eq(S.subscriptions.id, sub.id), gt(S.subscriptions.credits, 0))).returning({ credits: S.subscriptions.credits }); // 동시에 두 번 보내도 0 아래로 내려가지 않게

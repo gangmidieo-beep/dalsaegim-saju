@@ -1,4 +1,4 @@
-// AI 사주친구 — ① 상담사(페르소나) 고르기 ② 첫 화면: 상담사 사진 + 인사 + 말로/글로 시작 ③ 상담이 시작되면 사진은 작게, 대화창을 크게.
+// 달빛 상담(상담사 6명, 대표 상담사 서월) — ① 상담사(페르소나) 고르기 ② 첫 화면: 상담사 사진 + 인사 + 말로/글로 시작 ③ 상담이 시작되면 사진은 작게, 대화창을 크게.
 // 답할 때마다 "오늘의 새김" 요약 → [저장][수정][남기지 않기]. 대화는 서버에 남아 화면을 나갔다 와도 이어진다.
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -15,6 +15,7 @@ import { PASS } from '../lib/policy';
 type Msg = { role: 'user' | 'friend'; text: string; at?: string };
 type Draft = { category: string; title: string; summary: string; sajuNote?: string };
 const josa = (w: string) => ((w.charCodeAt(w.length - 1) - 0xac00) % 28 ? '과' : '와');
+const iga = (w: string) => ((w.charCodeAt(w.length - 1) - 0xac00) % 28 ? '이' : '가');
 const STARTERS = ['그 사람 마음이 궁금해요', '헤어진 사람과 다시 만날 수 있을까요?', '언제쯤 좋은 인연이 올까요?', '요즘 일이 너무 지쳐요'];
 
 export default function Friend() {
@@ -31,6 +32,8 @@ export default function Friend() {
   const [left, setLeft] = useState<{ free: number; credits: number | null } | null>(null);
   const leftText = left ? (left.credits != null && left.credits > 0 ? `오늘 무료 ${left.free}번 · 이용권 질문 ${left.credits}번 남았어요` : `오늘 무료 상담 ${left.free}번 남았어요`) : remaining != null ? `오늘 무료 상담 ${remaining}번 남았어요` : '';
   const [limit, setLimit] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null); // 답을 못 받은 질문(차감 없음) — 다시 보내기
+  const [needSaju, setNeedSaju] = useState<string | null>(null); // 사주 없이 보내려던 질문
   const [rec, setRec] = useState(false);
   const [read, setRead] = useState(false); // 답을 소리로 읽어 주기
   const [typing, setTyping] = useState(!!sp.get('q'));
@@ -43,6 +46,9 @@ export default function Friend() {
   const pass = brand.products.find((p) => p.id === 'friend_pass')!;
   const picking = !persona || sp.get('pick') === '1';
   const pe = personaOf(chatPersona ?? persona);
+  // 사주가 없을 때는 이름을 부르지 않는 인사
+  const greet = isSample ? pe.greet.replace(/\{name\}\s*님,?\s*/g, '').replace(/\{name\}아,?\s*/g, '').replace('{name}', '') : pe.greet.replaceAll('{name}', profile.name);
+  const toSaju = (q?: string) => nav(`/profile/new?next=${encodeURIComponent(`/friend${q ? `?q=${encodeURIComponent(q)}` : ''}`)}`);
 
   useEffect(() => {
     if (isSample) return;
@@ -58,12 +64,17 @@ export default function Friend() {
   const send = async (raw?: string, viaVoice = false, opt: { persona?: string; topic?: string } = {}) => {
     const t = (raw ?? text).trim();
     if (!t || busy) return;
+    // 사주가 없으면 보내지 않는다 — 사주 입력으로 안내하고 적은 질문은 그대로 둔다(R5 N4·N6)
+    if (isSample) { setText(t); setNeedSaju(t); setTyping(true); track('friend_need_saju', {}); return; }
+    stopVoice();
     setText('');
+    setFailed(null);
     setMsgs((m) => [...m, { role: 'user', text: t }]);
     setBusy(true);
     try {
       await syncProfile(profile, true);
-      const r = await apiAuth<{ chatId: string; reply: string; draft: Draft; remaining: number | null; pass: boolean; free: number; credits: number | null }>('/friend/chat', { method: 'POST', json: { chatId, profileId: profile.id, text: t, topic: opt.topic ?? topic, persona: opt.persona ?? pe.id, source: sp.get('q') ? 'path' : 'home' } });
+      const signal = typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(45_000) : undefined;
+      const r = await apiAuth<{ chatId: string; reply: string; draft: Draft; remaining: number | null; pass: boolean; free: number; credits: number | null }>('/friend/chat', { method: 'POST', signal, json: { chatId, profileId: profile.id, text: t, topic: opt.topic ?? topic, persona: opt.persona ?? pe.id, source: sp.get('q') ? 'path' : 'home' } });
       // 상담사를 고르자마자 첫 질문을 보내는 경우, 이 시점의 pe 는 이전 상담사라 고른 id 를 쓴다
       const used = personaOf(opt.persona ?? pe.id);
       setChatId(r.chatId); setFriendChat(r.chatId); setChatPersona(used.id);
@@ -73,9 +84,9 @@ export default function Friend() {
       if (read || viaVoice) speak(r.reply, used.gender);
       track('friend_send', { topic: r.draft.category, persona: used.id, voice: viaVoice });
     } catch (e: any) {
-      setMsgs((m) => m.slice(0, -1));
-      setText(t);
-      if (e.code === 'friend_limit') setLimit(true); else toast(e.message);
+      if (e.code === 'friend_limit') { setMsgs((m) => m.slice(0, -1)); setText(t); setLimit(true); }
+      else if (e.code === 'profile') { setMsgs((m) => m.slice(0, -1)); setText(t); setNeedSaju(t); }
+      else { setFailed(t); track('friend_fail', { reason: e.name === 'TimeoutError' || e.name === 'AbortError' ? 'timeout' : 'error' }); }
     } finally { setBusy(false); }
   };
   const saveMemory = async (d: { category: string; title: string; summary?: string }) => {
@@ -96,12 +107,13 @@ export default function Friend() {
     r.onend = () => setRec(false);
     setRec(true); r.start();
   };
-  const newChat = () => { setChatId(null); setFriendChat(null); setChatPersona(null); setMsgs([]); setDraft(null); setTyping(false); stopVoice(); };
-  const choose = (id: string) => {
+  const retry = () => { if (!failed) return; const t = failed; setMsgs((m) => (m[m.length - 1]?.role === 'user' && m[m.length - 1].text === t ? m.slice(0, -1) : m)); setFailed(null); void send(t); };
+  const newChat = () => { setFailed(null); setNeedSaju(null); setChatId(null); setFriendChat(null); setChatPersona(null); setMsgs([]); setDraft(null); setTyping(false); stopVoice(); };
+  const choose = (id: string, q?: string) => {
     setPersona(id);
     if (chatPersona && chatPersona !== id) newChat();
     track('persona_pick', { id });
-    if (isSample) { nav('/profile/new?next=/friend'); return; }
+    if (isSample) { toSaju(q); return; }
     setSp({});
   };
 
@@ -115,8 +127,24 @@ export default function Friend() {
     </Sheet>
   );
 
+  // 사주 미등록 안내(R5 N4·N6) — 질문은 지우지 않고, 사주 입력 뒤 이어서 보낸다
+  const sajuGate = isSample && (
+    <div className="saju-gate" role="status">
+      <b>{needSaju ? '질문을 보내려면 사주 정보가 필요해요' : '사주 기반 상담에는 사주 정보가 필요해요'}</b>
+      <p>생년월일시를 입력하면 {pe.name}{iga(pe.name)} 내 사주를 바탕으로 답해요. 1분이면 끝나요.{needSaju ? ' 적어 둔 질문은 입력 뒤 그대로 이어서 보낼 수 있어요.' : ''}</p>
+      <button className="btn primary sm mt8" onClick={() => toSaju(needSaju ?? (text.trim() || undefined))}>사주 입력하고 상담하기</button>
+    </div>
+  );
+  const failBox = failed && !busy && (
+    <div className="chat-fail" role="alert">
+      <b>답변을 받지 못했어요</b>
+      <p>이 질문은 차감되지 않았어요. 잠시 뒤 다시 보내 주세요.</p>
+      <button className="btn line sm mt8" onClick={retry}>다시 보내기</button>
+    </div>
+  );
+
   // ① 상담사 고르기(접수)
-  if (picking) return <PersonaPick current={persona} onPick={(id, q, t) => { choose(id); if (q && !isSample) { setPendingTopic(t ?? null); void send(q, false, { persona: id, topic: t }); } }} />;
+  if (picking) return <PersonaPick current={persona} onPick={(id, q, t) => { choose(id, q); if (q && !isSample) { setPendingTopic(t ?? null); void send(q, false, { persona: id, topic: t }); } }} />;
 
   // ② 첫 화면 — 상담사 사진 크게
   if (msgs.length === 0 && !typing) return (
@@ -127,7 +155,8 @@ export default function Friend() {
         <span style={{ width: 40 }} />
       </div>
       <figure className="fs-photo"><img src={pe.img} alt={`${pe.name} 상담사`} /><figcaption><b>{pe.name}</b><span>{pe.who}</span></figcaption></figure>
-      <div className="f-bubble">{pe.greet.replace('{name}', profile.name)}</div>
+      <div className="f-bubble">{greet}</div>
+      {sajuGate}
       <section className="voice" aria-label="상담 시작">
         <div className="row" style={{ gap: 14 }}>
           <button className={`mic${rec ? ' rec' : ''}`} aria-label={rec ? '듣는 중' : '말로 상담하기'} onClick={listen} disabled={busy}><I.mic size={28} /></button>
@@ -152,7 +181,7 @@ export default function Friend() {
         <button className="icon-btn" aria-label="뒤로" onClick={() => nav(-1)}><I.back /></button>
         <button className="row" style={{ flex: 1, gap: 10, textAlign: 'left' }} onClick={() => setSp({ pick: '1' })} aria-label="상담사 바꾸기">
           <img className="p-avatar" src={pe.img} alt="" />
-          <span style={{ lineHeight: 1.3 }}><b style={{ fontSize: 16.5 }}>{pe.name}</b><span className="faint" style={{ display: 'block', fontSize: 13 }}>{pe.title} · {profile.name} 님의 사주를 알고 있어요</span></span>
+          <span style={{ lineHeight: 1.3 }}><b style={{ fontSize: 16.5 }}>{pe.name}</b><span className="faint" style={{ display: 'block', fontSize: 13 }}>{pe.title} · {isSample ? '사주를 입력하면 내 사주로 상담해요' : `${profile.name} 님의 사주로 상담해요`}</span></span>
         </button>
         <button className={`icon-btn${read ? ' on' : ''}`} aria-label={read ? '읽어 주기 끄기' : '답을 소리로 읽어 주기'} aria-pressed={read} onClick={() => { setRead(!read); if (read) stopVoice(); }}><I.speaker /></button>
         <button className="icon-btn" aria-label="새 상담" onClick={newChat}><I.edit /></button>
@@ -160,7 +189,7 @@ export default function Friend() {
       <div className="chat big">
         {msgs.length === 0 && (
           <div className="fade-in">
-            <div className="bubble friend">{pe.greet.replace('{name}', profile.name)}</div>
+            <div className="bubble friend">{greet}</div>
             <div className="chips mt12">{STARTERS.map((s) => <button key={s} className="chip" onClick={() => send(s)}>{s}</button>)}</div>
           </div>
         )}
@@ -171,6 +200,8 @@ export default function Friend() {
             {m.role === 'friend' && i === msgs.length - 1 && !busy && <button className="relisten" onClick={() => speak(m.text)}><I.speaker size={15} />다시 듣기</button>}
           </div>
         ))}
+        {failBox}
+        {sajuGate}
         {busy && <div className="msg friend"><img className="p-avatar s" src={pe.img} alt="" /><div className="bubble friend"><span className="typing" aria-label="생각 중"><i /><i /><i /></span></div></div>}
         {!busy && draft && draft.state !== 'skip' && (
           <MemoryCard draft={draft.d} saved={draft.state === 'saved'} onSave={saveMemory} onSkip={() => { setDraft((x) => (x ? { ...x, state: 'skip' } : x)); track('memory_skip', { kind: 'consult' }); }} />

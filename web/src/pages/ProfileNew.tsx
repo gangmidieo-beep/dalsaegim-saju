@@ -143,11 +143,13 @@ export default function ProfileNew() {
             <div className="field"><span>성별</span><div className="seg pink">{([['F', '여성'], ['M', '남성']] as const).map(([v, l]) => <button key={v} className={f.gender === v ? 'on' : ''} onClick={() => set({ gender: v })}>{l}</button>)}</div></div>
             <p className="faint mt16">입력한 사주는 풀이와 달빛 상담에만 쓰이고, 마이에서 언제든 지울 수 있어요.</p>
             {tried && missing.length > 0 && <p className="form-err" role="alert">{missing.join(', ')}을(를) 확인해 주세요</p>}
-            <button className={`btn primary mt16${ready ? '' : ' soft-off'}`} aria-disabled={!ready} onClick={() => (ready ? submit() : setTried(true))}>{editing ? '저장하기' : '다음으로'}</button>
+            <button className={`btn primary mt16${ready ? '' : ' soft-off'}`} aria-disabled={!ready} onClick={() => (ready ? submit() : setTried(true))}>{editing ? '고친 내용 저장하기' : first ? '사주 저장하고 다음으로' : '사주 저장하기'}</button>
+            {!editing && <p className="faint center mt8">버튼을 누르면 이 기기에 사주가 저장돼요. 마이에서 언제든 고치거나 지울 수 있어요.</p>}
           </section>
         )}
         {step === 1 && (
           <section className="fade-in mt16">
+            <p className="saved-ok" role="status">✓ {f.name} 님의 사주를 이 기기에 저장했어요</p>
             <h2 className="h2">기록을 잃지 않게<br />간편하게 이어 둘까요?</h2>
             <p className="muted small mt8">로그인하면 다른 기기에서도 상담 기록과 타임라인을 그대로 볼 수 있어요. 나중에 해도 괜찮아요.</p>
             <div className="mt24"><LoginButtons back={next} /></div>
