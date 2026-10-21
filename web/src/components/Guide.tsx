@@ -32,7 +32,7 @@ const INTENTS: Intent[] = [
   { id: 'mind', words: /우울|힘들|불안|지쳐|외롭|답답|속상|위로/, reply: '요즘 마음이 많이 지치셨군요. 사주를 아는 상담 친구에게 편하게 이야기하거나, 오늘의 마음을 편지로 남겨 보세요.', items: ['@friend', '@letter', 'newyear_2027'] },
 ];
 const FREE: Record<string, Rec> = {
-  '@friend': { to: '/friend', title: 'AI 사주친구', copy: '내 사주를 아는 상담 친구 · 하루 3번 무료' },
+  '@friend': { to: '/friend', title: '달빛 상담사 서월', copy: '내 사주를 아는 상담사 · 하루 3번 무료' },
   '@letter': { to: '/letter', title: '달빛편지', copy: '지금의 마음을 편지로 남기고 다시 읽기 · 무료' },
   '@charm': { to: '/charm', title: '나만의 황금부적', copy: '합격·소망을 담은 나만의 부적 · 무료' },
   '@path': { to: '/path', title: '운명의 갈림길', copy: '두 선택을 사주 흐름으로 비교 · 무료' },

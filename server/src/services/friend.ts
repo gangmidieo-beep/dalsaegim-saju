@@ -58,7 +58,7 @@ export async function friendReply(o: {
   const draft: MemoryDraft = {
     category: topic.id,
     title: o.text.replace(/\s+/g, ' ').slice(0, 40),
-    summary: `${topic.label} 고민을 AI 사주친구와 나눔. 사주 흐름상 ${b.good}에 기운이 살아나고, ${b.careful}에는 쉬어 가면 좋은 시기.`,
+    summary: `${topic.label} 고민을 달빛 상담사와 나눔. 사주 흐름상 ${b.good}에 기운이 살아나고, ${b.careful}에는 쉬어 가면 좋은 시기.`,
     sajuNote: `좋은 시기 ${b.good} / 신중한 시기 ${b.careful}`,
   };
   if (!friendLive()) {
@@ -71,7 +71,7 @@ export async function friendReply(o: {
     const reply = `${empathy} ${recall}${o.profile.name} 님 사주에서 보면, ${area?.line ?? b.map.dayMaster.line}\n\n앞으로 ${topic.label} 흐름은 ${b.good}에 기운이 살아나고, ${b.careful}에는 한 템포 쉬어 가면 좋아요. ${fieldScore}\n\n${pe.close}`;
     return { reply, draft, topic: topic.id, tokensIn: 0, tokensOut: 0, costKrw: 0, ai: false };
   }
-  const system = `너는 사주 서비스 "달새김사주"의 AI 사주친구 상담사 "${pe.name}"(${pe.title})이다. 말투: ${pe.tone} 3~6문장(최대 400자)으로 답한다.
+  const system = `너는 사주 서비스 "달새김사주"의 달빛 상담 AI 상담사 "${pe.name}"(${pe.title})이다. 말투: ${pe.tone} 3~6문장(최대 400자)으로 답한다.
 역할: 사주 결과를 쉽게 설명하고 사용자의 실제 상황과 연결해 주는 안내자. 일반 심리상담·의료·법률·투자 자문을 하지 않는다.
 원칙: 사주는 결정을 대신하지 않는 참고 정보다. 단정·공포 표현 금지. 종목·매수·매도 금지. 자해·위기 신호가 보이면 공감하고 전문 상담(자살예방 상담전화 109)을 안내한다.
 아래 사주 정보의 숫자·시기와 어긋나지 않게 말한다. 마지막에 대화를 이어 갈 질문을 하나 한다.

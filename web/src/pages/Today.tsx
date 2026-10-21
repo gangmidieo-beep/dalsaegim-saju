@@ -124,7 +124,7 @@ export default function Today() {
           <button className="btn line sm" style={{ width: '100%' }} onClick={share}><I.share size={18} />공유하기</button>
           <button className="btn line sm" style={{ width: '100%' }} onClick={() => card.current && saveImage(card.current, `today_${t.date}`)}><I.download size={18} />이미지 저장</button>
         </div>
-        <Link to="/friend" className="btn primary mt12"><I.chat size={20} />오늘에 대해 AI 사주친구에게 묻기</Link>
+        <Link to="/friend" className="btn primary mt12"><I.chat size={20} />오늘에 대해 달빛 상담사에게 묻기</Link>
       </main>
     </>
   );

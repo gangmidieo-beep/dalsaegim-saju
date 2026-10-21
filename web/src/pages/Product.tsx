@@ -17,6 +17,7 @@ import { CARDS, TarotCard } from '../components/tarot';
 import { dailyCard } from '@dalsaegim/content';
 import { kstMonth, kstToday, kstYear } from '../lib/dates';
 import brand from '../../../brand.config.json';
+import { PASS_REFUND, PASS_TERMS } from '../lib/policy';
 
 type Prod = (typeof brand.products)[number];
 // 무료로 이미 볼 수 있는 것 vs 결제 후 받는 것(대표님 요청: 범위를 분명하게)
@@ -27,7 +28,7 @@ const FREE: Record<string, string[]> = {
   life: ['사주 여덟 글자·오행 균형', '분야별로 보는 나', '지금 지나는 큰 흐름(대운) 한 줄'],
   worry: ['운명의 갈림길 결과(두 선택 비교·가장 좋은 시기·추천 행동)'],
   mbti: ['사주 × MBTI 일치도와 한 줄 요약'],
-  friend: [`AI 사주친구 하루 ${brand.friend.freePerDay}번 무료 상담`],
+  friend: [`달빛 상담사 하루 ${brand.friend.freePerDay}번 무료 상담`],
 };
 const findP = (id?: string) => brand.products.find((p) => p.id === id) as Prod | undefined;
 
@@ -107,13 +108,19 @@ export function ProductDetail() {
             <div><small>무료로 보는 것</small>{(p.id === 'tarot_some' ? ['오늘의 타로 한 장과 메시지', '카드 3장 직접 고르기'] : FREE[p.series] ?? ['오늘의 운세', '나의 사주지도 요약']).map((x) => <p key={x}>· {x}</p>)}</div>
             <div className="paid"><small>결제 후 받는 것</small>
               {p.kind === 'pass'
-                ? <><p>· 하루 무료 {brand.friend.freePerDay}번을 다 쓴 뒤에도 질문 {(p as any).questions ?? 10}번 더</p><p>· {(p as any).days ?? 90}일 동안 사용 · 상담 기록을 이어서 기억</p><p>· 기간이 끝나면 자동 결제되지 않아요</p></>
+                ? <>{PASS_TERMS.slice(0, 4).map((t) => <p key={t}>· {t}</p>)}</>
                 : p.id === 'tarot_some' ? <><p>· 고른 카드 3장의 자리별 해석(정·역방향)</p><p>· 세 장이 함께 말하는 흐름</p><p>· 내 사주로 본 마음이 닿는 달</p><p>· 언제든 다시 보기(보관함)</p></>
                 : <><p>· 내 사주 맞춤 상세 풀이 {ch?.length ?? ''}장</p><p>· 좋은 시기·조심할 시기와 그 이유</p><p>· 바로 할 수 있는 조언</p><p>· 언제든 다시 보기(보관함)</p></>}
             </div>
           </div>
         </section>
 
+        {p.kind === 'pass' && (
+          <section className="card flat mt12" aria-labelledby="pd-refund">
+            <h3 className="h3" id="pd-refund">환불 기준</h3>
+            {PASS_REFUND.map((t) => <p key={t} className="small" style={{ margin: '6px 0 0' }}>· {t}</p>)}
+          </section>
+        )}
         {p.kind !== 'pass' && (
           <section className="card flat mt12" aria-labelledby="pd-basis">
             <h3 className="h3" id="pd-basis">해석 근거 안내</h3>
@@ -247,6 +254,11 @@ export function Checkout() {
             <div className="co-price">{p.listPrice ? <s>{won(p.listPrice)}</s> : null}<b>{won(p.price)}</b></div>
           </div>
         </section>
+        {p.kind === 'pass' && (
+          <section className="card flat mt12" aria-label="이용권 조건">
+            {PASS_TERMS.slice(0, 4).map((t) => <p key={t} className="small" style={{ margin: '2px 0' }}>· {t}</p>)}
+          </section>
+        )}
         {p.adult && (
           <section className="adult-box mt16" aria-label="성인 인증">
             <b>{adult?.verified ? '✓ 성인 인증 완료' : '결제 전에 성인 인증이 필요해요'}</b>
@@ -294,7 +306,7 @@ export function Checkout() {
           <label className="field"><span>휴대폰 번호 (결제 안내 문자)</span><input className="input" inputMode="tel" autoComplete="tel" value={phone} placeholder="010-0000-0000" onChange={(e) => setPhone(e.target.value)} /></label>
           {phone && !phoneOk(phone) && <p className="small mt4" style={{ color: '#a83f5c' }}>010으로 시작하는 번호를 확인해 주세요</p>}
           <label className="check mt16"><input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-            <span>디지털 콘텐츠 특성상 풀이가 열린 뒤에는 청약철회가 제한됨을 확인했어요. <Link to="/refund" className="link">환불정책</Link></span></label>
+            <span>{p.kind === 'pass' ? '이용권 사용 조건(질문 차감 기준·유효기간)과 환불 기준을 확인했어요.' : '디지털 콘텐츠 특성상 풀이가 열린 뒤에는 청약철회가 제한됨을 확인했어요.'} <Link to="/refund" className="link">환불정책</Link></span></label>
         </section>
         <section className="co-total mt24">
           {step(need > 0 ? 4 : 3, '최종 확인')}

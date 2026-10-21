@@ -141,7 +141,7 @@ export default function ProfileNew() {
               )}
             </div>
             <div className="field"><span>성별</span><div className="seg pink">{([['F', '여성'], ['M', '남성']] as const).map(([v, l]) => <button key={v} className={f.gender === v ? 'on' : ''} onClick={() => set({ gender: v })}>{l}</button>)}</div></div>
-            <p className="faint mt16">입력한 사주는 풀이와 AI 사주친구에만 쓰이고, 마이에서 언제든 지울 수 있어요.</p>
+            <p className="faint mt16">입력한 사주는 풀이와 달빛 상담에만 쓰이고, 마이에서 언제든 지울 수 있어요.</p>
             {tried && missing.length > 0 && <p className="form-err" role="alert">{missing.join(', ')}을(를) 확인해 주세요</p>}
             <button className={`btn primary mt16${ready ? '' : ' soft-off'}`} aria-disabled={!ready} onClick={() => (ready ? submit() : setTried(true))}>{editing ? '저장하기' : '다음으로'}</button>
           </section>

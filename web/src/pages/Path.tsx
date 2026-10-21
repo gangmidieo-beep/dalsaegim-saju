@@ -136,7 +136,7 @@ function Result({ catId, subId, q, h }: { catId: string; subId: string; q: strin
           {saved === 'saved' && <MemoryCard draft={r.memory} saved onSave={() => {}} onSkip={() => {}} />}
         </div>
 
-        <button className="btn primary mt16" onClick={() => nav(`/friend?topic=${r.memory.category}&q=${encodeURIComponent(r.friendPrompt)}`)}><I.chat size={20} />AI 사주친구와 이어서 이야기하기</button>
+        <button className="btn primary mt16" onClick={() => nav(`/friend?topic=${r.memory.category}&q=${encodeURIComponent(r.friendPrompt)}`)}><I.chat size={20} />달빛 상담사와 이어서 이야기하기</button>
         <Link to={`/product/path_deep?cat=${catId}&sub=${subId}&q=${encodeURIComponent(q)}`} className="btn line mt8">이 고민 심층분석 · {won(deep.price)}</Link>
         {rel && <Link to={`/product/${rel.id}`} className="card flat mt12 between" style={{ display: 'flex' }}><div><div className="faint">이 고민과 이어지는 운세</div><b>{rel.title}</b></div><I.right /></Link>}
         {charmFor(catId, subId) && <CharmLink type={charmFor(catId, subId)!} />}
@@ -254,7 +254,7 @@ function ChoiceResultView() {
           {saved === 'no' && <MemoryCard draft={{ category: r.memory.category, title: r.memory.title, summary: r.memory.summary }} onSave={save} onSkip={() => setSaved('skip')} />}
           {saved === 'saved' && <MemoryCard draft={r.memory} saved onSave={() => {}} onSkip={() => {}} />}
         </div>
-        <button className="btn primary mt16" onClick={() => nav(`/friend?topic=${r.memory.category}&q=${encodeURIComponent(r.friendPrompt)}`)}><I.chat size={20} />AI 사주친구와 이 선택 정리하기</button>
+        <button className="btn primary mt16" onClick={() => nav(`/friend?topic=${r.memory.category}&q=${encodeURIComponent(r.friendPrompt)}`)}><I.chat size={20} />달빛 상담사와 이 선택 정리하기</button>
         <Link to={`/product/path_deep?cat=${o.catId}&q=${encodeURIComponent(`${o.a} vs ${o.b}`)}`} className="btn line mt8">두 선택 심층분석 · {won(deep.price)}</Link>
         <Link to="/path" className="link mt16 center" style={{ display: 'block' }}>다른 갈림길 비교하기</Link>
       </main>

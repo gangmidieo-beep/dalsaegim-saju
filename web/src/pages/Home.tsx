@@ -24,7 +24,7 @@ const SECTIONS: { id: string; title: string; sub: string; more: string; items: [
   { id: 'money', title: '재물·사업', sub: '돈과 일, 기회가 들어오는 시기', more: '/money', items: [['money_wealth', 'money'], ['money_business', 'work'], ['career', 'career'], ['money_invest', 'money'], ['money_estate', 'family'], ['money_pack', 'money']] },
   { id: 'saju', title: '정통사주', sub: '타고난 나를 깊이 읽는 풀이', more: '/map', items: [['lifetime', 'map'], ['mbti_deep', 'self'], ['path_deep', 'path']] },
 ];
-const TABS: [string, string][] = [['/', '홈'], ['/all', '운세'], ['/love', '사랑·인연'], ['/money', '재물·사업'], ['/map', '정통사주'], ['/friend', 'AI 상담']];
+const TABS: [string, string][] = [['/', '홈'], ['/all', '운세'], ['/love', '사랑·인연'], ['/money', '재물·사업'], ['/map', '정통사주'], ['/friend', '달빛 상담']];
 // 월간운세 — 1~12월 버튼, 지난 달은 내년 같은 달(=앞으로 12달)
 const MONTHS = (() => { const y = kstYear(), m = kstMonth(); return Array.from({ length: 12 }, (_, i) => { const mm = i + 1; const yy = mm < m ? y + 1 : y; return { mm, yy, now: mm === m, ym: `${yy}-${String(mm).padStart(2, '0')}` }; }); })();
 
@@ -144,7 +144,7 @@ export default function Home() {
           <div className="nh-sec"><h2 id="h-special">달새김만의 특별한 경험</h2></div>
           <p className="nh-sub">한 번의 풀이로 끝나지 않는, 나만의 기록</p>
           <div className="nh-sig">
-            <Link to="/friend"><span className="si"><I.chat /></span><b>AI 사주친구</b><small>내 사주를 아는 상담 친구 · 하루 3번 무료</small></Link>
+            <Link to="/friend"><span className="si"><I.chat /></span><b>달빛 상담사 서월</b><small>내 사주를 아는 상담사 · 하루 3번 무료</small></Link>
             <Link to="/letter" onClick={() => track('letter_today_open')}><span className="si"><I.mail /></span><b>달빛편지</b><small>{letter ? `오늘의 편지 · ${letter.title}` : '지금의 마음을 편지로 남기기'}</small></Link>
             <Link to="/charm"><span className="si"><I.charm /></span><b>나만의 황금부적</b><small>소망을 담아 완성하고 보관해요</small></Link>
             <Link to="/timeline"><span className="si"><I.timeline /></span><b>내 인생의 타임라인</b><small>{count >= 1 ? `새겨진 순간 ${count}개` : '중요한 순간과 선택을 기록'}</small></Link>

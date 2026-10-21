@@ -10,6 +10,7 @@ import { I } from '../components/icons';
 import { track } from '../lib/track';
 import { speak as voiceSpeak, stopVoice } from '../lib/voice';
 import brand from '../../../brand.config.json';
+import { PASS } from '../lib/policy';
 
 type Msg = { role: 'user' | 'friend'; text: string; at?: string };
 type Draft = { category: string; title: string; summary: string; sajuNote?: string };
@@ -107,7 +108,7 @@ export default function Friend() {
   const sheets = (
     <Sheet open={limit} onClose={() => setLimit(false)} label="이용권 안내">
       <h2 className="h2">오늘의 무료 상담을 모두 썼어요</h2>
-      <p className="muted mt8">무료 상담은 하루 {brand.friend.freePerDay}번이에요. 내일 다시 이어서 이야기하거나, 이용권으로 질문 {(pass as any).questions ?? 10}번을 더 할 수 있어요({(pass as any).days ?? 90}일 동안).</p>
+      <p className="muted mt8">무료 상담은 하루 {PASS.free}번이에요. 내일 다시 이어서 이야기하거나, 이용권으로 질문 {PASS.q}회를 {PASS.days}일 동안 더 할 수 있어요. 답변이 정상으로 도착했을 때만 차감돼요.</p>
       <div className="card gold mt16"><b>{pass.title}</b><div className="small muted">{pass.cardCopy}</div><div className="mt8 hl-gold" style={{ fontSize: 20 }}>{won(pass.price)}</div></div>
       <Link to="/checkout/friend_pass" className="btn primary mt16">이용권으로 계속 상담하기</Link>
       <button className="btn line mt8" onClick={() => setLimit(false)}>내일 다시 올게요</button>
@@ -197,7 +198,7 @@ function PersonaPick({ current, onPick }: { current: string | null; onPick: (id:
   const start = () => onPick(sel, q.trim() || (topic ? `${topic} 고민을 이야기하고 싶어요` : undefined), topic ?? undefined);
   return (
     <>
-      <Top title="AI 사주친구" />
+      <Top title="달빛 상담사" />
       <main className="screen pk">
         <small className="pd-eye dark">DALSAEGIM · MOONLIGHT COUNSEL</small>
         <h2 className="pk-title">나에게 맞는 사주 상담사</h2>
@@ -224,7 +225,7 @@ function PersonaPick({ current, onPick }: { current: string | null; onPick: (id:
         </label>
         <button className="btn primary mt16" onClick={start}>{p.name}{josa(p.name)} 상담 시작하기 →</button>
         <p className="notice mt12">상담사는 AI 캐릭터예요. 실제 사주 계산을 바탕으로 이야기하며, ‘연화 할매’도 신내림이나 점괘를 주장하지 않아요.</p>
-        <Link to="/product/friend_pass" className="link center mt8" style={{ display: 'block' }}>AI 사주친구 이용권 살펴보기 →</Link>
+        <Link to="/product/friend_pass" className="link center mt8" style={{ display: 'block' }}>달빛 상담사 서월 이용권 살펴보기 →</Link>
       </main>
     </>
   );

@@ -13,7 +13,7 @@ import { useSaju } from '../lib/fortune';
 
 type Item = { type: 'memory' | 'reading'; id: string; date: string; kind: string; category: string; title: string; summary: string | null; sajuNote: string | null; feedback: string | null; photo?: string | null };
 const FB: Record<string, [string, string]> = { good: ['잘 풀렸어요', '#6F9E8A'], same: ['비슷해요', '#8A8CA0'], changed: ['달라졌어요', '#C0687B'] };
-const KIND: Record<string, string> = { consult: 'AI 상담', path: '사주 분석', reading: '받은 풀이', letter: '달빛 편지', wish: '새긴 소망', event: '내가 기록' };
+const KIND: Record<string, string> = { consult: '달빛 상담', path: '사주 분석', reading: '받은 풀이', letter: '달빛 편지', wish: '새긴 소망', event: '내가 기록' };
 // 소망 기록은 '실제' 결과를 소망 말로
 const fbOf = (x: Item): [string, string] | null => (!x.feedback ? null : x.kind === 'wish' ? (x.feedback === 'good' ? ['이루었어요', '#C9A35F'] : ['진행 중이에요', '#8A8CA0']) : FB[x.feedback]);
 

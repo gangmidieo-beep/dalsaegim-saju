@@ -386,7 +386,7 @@ export function Account() {
 export function Kpi() {
   const { qs, ui } = usePeriod('7d');
   const { data, err } = useLoad(() => adminApi<any>(`/kpi?${qs}`), [qs]);
-  const R: [string, string, string][] = [['freeToPaid', '무료→유료 전환율', '활동 회원 중 결제한 비율'], ['friendUse', 'AI 사주친구 사용률', '활동 회원 중 대화한 비율'], ['memorySave', '기록 저장률', '활동 회원 중 기록을 남긴 비율'],
+  const R: [string, string, string][] = [['freeToPaid', '무료→유료 전환율', '활동 회원 중 결제한 비율'], ['friendUse', '달빛 상담 사용률', '활동 회원 중 대화한 비율'], ['memorySave', '기록 저장률', '활동 회원 중 기록을 남긴 비율'],
     ['pathDone', '갈림길 완료율', '시작한 사람 중 결과까지 본 비율'], ['revisit7', '7일 재방문율', '가입 7일 뒤에도 들어온 비율'], ['revisit30', '30일 재방문율', '가입 30일 뒤에도 들어온 비율'], ['repurchase', '재결제율', '결제 회원 중 2번 이상 결제']];
   return (
     <>

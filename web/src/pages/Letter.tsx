@@ -101,7 +101,7 @@ export function LetterAfter({ l, onKept }: { l: Letter; onKept?: (memoryId: stri
         : <p className="saved-note" style={{ marginTop: 0 }}>✓ 타임라인에 새겼어요 · <Link to="/timeline" className="link">보러 가기</Link></p>}
       <div className="la-links">
         <Link to="/today?focus=month"><b>이번 달 나의 흐름</b><span>편지와 이어지는 이번 달 사주 흐름 보기</span><I.right /></Link>
-        <button onClick={talk}><b>{josa(pe.name, '과', '와')} 이어서 이야기하기</b><span>편지에 담긴 고민을 AI 사주친구로 이어 가요</span><I.right /></button>
+        <button onClick={talk}><b>{josa(pe.name, '과', '와')} 이어서 이야기하기</b><span>편지에 담긴 고민을 달빛 상담으로 이어 가요</span><I.right /></button>
       </div>
       <button className="link center" style={{ display: 'block', width: '100%' }} onClick={() => setAsk(true)}>편지 공유하기</button>
       <Sheet open={ask} onClose={() => setAsk(false)} label="편지 공유 방법">
@@ -283,7 +283,7 @@ export function Mailbox({ box = false }: { box?: boolean }) {
             {orders?.map((o) => (
               <Link key={o.id} to={o.productId === 'friend_pass' ? '/friend' : `/reading/${o.id}`} className="mail-row">
                 <span className="box-ic" aria-hidden><I.book size={20} /></span>
-                <span className="grow"><small>{dot(o.createdAt)}{o.status === 'refunded' ? ' · 환불됨' : ''}</small><b>{o.title}</b><span>{o.productId === 'friend_pass' ? 'AI 사주친구 이용권' : '다시 읽기 · 공유하기'}</span></span>
+                <span className="grow"><small>{dot(o.createdAt)}{o.status === 'refunded' ? ' · 환불됨' : ''}</small><b>{o.title}</b><span>{o.productId === 'friend_pass' ? '달빛 상담사 서월 이용권' : '다시 읽기 · 공유하기'}</span></span>
                 <I.right className="chev" />
               </Link>
             ))}

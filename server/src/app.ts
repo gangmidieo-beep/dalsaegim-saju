@@ -69,7 +69,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     if (!u) { rep.code(401).send({ error: '탈퇴한 계정이에요', code: 'deleted' }); return null; }
     return id;
   };
-  // AI 사주친구 이용권 — 기간 안이고 남은 질문이 있을 때(credits null = 예전 무제한 30일권)
+  // 달빛 상담 이용권 — 기간 안이고 남은 질문이 있을 때(credits null = 예전 무제한 30일권)
   const activePass = async (userId: string) =>
     (await db.select().from(S.subscriptions)
       .where(and(eq(S.subscriptions.userId, userId), inArray(S.subscriptions.status, ['active', 'grace']), gt(S.subscriptions.expiresAt, new Date()),
@@ -415,7 +415,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     else { id = newId('c_'); await db.insert(S.chats).values({ id, userId, profileId: profile.id, topic: r.topic, source: b.source ?? null, persona: personaOf(b.persona).id, ...v }); }
     let credits = sub?.credits ?? null;
     if (useCredit && sub && sub.credits != null) {
-      const [u2] = await db.update(S.subscriptions).set({ credits: sql`${S.subscriptions.credits} - 1` }).where(eq(S.subscriptions.id, sub.id)).returning({ credits: S.subscriptions.credits });
+      const [u2] = await db.update(S.subscriptions).set({ credits: sql`${S.subscriptions.credits} - 1` }).where(and(eq(S.subscriptions.id, sub.id), gt(S.subscriptions.credits, 0))).returning({ credits: S.subscriptions.credits }); // 동시에 두 번 보내도 0 아래로 내려가지 않게
       credits = u2?.credits ?? 0;
     }
     const free = Math.max(0, FREE_PER_DAY - (await turnsToday(userId)));

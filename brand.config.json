@@ -226,8 +226,8 @@
    "id": "friend_pass",
    "kind": "pass",
    "series": "friend",
-   "title": "AI 사주친구 이용권 · 질문 10회",
-   "cardCopy": "내 사주와 기록을 아는 상담 친구에게 10번 더 묻기 · 90일 동안",
+   "title": "달빛 상담사 서월 이용권 · 질문 10회",
+   "cardCopy": "상담사 6명 누구에게나 질문 10회 · 90일 동안 사용",
    "price": 9900,
    "listPrice": null,
    "badge": null,
@@ -254,7 +254,8 @@
  ],
  "friend": {
   "freePerDay": 3,
-  "name": "달새김"
+  "name": "달새김",
+  "refundDays": 7
  },
  "business": {
   "name": "운(運)새김",
@@ -391,5 +392,10 @@
     "desc": "이번 달 휴대폰 요금에 합산"
    }
   ]
+ },
+ "legal": {
+  "_note": "약관·정책 공고일/시행일 — 정식 오픈일이 정해지면 바꿔 주세요",
+  "noticeDate": "2026-10-23",
+  "effectiveDate": "2026-10-23"
  }
 }
