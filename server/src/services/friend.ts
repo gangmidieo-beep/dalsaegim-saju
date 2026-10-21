@@ -47,7 +47,7 @@ export async function friendReply(o: {
   const now = o.now ?? new Date();
   const pe = personaOf(o.persona);
   const lastTopic = [...o.history].reverse().find((m) => m.role === 'user');
-  const det = detectTopic(o.text, o.topicHint, lastTopic ? detectTopic(lastTopic.text).topic?.id : null);
+  const det = detectTopic(o.text, o.topicHint, lastTopic ? detectTopic(lastTopic.text).topic?.id : null, o.memories[0]?.category);
   const fmt = detectFormat(o.text);
   const topic = det.topic ?? { id: 'growth', cat: 'growth' as const, dim: 'growth' as Dim, label: '나 자신', field: 'health' as const };
   const b = sajuBrief(o.profile, topic.dim, now);
