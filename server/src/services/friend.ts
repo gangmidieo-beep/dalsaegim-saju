@@ -42,7 +42,7 @@ export function sajuBrief(p: ProfileRow, dim: Dim, now = new Date()) {
 
 export async function friendReply(o: {
   profile: ProfileRow; history: ChatMsg[]; text: string; topicHint?: string | null; memories: { happenedOn: string; category: string; title: string; feedback: string | null }[];
-  persona?: string | null; http?: typeof fetch; now?: Date;
+  persona?: string | null; http?: typeof fetch; now?: Date; tier?: 'free' | 'pass';
 }) {
   const now = o.now ?? new Date();
   const pe = personaOf(o.persona);
@@ -94,7 +94,9 @@ export async function friendReply(o: {
   const msgs: { role: 'user' | 'assistant'; content: string }[] = [{ role: 'user', content: ctx }, { role: 'assistant', content: '{"reply":"알겠어요. 사주 정보를 참고해서 이야기할게요.","memory":null}' }];
   for (const m of o.history.slice(-12)) msgs.push({ role: m.role === 'user' ? 'user' : 'assistant', content: m.role === 'user' ? m.text : JSON.stringify({ reply: m.text }) });
   msgs.push({ role: 'user', content: o.text });
-  const c = await callClaude(system, msgs, o.http ?? fetch, { model: process.env.FRIEND_MODEL || process.env.ANTHROPIC_MODEL, maxTokens: 900 });
+  // 무료 상담은 가벼운 모델(FRIEND_MODEL_FREE), 이용권 질문은 고급 모델(FRIEND_MODEL) — 비용 보고 10/21
+  const model = (o.tier === 'free' && process.env.FRIEND_MODEL_FREE) || process.env.FRIEND_MODEL || process.env.ANTHROPIC_MODEL;
+  const c = await callClaude(system, msgs, o.http ?? fetch, { model, maxTokens: 900 });
   let reply = c.text.trim();
   try {
     const j = parseJson(c.text);

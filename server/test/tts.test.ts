@@ -41,7 +41,19 @@ describe('자연 음성', () => {
     await app.inject({ method: 'POST', url: '/tts', headers: { authorization: `Bearer ${token}` }, payload: { text: '반갑습니다', gender: 'F' } });
     expect(calls[1].voice.name).toMatch(/Aoede/);
   });
-  it('읽기 정리: 이모지·기호 제거', () => {
+  it('읽기 정리: 이모지·기호·괄호 한자 제거, 번호는 말로', () => {
     expect(cleanForSpeech('## 좋아요 ✨ `x`')).toBe('좋아요 x');
+    expect(cleanForSpeech('달빛 상담사 서월(瑞月)이에요')).toBe('달빛 상담사 서월이에요');
+    expect(cleanForSpeech('① 단원 고르기\n② 25분 공부')).toBe('첫째, 단원 고르기 둘째, 25분 공부');
+  });
+  it('R5 V1 — 상담사마다 정해진 목소리, 성별이 다르면 그 성별 기본 목소리(다른 성별로 대신 읽지 않음)', async () => {
+    const n = calls.length;
+    await app.inject({ method: 'POST', url: '/tts', headers: { authorization: `Bearer ${token}` }, payload: { text: '아이고 왔구나', gender: 'F', persona: 'yeonhwa' } });
+    expect(calls[n].voice.name).toMatch(/Gacrux/);
+    expect(calls[n].audioConfig.speakingRate).toBe(0.88);
+    await app.inject({ method: 'POST', url: '/tts', headers: { authorization: `Bearer ${token}` }, payload: { text: '준호예요', gender: 'M', persona: 'junho' } });
+    expect(calls[n + 1].voice.name).toMatch(/Achird/);
+    await app.inject({ method: 'POST', url: '/tts', headers: { authorization: `Bearer ${token}` }, payload: { text: '서월이에요', gender: 'M', persona: 'harin' } });
+    expect(calls[n + 2].voice.name).toMatch(/Charon/);
   });
 });

@@ -8,7 +8,7 @@ import { apiAuth, syncProfile } from '../lib/api';
 import { MemoryCard, Sheet, Top, won, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
-import { speak as voiceSpeak, stopVoice } from '../lib/voice';
+import { onVoiceChange, speak as voiceSpeak, stopVoice, voiceFailText } from '../lib/voice';
 import brand from '../../../brand.config.json';
 import { PASS } from '../lib/policy';
 
@@ -59,8 +59,10 @@ export default function Friend() {
   useEffect(() => { end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [msgs.length, busy, draft?.state]);
   useEffect(() => { if (typing) input.current?.focus(); }, [typing]);
 
-  // 상담사 성별대로 읽기(자연 음성이 켜져 있으면 그것으로)
-  const speak = (t: string, g: 'F' | 'M' = pe.gender) => { void voiceSpeak(t, g, { rate: 1.02 }); };
+  // 상담사 목소리로 읽기(자연 음성이 켜져 있으면 상담사별 목소리). 맞는 목소리가 없으면 다른 성별로 읽지 않고 안내
+  const [playing, setPlaying] = useState(false);
+  useEffect(() => onVoiceChange(setPlaying), []);
+  const speak = (t: string, who = pe) => { void voiceSpeak(t, who.gender, { rate: 1.02, persona: who.id }).then((res) => { const m = voiceFailText(res, who.name); if (m) toast(m); }); };
   const send = async (raw?: string, viaVoice = false, opt: { persona?: string; topic?: string } = {}) => {
     const t = (raw ?? text).trim();
     if (!t || busy) return;
@@ -81,7 +83,7 @@ export default function Friend() {
       setMsgs((m) => [...m, { role: 'friend', text: r.reply }]);
       setRemaining(r.remaining); setPass(r.pass); setLeft({ free: r.free, credits: r.credits });
       setDraft({ d: r.draft, state: 'open' });
-      if (read || viaVoice) speak(r.reply, used.gender);
+      if (read || viaVoice) speak(r.reply, used);
       track('friend_send', { topic: r.draft.category, persona: used.id, voice: viaVoice });
     } catch (e: any) {
       if (e.code === 'friend_limit') { setMsgs((m) => m.slice(0, -1)); setText(t); setLimit(true); }
@@ -110,6 +112,7 @@ export default function Friend() {
   const retry = () => { if (!failed) return; const t = failed; setMsgs((m) => (m[m.length - 1]?.role === 'user' && m[m.length - 1].text === t ? m.slice(0, -1) : m)); setFailed(null); void send(t); };
   const newChat = () => { setFailed(null); setNeedSaju(null); setChatId(null); setFriendChat(null); setChatPersona(null); setMsgs([]); setDraft(null); setTyping(false); stopVoice(); };
   const choose = (id: string, q?: string) => {
+    stopVoice();
     setPersona(id);
     if (chatPersona && chatPersona !== id) newChat();
     track('persona_pick', { id });
@@ -197,7 +200,9 @@ export default function Friend() {
           <div key={i} className={`msg ${m.role}`}>
             {m.role === 'friend' && <img className="p-avatar s" src={pe.img} alt="" />}
             <div className={`bubble ${m.role === 'user' ? 'me' : 'friend'}`}>{m.text}</div>
-            {m.role === 'friend' && i === msgs.length - 1 && !busy && <button className="relisten" onClick={() => speak(m.text)}><I.speaker size={15} />다시 듣기</button>}
+            {m.role === 'friend' && i === msgs.length - 1 && !busy && (playing
+              ? <button className="relisten" onClick={() => stopVoice()}><span aria-hidden>■</span> 멈추기</button>
+              : <button className="relisten" onClick={() => speak(m.text)}><I.speaker size={15} />다시 듣기</button>)}
           </div>
         ))}
         {failBox}
@@ -245,6 +250,7 @@ function PersonaPick({ current, onPick }: { current: string | null; onPick: (id:
         <section className="pk-greet mt16" aria-live="polite">
           <b>{p.name}의 첫인사</b>
           <p>“{p.quote}”</p>
+          <VoicePreview p={p} />
         </section>
         <section className="mt24" aria-labelledby="pk-topic">
           <div className="between"><h3 className="h3" id="pk-topic">상담 주제 선택</h3><span className="faint">{FRIEND_TOPICS.length}가지 관심사</span></div>
@@ -259,5 +265,19 @@ function PersonaPick({ current, onPick }: { current: string | null; onPick: (id:
         <Link to="/product/friend_pass" className="link center mt8" style={{ display: 'block' }}>달빛 상담사 서월 이용권 살펴보기 →</Link>
       </main>
     </>
+  );
+}
+
+// 상담사 목소리 미리 듣기(약 10초) — 상담사를 바꾸면 이전 소리는 바로 멈춘다(R5 V1)
+function VoicePreview({ p }: { p: ReturnType<typeof personaOf> }) {
+  const [on, setOn] = useState(false);
+  const toast = useToast();
+  useEffect(() => onVoiceChange(setOn), []);
+  useEffect(() => () => stopVoice(), [p.id]);
+  const sample = `${p.quote} 지금 마음에 걸리는 이야기를 편하게 들려주세요. 제가 사주의 흐름과 함께 차근차근 정리해 드릴게요.`;
+  return (
+    <button className="btn line sm mt8" onClick={() => { if (on) { stopVoice(); return; } track('voice_preview', { persona: p.id }); void voiceSpeak(sample, p.gender, { persona: p.id }).then((r) => { const m = voiceFailText(r, p.name); if (m) toast(m); }); }}>
+      {on ? <><span aria-hidden>■</span> 멈추기</> : <><I.speaker size={16} /> {p.name} 목소리 미리 듣기</>}
+    </button>
   );
 }

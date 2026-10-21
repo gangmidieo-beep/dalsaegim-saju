@@ -83,11 +83,11 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     if (!ttsLive()) return rep.code(503).send({ error: '자연 음성이 꺼져 있어요' });
     const id = await userOf(req);
     if (!id) return rep.code(401).send({ error: '로그인이 필요해요' });
-    const b = (req.body ?? {}) as { text?: string; gender?: string };
+    const b = (req.body ?? {}) as { text?: string; gender?: string; persona?: string };
     const text = String(b.text ?? '').slice(0, TTS_MAX_CHARS);
     if (!text.trim()) return rep.code(400).send({ error: '읽을 글이 없어요' });
     try {
-      const audio = await synthesize(text, b.gender === 'M' ? 'M' : 'F', http);
+      const audio = await synthesize(text, b.gender === 'M' ? 'M' : 'F', http, typeof b.persona === 'string' ? b.persona.slice(0, 20) : null);
       return rep.header('content-type', 'audio/mpeg').header('cache-control', 'private, max-age=86400').send(audio);
     } catch (e) {
       req.log.warn({ err: String(e) }, 'tts failed');
@@ -408,7 +408,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
       .from(S.memories).where(and(eq(S.memories.userId, userId), ne(S.memories.visibility, 'private'))).orderBy(desc(S.memories.happenedOn)).limit(5) : [];
     let r;
     try {
-      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: chat?.topic ?? b.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http });
+      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: chat?.topic ?? b.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http, tier: useCredit ? 'pass' : 'free' });
     } catch (e: any) {
       req.log.warn(`[friend] ${e.message}`);
       return rep.code(502).send({ error: '달새김이 잠시 생각에 잠겼어요. 조금 뒤에 다시 말을 걸어 주세요.' });

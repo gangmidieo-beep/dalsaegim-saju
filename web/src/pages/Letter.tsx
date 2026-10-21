@@ -9,7 +9,7 @@ import { Sheet, Skeleton, Top, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { CharmList } from './Charm';
 import { track } from '../lib/track';
-import { speak as voiceSpeak, stopVoice, pauseVoice, resumeVoice } from '../lib/voice';
+import { speak as voiceSpeak, stopVoice, pauseVoice, resumeVoice, voiceFailText } from '../lib/voice';
 import { useShare } from '../components/share';
 import { toBlob } from 'html-to-image';
 
@@ -20,15 +20,15 @@ const josa = (n: string, withB: string, noB: string) => { const c = n.charCodeAt
 const withJosa = (n: string) => josa(n, '이', '가');
 const dot = (s: string) => s.slice(0, 10).replace(/-/g, '.');
 
-// 상담사 목소리로 읽기 — 여성 상담사는 부드러운 여성 음성, 남성 상담사는 낮은 남성 음성(없으면 음높이를 낮춤)
-export function useReader(personaId: string) {
+// 상담사 목소리로 읽기 — 상담사마다 정해진 목소리. 맞는 성별의 목소리가 없으면 다른 성별로 대신 읽지 않고 안내한다(R5 V1)
+export function useReader(personaId: string, onFail?: (msg: string) => void) {
   const [state, setState] = useState<'idle' | 'play' | 'pause'>('idle');
   const pe = personaOf(personaId);
   useEffect(() => () => stopVoice(), []);
   const play = (text: string) => {
     if (state === 'pause') { resumeVoice(); setState('play'); return true; }
     setState('play');
-    void voiceSpeak(text, pe.gender, { rate: 0.92, onEnd: () => setState('idle') }).then((ok) => { if (!ok) setState('idle'); });
+    void voiceSpeak(text, pe.gender, { rate: 0.92, persona: pe.id, onEnd: () => setState('idle') }).then((res) => { if (res !== 'ok') { setState('idle'); const m = voiceFailText(res, pe.name); if (m) onFail?.(m); } });
     return true;
   };
   const pause = () => { pauseVoice(); setState('pause'); };
@@ -38,8 +38,8 @@ export function useReader(personaId: string) {
 
 export function LetterView({ l, name, onDelete }: { l: Letter; name: string; onDelete?: () => void }) {
   const pe = personaOf(l.persona);
-  const r = useReader(l.persona);
   const toast = useToast();
+  const r = useReader(l.persona, (m) => toast(m));
   const text = `${name}님께. ${l.body}`;
   return (
     <section className="letter-view fade-in">
