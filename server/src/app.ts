@@ -17,7 +17,7 @@ import { fulfillOrder, revokeOrder } from './services/payments/fulfill.ts';
 import { normalizePhone, parsePayappFeedback, payappCancel, payappEnv, payappRequest } from './services/payments/payapp.ts';
 import { latestMarket, liveAI } from './services/reading/generate.ts';
 import { friendReply, friendLive, type ChatMsg } from './services/friend.ts';
-import { synthesize, ttsLive, TTS_MAX_CHARS } from './services/tts.ts';
+import { synthesize, ttsLive, ttsProvider, ttsUsage, tcVoices, tcVoiceOf, TC_PERSONA, TTS_MAX_CHARS } from './services/tts.ts';
 import { personaOf, defaultTodayLetter, LETTER_FEELINGS, LETTER_TOPICS, LETTER_KAKAO, CHARMS } from '@dalsaegim/content';
 import { writeLetter } from './services/letter.ts';
 import { SITE } from './services/seed.ts';
@@ -77,7 +77,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
       .orderBy(asc(S.subscriptions.expiresAt)).limit(1))[0] ?? null;
   const isPremium = async (userId: string) => !!(await activePass(userId));
 
-  app.get('/health', async () => ({ ok: true, mock: MOCK, ai: liveAI(), friendAi: friendLive(), tts: ttsLive() }));
+  app.get('/health', async () => ({ ok: true, mock: MOCK, ai: liveAI(), friendAi: friendLive(), tts: ttsLive(), ttsProvider: ttsProvider() }));
   // 자연 음성 — 로그인한 사람만(비용 보호). 꺼져 있으면 503 → 화면이 브라우저 음성으로 대신 읽는다
   app.post('/tts', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, rep) => {
     if (!ttsLive()) return rep.code(503).send({ error: '자연 음성이 꺼져 있어요' });
@@ -749,6 +749,21 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     await db.update(S.admins).set({ passwordHash: await bcrypt.hash(next, 10) }).where(eq(S.admins.id, a.id));
     await audit(req, 'admin.password', a.email);
     return { ok: true };
+  });
+  // 자연 음성 — 지금 쓰는 엔진·이번 달 글자 수, (타입캐스트) 상담사별 지금 목소리와 같은 성별·나이대 후보(미리듣기 주소)
+  app.get(`${A}/tts/voices`, { preHandler: guard() }, async (_req, rep) => {
+    const provider = ttsProvider();
+    if (provider !== 'typecast') return { provider, usage: ttsUsage(), personas: [] };
+    try {
+      const personas = await Promise.all(Object.entries(TC_PERSONA).map(async ([id, sp]) => {
+        const now = await tcVoiceOf(id, sp.gender, http);
+        const cands = (await tcVoices(sp.gender, sp.age, http)).slice(0, 12).map((v) => ({ id: v.voice_id, name: v.voice_name?.kor ?? v.voice_name?.eng ?? '', preview: v.preview_url ?? null, useCases: v.use_cases ?? [] }));
+        return { persona: id, env: `TYPECAST_VOICE_${id.toUpperCase()}`, gender: sp.gender, age: sp.age, current: now.id, candidates: cands };
+      }));
+      return { provider, usage: ttsUsage(), personas };
+    } catch (e) {
+      return rep.code(502).send({ error: `타입캐스트 목록을 받지 못했어요 (${String(e)})` });
+    }
   });
   app.get(`${A}/admins`, { preHandler: guard('super') }, async () =>
     db.select({ id: S.admins.id, email: S.admins.email, role: S.admins.role, createdAt: S.admins.createdAt }).from(S.admins).orderBy(asc(S.admins.id)));

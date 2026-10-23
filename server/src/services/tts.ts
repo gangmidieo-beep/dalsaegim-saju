@@ -1,9 +1,21 @@
-// 자연 음성(TTS) — 구글 Cloud Text-to-Speech(Chirp 3 HD). 키(GOOGLE_TTS_KEY)가 있고 TTS=live 일 때만 켜진다.
-// 꺼져 있으면 화면이 브라우저 내장 음성으로 대신 읽는다(무료, 남자 음성이 없는 기기가 많음).
-// 비용: Chirp 3 HD 100만 자당 30달러, 매월 100만 자 무료. 같은 문장은 메모리에 보관해 다시 돈을 쓰지 않는다.
+// 자연 음성(TTS) — TTS=live 일 때만 켜진다. 꺼져 있으면 화면이 브라우저 내장 음성으로 대신 읽는다(무료, 남자 음성이 없는 기기가 많음).
+// 엔진 두 가지(D74):
+//  ① 타입캐스트(TYPECAST_API_KEY) — 한국어가 가장 자연스럽고 할머니·할아버지 같은 나이대 목소리가 있다. 키가 있으면 이쪽이 먼저.
+//     비용: 1글자 = 1크레딧. Lite 월 15달러에 20만 자(넘으면 10만 자당 9달러). 무료 요금제 음성은 상업적 사용 불가.
+//  ② 구글 Chirp 3 HD(GOOGLE_TTS_KEY) — 100만 자당 30달러, 매월 100만 자 무료.
+// 같은 문장은 메모리에 보관해 다시 돈을 쓰지 않는다. TTS_PROVIDER=google|typecast 로 강제 선택 가능.
 import { createHash } from 'node:crypto';
 
-export const ttsLive = () => process.env.TTS === 'live' && !!process.env.GOOGLE_TTS_KEY;
+export type TtsProvider = 'typecast' | 'google';
+export function ttsProvider(): TtsProvider | null {
+  if (process.env.TTS !== 'live') return null;
+  const tc = !!process.env.TYPECAST_API_KEY, gg = !!process.env.GOOGLE_TTS_KEY;
+  const want = process.env.TTS_PROVIDER;
+  if (want === 'google' && gg) return 'google';
+  if (want === 'typecast' && tc) return 'typecast';
+  return tc ? 'typecast' : gg ? 'google' : null;
+}
+export const ttsLive = () => ttsProvider() != null;
 
 // 상담사별 목소리(R5 V1) — 성별이 다른 목소리로 대신 읽지 않는다. 운영자가 청취 후 TTS_VOICE_<상담사id> 로 바꿀 수 있다.
 // Chirp 3 HD 한국어 목소리 이름: https://cloud.google.com/text-to-speech/docs/chirp3-hd
@@ -42,9 +54,81 @@ export function cleanForSpeech(text: string) {
     .slice(0, TTS_MAX_CHARS);
 }
 
+// ── 타입캐스트 ──────────────────────────────────────────────
+// 상담사마다 '성별 + 나이대'로 목소리를 고른다. 처음 한 번 목소리 목록(GET /v3/voices)에서 조건에 맞는 첫 목소리를 골라 기억.
+// 운영자가 청취 후 Railway 변수 TYPECAST_VOICE_<상담사id>=tc_xxx 로 바꿀 수 있다(관리자 /admin/api/tts/voices 에서 후보 확인).
+type Age = 'young_adult' | 'middle_age' | 'elder';
+type TcSpec = { gender: 'F' | 'M'; age: Age; tempo: number; pitch: number };
+export const TC_PERSONA: Record<string, TcSpec> = {
+  harin: { gender: 'F', age: 'young_adult', tempo: 1.0, pitch: 0 }, // 서월 — 20~30대 여성, 따뜻하고 차분하게
+  seoyeon: { gender: 'F', age: 'middle_age', tempo: 0.97, pitch: 0 }, // 서연 — 차분한 성숙감
+  yeonhwa: { gender: 'F', age: 'elder', tempo: 0.9, pitch: 0 }, // 연화 할매 — 할머니 목소리, 천천히
+  baksa: { gender: 'M', age: 'middle_age', tempo: 1.0, pitch: 0 }, // 사주박사 — 중년 남성, 명료하게
+  cheongun: { gender: 'M', age: 'elder', tempo: 0.93, pitch: 0 }, // 청운 선생 — 할아버지 목소리, 느긋하게
+  junho: { gender: 'M', age: 'young_adult', tempo: 1.02, pitch: 0 }, // 준호 — 20~30대 남성, 다정하게
+};
+const TC_BASE = 'https://api.typecast.ai';
+const TC_MODEL = () => process.env.TYPECAST_MODEL || 'ssfm-v30';
+const tcHeaders = () => ({ 'X-API-KEY': process.env.TYPECAST_API_KEY ?? '', 'content-type': 'application/json' });
+export type TcVoice = { voice_id: string; voice_name?: { kor?: string; eng?: string }; gender?: string | null; age?: string | null; voice_type?: string; preview_url?: string | null; use_cases?: string[] };
+const tcList = new Map<string, Promise<TcVoice[]>>();
+/** 조건에 맞는 기본 목소리 목록(성공한 결과만 기억) */
+export function tcVoices(gender: 'F' | 'M', age: Age | null, http: typeof fetch = fetch): Promise<TcVoice[]> {
+  const k = `${gender}|${age ?? ''}`;
+  let p = tcList.get(k);
+  if (!p) {
+    const q = new URLSearchParams({ model: TC_MODEL(), gender: gender === 'M' ? 'male' : 'female', voice_type: 'original' });
+    if (age) q.set('age', age);
+    p = http(`${TC_BASE}/v3/voices?${q}`, { headers: tcHeaders() }).then(async (r) => {
+      if (!r.ok) throw new Error(`Typecast voices ${r.status}`);
+      const j = (await r.json()) as TcVoice[];
+      return (Array.isArray(j) ? j : []).filter((v) => v.voice_id?.startsWith('tc_') && (!v.gender || v.gender === (gender === 'M' ? 'male' : 'female')));
+    });
+    p.catch(() => tcList.delete(k));
+    tcList.set(k, p);
+  }
+  return p;
+}
+/** 상담사 → 타입캐스트 목소리(id·속도·높낮이). 성별이 다른 목소리로 대신 읽지 않는다. */
+export async function tcVoiceOf(persona: string | null | undefined, gender: 'F' | 'M', http: typeof fetch = fetch) {
+  const p = persona ? TC_PERSONA[persona] : undefined;
+  const spec: TcSpec = p && p.gender === gender ? p : { gender, age: 'young_adult', tempo: 1, pitch: 0 };
+  const own = p && p.gender === gender ? process.env[`TYPECAST_VOICE_${persona!.toUpperCase()}`] : undefined;
+  const fixed = own || (!(p && p.gender === gender) ? process.env[`TYPECAST_VOICE_${gender}`] : undefined);
+  if (fixed) return { id: fixed, tempo: spec.tempo, pitch: spec.pitch };
+  let list = await tcVoices(gender, spec.age, http);
+  if (!list.length) list = await tcVoices(gender, null, http); // 그 나이대가 없으면 같은 성별 아무 목소리
+  if (!list.length) throw new Error('Typecast 목소리 없음');
+  return { id: list[0].voice_id, tempo: spec.tempo, pitch: spec.pitch };
+}
+async function typecastAudio(t: string, v: { id: string; tempo: number; pitch: number }, http: typeof fetch): Promise<Buffer> {
+  const body = (full: boolean) => JSON.stringify({
+    voice_id: v.id, text: t, model: TC_MODEL(), language: 'kor',
+    ...(full ? { prompt: { emotion_type: 'preset', emotion_preset: 'normal', emotion_intensity: 1 } } : {}),
+    output: { audio_format: 'mp3', ...(full ? { audio_tempo: v.tempo, audio_pitch: v.pitch, target_lufs: -16 } : {}) },
+  });
+  let res = await http(`${TC_BASE}/v1/text-to-speech`, { method: 'POST', headers: tcHeaders(), body: body(true) });
+  if (res.status === 400 || res.status === 422) res = await http(`${TC_BASE}/v1/text-to-speech`, { method: 'POST', headers: tcHeaders(), body: body(false) }); // 감정·속도를 받지 않는 목소리면 기본값으로
+  if (!res.ok) throw new Error(`Typecast TTS ${res.status}`); // 402 = 크레딧 부족, 429 = 너무 잦은 요청
+  return Buffer.from(await res.arrayBuffer());
+}
+
 export async function synthesize(text: string, gender: 'F' | 'M', http: typeof fetch = fetch, persona?: string | null): Promise<Buffer> {
   const t = cleanForSpeech(text);
   if (!t) throw new Error('읽을 글이 없어요');
+  if (ttsProvider() === 'typecast') {
+    try {
+      const tv = await tcVoiceOf(persona, gender, http);
+      const key = createHash('sha256').update(`tc|${tv.id}|${tv.tempo}|${tv.pitch}|${t}`).digest('hex');
+      const hit = cache.get(key);
+      if (hit) return hit;
+      const buf = await typecastAudio(t, tv, http);
+      remember(key, buf, t.length);
+      return buf;
+    } catch (e) {
+      if (!process.env.GOOGLE_TTS_KEY) throw e; // 구글 키도 있으면 구글로 대신 읽는다(크레딧 부족 등)
+    }
+  }
   const v = voiceOf(persona, gender);
   const key = createHash('sha256').update(`${v.name}|${v.rate}|${t}`).digest('hex');
   const hit = cache.get(key);
@@ -60,10 +144,13 @@ export async function synthesize(text: string, gender: 'F' | 'M', http: typeof f
   const j = (await res.json()) as { audioContent?: string };
   if (!j.audioContent) throw new Error('TTS 응답 없음');
   const buf = Buffer.from(j.audioContent, 'base64');
+  remember(key, buf, t.length);
+  return buf;
+}
+function remember(key: string, buf: Buffer, chars: number) {
   const m = new Date().toISOString().slice(0, 7);
   if (m !== monthKey) { monthKey = m; monthChars = 0; }
-  monthChars += t.length;
+  monthChars += chars;
   cache.set(key, buf);
   if (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value!);
-  return buf;
 }
