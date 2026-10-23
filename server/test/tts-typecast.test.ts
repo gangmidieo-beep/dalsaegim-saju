@@ -88,3 +88,11 @@ describe('타입캐스트 음성', () => {
     expect(ttsCalls.at(-1).google.voice.name).toMatch(/Vindemiatrix/);
   });
 });
+
+describe('목소리 고르기', () => {
+  it('게임·애니 목소리보다 오디오북·대화 목소리를 먼저', async () => {
+    const { pickVoice } = await import('../src/services/tts.ts');
+    expect(pickVoice([{ voice_id: 'tc_a', use_cases: ['Game', 'Anime'] }, { voice_id: 'tc_b', use_cases: ['Audiobook'] }, { voice_id: 'tc_c' }]).voice_id).toBe('tc_b');
+    expect(pickVoice([{ voice_id: 'tc_a', use_cases: ['Ads'] }, { voice_id: 'tc_c' }]).voice_id).toBe('tc_c');
+  });
+});

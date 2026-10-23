@@ -89,6 +89,14 @@ export function tcVoices(gender: 'F' | 'M', age: Age | null, http: typeof fetch 
   }
   return p;
 }
+// 상담에 어울리는 목소리 먼저(오디오북·대화·내레이션), 게임·애니·광고처럼 과장된 목소리는 뒤로
+const CALM = /audiobook|conversation|narrat|documentar|educat|news|podcast|story|meditat|counsel|calm|e-?learning/i;
+const LOUD = /game|anime|cartoon|kid|child|ads?$|advert|promo|comic|horror|sport/i;
+const logged = new Set<string>();
+export function pickVoice(list: TcVoice[]): TcVoice {
+  const score = (v: TcVoice) => (v.use_cases ?? []).reduce((n, u) => n + (CALM.test(u) ? 2 : 0) - (LOUD.test(u) ? 3 : 0), 0);
+  return list.map((v, i) => ({ v, i, s: score(v) })).sort((a, b) => b.s - a.s || a.i - b.i)[0].v;
+}
 /** 상담사 → 타입캐스트 목소리(id·속도·높낮이). 성별이 다른 목소리로 대신 읽지 않는다. */
 export async function tcVoiceOf(persona: string | null | undefined, gender: 'F' | 'M', http: typeof fetch = fetch) {
   const p = persona ? TC_PERSONA[persona] : undefined;
@@ -99,7 +107,10 @@ export async function tcVoiceOf(persona: string | null | undefined, gender: 'F' 
   let list = await tcVoices(gender, spec.age, http);
   if (!list.length) list = await tcVoices(gender, null, http); // 그 나이대가 없으면 같은 성별 아무 목소리
   if (!list.length) throw new Error('Typecast 목소리 없음');
-  return { id: list[0].voice_id, tempo: spec.tempo, pitch: spec.pitch };
+  const pick = pickVoice(list);
+  const lk = `${persona ?? gender}|${pick.voice_id}`;
+  if (!logged.has(lk)) { logged.add(lk); console.log(`[tts] ${persona ?? gender} → ${pick.voice_name?.kor ?? ''} ${pick.voice_id} [${(pick.use_cases ?? []).join(',')}] 후보: ${list.slice(0, 8).map((v) => `${v.voice_name?.kor}(${(v.use_cases ?? []).join('/')})`).join(' ')}`); }
+  return { id: pick.voice_id, tempo: spec.tempo, pitch: spec.pitch };
 }
 async function typecastAudio(t: string, v: { id: string; tempo: number; pitch: number }, http: typeof fetch): Promise<Buffer> {
   const body = (full: boolean) => JSON.stringify({
