@@ -36,14 +36,14 @@ let close: () => Promise<void>;
 let token = '';
 const say = (payload: any) => app.inject({ method: 'POST', url: '/tts', headers: { authorization: `Bearer ${token}` }, payload });
 beforeAll(async () => {
-  process.env.TTS = 'live'; process.env.TYPECAST_API_KEY = 'tc-test';
+  process.env.TTS = 'live'; process.env.TYPECAST_API_KEY = 'tc-test'; process.env.TYPECAST_AUTO_VOICE = '1';
   const o = await openDb({ dir: 'memory' });
   close = o.close;
   ({ app } = await buildApp({ db: o.db, http: fake }));
   token = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'tts-tc' } })).json().token;
 }, 120_000);
 afterAll(async () => {
-  for (const k of ['TTS', 'TYPECAST_API_KEY', 'GOOGLE_TTS_KEY', 'TYPECAST_VOICE_JUNHO']) delete process.env[k];
+  for (const k of ['TTS', 'TYPECAST_API_KEY', 'GOOGLE_TTS_KEY', 'TYPECAST_VOICE_JUNHO', 'TYPECAST_AUTO_VOICE']) delete process.env[k];
   await app.close(); await close();
 });
 
@@ -72,6 +72,14 @@ describe('타입캐스트 음성', () => {
     expect(ttsCalls.at(-1).voice_id).toBe('tc_any_m');
     await say({ text: '서월이에요', gender: 'M', persona: 'harin' });
     expect(ttsCalls.at(-1).voice_id).toBe('tc_young_m');
+  });
+  it('기본 목소리(코드에 정한 한국어 목소리)가 자동 선택보다 먼저', async () => {
+    delete process.env.TYPECAST_AUTO_VOICE;
+    await say({ text: '할매 기본', gender: 'F', persona: 'yeonhwa' });
+    expect(ttsCalls.at(-1).voice_id).toBe('tc_60ad0841061ee28740ec2e1c');
+    await say({ text: '청운 기본', gender: 'M', persona: 'cheongun' });
+    expect(ttsCalls.at(-1).voice_id).toBe('tc_675a73eb789ff3ea6cc80235');
+    process.env.TYPECAST_AUTO_VOICE = '1';
   });
   it('Railway 변수로 상담사 목소리 고정', async () => {
     process.env.TYPECAST_VOICE_JUNHO = 'tc_chosen';

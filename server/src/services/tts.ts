@@ -58,14 +58,15 @@ export function cleanForSpeech(text: string) {
 // 상담사마다 '성별 + 나이대'로 목소리를 고른다. 처음 한 번 목소리 목록(GET /v3/voices)에서 조건에 맞는 첫 목소리를 골라 기억.
 // 운영자가 청취 후 Railway 변수 TYPECAST_VOICE_<상담사id>=tc_xxx 로 바꿀 수 있다(관리자 /admin/api/tts/voices 에서 후보 확인).
 type Age = 'young_adult' | 'middle_age' | 'elder';
-type TcSpec = { gender: 'F' | 'M'; age: Age; tempo: number; pitch: number };
+type TcSpec = { gender: 'F' | 'M'; age: Age; tempo: number; pitch: number; voice?: string; voiceName?: string };
+// 기본 목소리(10/23 확정 전 1차 선택): 한국어 원어민 이름·대화/오디오북 용도·최근 목소리 위주. 대표님 청취 후 바꾸면 여기 또는 Railway 변수.
 export const TC_PERSONA: Record<string, TcSpec> = {
-  harin: { gender: 'F', age: 'young_adult', tempo: 1.0, pitch: 0 }, // 서월 — 20~30대 여성, 따뜻하고 차분하게
-  seoyeon: { gender: 'F', age: 'middle_age', tempo: 0.97, pitch: 0 }, // 서연 — 차분한 성숙감
-  yeonhwa: { gender: 'F', age: 'elder', tempo: 0.9, pitch: 0 }, // 연화 할매 — 할머니 목소리, 천천히
-  baksa: { gender: 'M', age: 'middle_age', tempo: 1.0, pitch: 0 }, // 사주박사 — 중년 남성, 명료하게
-  cheongun: { gender: 'M', age: 'elder', tempo: 0.93, pitch: 0 }, // 청운 선생 — 할아버지 목소리, 느긋하게
-  junho: { gender: 'M', age: 'young_adult', tempo: 1.02, pitch: 0 }, // 준호 — 20~30대 남성, 다정하게
+  harin: { gender: 'F', age: 'young_adult', tempo: 1.0, pitch: 0, voice: 'tc_6a7446c19f2d7dfed990a900', voiceName: '은경' }, // 서월 — 20~30대 여성, 따뜻하고 차분하게
+  seoyeon: { gender: 'F', age: 'middle_age', tempo: 0.97, pitch: 0, voice: 'tc_6a4f2130d153a5cac8e19996', voiceName: '지선' }, // 서연 — 차분한 성숙감
+  yeonhwa: { gender: 'F', age: 'elder', tempo: 0.9, pitch: 0, voice: 'tc_60ad0841061ee28740ec2e1c', voiceName: '순이' }, // 연화 할매 — 할머니 목소리, 천천히
+  baksa: { gender: 'M', age: 'middle_age', tempo: 1.0, pitch: 0, voice: 'tc_6a0e85a97f7750959b970d5d', voiceName: '대진' }, // 사주박사 — 중년 남성, 명료하게
+  cheongun: { gender: 'M', age: 'elder', tempo: 0.93, pitch: 0, voice: 'tc_675a73eb789ff3ea6cc80235', voiceName: '권일' }, // 청운 선생 — 할아버지 목소리, 느긋하게
+  junho: { gender: 'M', age: 'young_adult', tempo: 1.02, pitch: 0, voice: 'tc_686dc43ebd6351e06ee64d74', voiceName: '원우' }, // 준호 — 20~30대 남성, 다정하게
 };
 const TC_BASE = 'https://api.typecast.ai';
 const TC_MODEL = () => process.env.TYPECAST_MODEL || 'ssfm-v30';
@@ -104,6 +105,7 @@ export async function tcVoiceOf(persona: string | null | undefined, gender: 'F' 
   const own = p && p.gender === gender ? process.env[`TYPECAST_VOICE_${persona!.toUpperCase()}`] : undefined;
   const fixed = own || (!(p && p.gender === gender) ? process.env[`TYPECAST_VOICE_${gender}`] : undefined);
   if (fixed) return { id: fixed, tempo: spec.tempo, pitch: spec.pitch };
+  if (p && p.gender === gender && p.voice && process.env.TYPECAST_AUTO_VOICE !== '1') return { id: p.voice, tempo: spec.tempo, pitch: spec.pitch };
   let list = await tcVoices(gender, spec.age, http);
   if (!list.length) list = await tcVoices(gender, null, http); // 그 나이대가 없으면 같은 성별 아무 목소리
   if (!list.length) throw new Error('Typecast 목소리 없음');
