@@ -81,7 +81,7 @@ export function lifetimeDeep(saju: SajuResult, name: string, profileId: string, 
     const r = rawDims(saju, yp, `${profileId}:se:${y}`, 0.15);
     const rr = branchRelations(db, yp.branch).map((x) => REL_KO[x]);
     const sip = sipsinOfStem(ds, yp.stem) as string;
-    return { y, gz: gz(yp), sip, bsip: sipsinOfBranch(ds, yp.branch) as string, stage: twelveStage(ds, yp.branch) as string, rel: rr, score: lifeScore(saju, yp, `${profileId}:yr:${y}`), love: toScore(r.love), work: toScore(r.work), wealth: toScore(r.wealth), theme: LIFE_THEME[sip] ?? '' };
+    return { y, gz: gz(yp), sip, bsip: sipsinOfBranch(ds, yp.branch) as string, stage: twelveStage(ds, yp.branch) as string, rel: rr, score: lifeScore(saju, yp, `${profileId}:yr:${y}`), love: toScore(r.love), work: toScore(r.work), wealth: moneyFlow(saju, 'wealth', y, profileId, { now }).score, theme: LIFE_THEME[sip] ?? '' };
   });
   F.seun = seun.map((s) => `${s.y}년 ${s.gz}: 천간 ${s.sip}·지지 ${s.bsip}·운성 ${s.stage}${s.rel.length ? `·일지와 ${s.rel.join('·')}` : ''} / '${s.theme}' / 종합 ${s.score} (연애 ${s.love}·일 ${s.work}·재물 ${s.wealth})`).join('\n');
   const love = nextMonths(saju, 'love', profileId, now), work = nextMonths(saju, 'work', profileId, now), wealth = nextMonths(saju, 'wealth', profileId, now);

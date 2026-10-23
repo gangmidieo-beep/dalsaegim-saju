@@ -8,7 +8,7 @@ import { lifetimeDeep, type LongChapter, type LifetimeDeep } from '@dalsaegim/co
 import { calcSaju } from '@dalsaegim/engine';
 import type { Chapter, Closing, Person, ReadingContent } from './generate.ts';
 
-const BANNED = [/사망|죽(는|을|음)/, /이혼(하게|할 수밖에|이 확정)/, /파산/, /(암|중병)에 걸/, /(매수|매도)(하세요|하라|하시)/, /(사세요|파세요)/, /수익(을|이)? ?보장/, /종목/, /반드시|무조건|100%/];
+const BANNED = [/사망|죽음|죽(는|을) (것|수|거|운명|위험)/, /이혼(하게|할 수밖에|이 확정)/, /파산/, /(암|중병)에 걸/, /(매수|매도)(하세요|하라|하시)/, /(사세요|파세요)/, /수익(을|이)? ?보장/, /종목/, /반드시|무조건|100%/];
 const KRW_PER_USD = 1450;
 const price = () => ({ inp: +(process.env.AI_PRICE_IN_PER_M ?? 2), out: +(process.env.AI_PRICE_OUT_PER_M ?? 10) });
 export type Usage = { in: number; out: number; cacheWrite: number; cacheRead: number; calls: number };

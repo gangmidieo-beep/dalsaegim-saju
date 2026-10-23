@@ -29,7 +29,7 @@ export const chaptersFor = (productId: string) => (R.chapters as Record<string, 
 const sajuOfP = (p: Person) => calcSaju({ year: p.year, month: p.month, day: p.day, hour: p.hour ?? null, calendar: p.calendar, leapMonth: p.leap, gender: p.gender, timeUnknown: p.hour == null });
 
 /* ---------- 금지어·품질 검사 ---------- */
-const BANNED = [/사망|죽(는|을|음)/, /이혼(하게|할 수밖에|이 확정)/, /파산/, /(암|중병)에 걸/, /(매수|매도)(하세요|하라|하시)/, /(사세요|파세요)/, /수익(을|이)? ?보장/, /종목/, /반드시|무조건|100%/];
+const BANNED = [/사망|죽음|죽(는|을) (것|수|거|운명|위험)/, /이혼(하게|할 수밖에|이 확정)/, /파산/, /(암|중병)에 걸/, /(매수|매도)(하세요|하라|하시)/, /(사세요|파세요)/, /수익(을|이)? ?보장/, /종목/, /반드시|무조건|100%/];
 export function checkQuality(c: ReadingContent, names: string[], expected: string[]): string[] {
   const issues: string[] = [];
   if (c.chapters.length !== expected.length) issues.push(`장 수 ${c.chapters.length}/${expected.length}`);
