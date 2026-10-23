@@ -12,7 +12,7 @@ import { I } from '../components/icons';
 import { track } from '../lib/track';
 import { saveImage } from '../lib/share';
 import { useShare } from '../components/share';
-import { DaeunTable, ElementBars, Flow36, LuckyCard, ReportSummary, SajuTableView, YearBars, type Basis, type Summary, type Visual } from '../components/report';
+import { DaeunTable, ElementBars, Flow36, LuckyCard, ReportSummary, SajuTableView, SeunTable, WolunTable, YearBars, type Basis, type Summary, type Visual } from '../components/report';
 import { CARDS, TarotCard } from '../components/tarot';
 import { dailyCard } from '@dalsaegim/content';
 import { kstMonth, kstToday, kstYear } from '../lib/dates';
@@ -367,7 +367,7 @@ export function PayReturn() {
 }
 
 type Part = { productId: string; status: string; title: string };
-type Reading = { status: 'queued' | 'generating' | 'done' | 'failed'; productId: string; parts?: Part[] | null; packId?: string | null; content: { who?: string[]; generatedBy?: 'ai' | 'engine'; title: string; intro: string; visual?: Visual; summary?: Summary; chapters: { id: string; title: string; say: string; body: string; highlight: string; points?: string[]; basis?: Basis[] }[]; closing: { title: string; body: string; tips: string[] } } | null };
+type Reading = { status: 'queued' | 'generating' | 'done' | 'failed'; productId: string; parts?: Part[] | null; packId?: string | null; content: { progress?: { done: number; total: number }; long?: boolean; parts?: string[]; who?: string[]; generatedBy?: 'ai' | 'engine'; title: string; intro: string; visual?: Visual; summary?: Summary; chapters: { id: string; title: string; say: string; body: string; highlight: string; points?: string[]; basis?: Basis[]; part?: number }[]; closing: { title: string; body: string; tips: string[] } } | null };
 // 결과 표지에 쓰는 '무엇의 이야기'
 const STORY: [RegExp, string][] = [[/^money_wealth|^money_pack/, '재물 이야기'], [/^money_business/, '사업 이야기'], [/^money_invest/, '투자 흐름 이야기'], [/^money_estate/, '집과 자리 이야기'], [/^love_flow|^reunion|^marriage/, '사랑 이야기'], [/gunghap/, '두 사람의 이야기'], [/^tarot/, '썸 이야기'], [/^newyear/, '2027년 이야기'], [/^month/, '한 달 이야기'], [/^career/, '일 이야기'], [/^lifetime/, '사주 이야기'], [/^mbti/, '나의 이야기'], [/^path/, '고민 이야기']];
 const storyOf = (pid: string) => STORY.find(([re]) => re.test(pid))?.[1] ?? '이야기';
@@ -399,6 +399,16 @@ export function ReadingPage() {
     await apiAuth('/memories', { method: 'POST', json: { kind: 'reading', category: r.productId.startsWith('money') ? 'money' : ['love_flow', 'gunghap', 'reunion'].includes(r.productId) ? 'love' : 'growth', title: `${r.content.title} 풀이를 받음`, summary: r.content.chapters[0]?.highlight, refId: orderId, profileId: isSample ? null : profile.id } }).catch(() => {});
     setSaved(true); toast('타임라인에 새겼어요');
   };
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const savePdf = async () => {
+    setPdfBusy(true);
+    try {
+      const { url } = await apiAuth<{ url: string }>(`/readings/${orderId}/pdf-link${part ? `?part=${encodeURIComponent(part)}` : ''}`, { method: 'POST' });
+      track('reading_pdf', { product: r?.productId });
+      window.location.href = url; // 파일로 내려받기(인앱 브라우저도 주소 이동으로 받음)
+    } catch (e: any) { toast(e.message ?? 'PDF를 만들지 못했어요'); }
+    finally { setTimeout(() => setPdfBusy(false), 4000); }
+  };
   const openShare = useShare();
   const share = (text: string) => openShare({ title: `달새김사주 ${r?.content?.title ?? ''}`.trim(), text, path: r ? `/product/${r.productId}` : '/', contentId: `reading_${r?.productId}`, note: '고른 한 문장만 보내요. 풀이 전체와 사주 정보는 나만 볼 수 있어요.' });
   const tabs = r?.parts && r.parts.length > 1 && (
@@ -407,14 +417,19 @@ export function ReadingPage() {
     </nav>
   );
   if (err) return <><Top title="풀이" back="/me" /><main className="screen"><p>{err}</p><Link to="/me" className="btn primary">마이로 가기</Link></main></>;
-  if (!r || !r.content) return (
+  const prog = r?.content?.progress;
+  if (!r || !r.content || r.status !== 'done' || !r.content.chapters) return (
     <>
       <Top title="풀이" back="/me" />
       <main className="screen center" style={{ paddingTop: 60 }}>
         <div style={{ display: 'grid', placeItems: 'center' }}><Moon size={110} /></div>
         {tabs}
         <h2 className="h2 mt16">{r?.status === 'failed' ? '풀이를 다시 준비하고 있어요' : '달새김이 풀이를 새기고 있어요'}</h2>
-        <p className="muted small mt8">보통 1~2분이면 완성돼요. 이 화면을 닫아도 하단 보관함에서 다시 볼 수 있어요.</p>
+        {prog ? <>
+          <p className="rp-prog mt8" aria-live="polite"><b>{prog.done}</b> / {prog.total}장 작성 중</p>
+          <span className="rp-progbar" role="progressbar" aria-valuemin={0} aria-valuemax={prog.total} aria-valuenow={prog.done}><i style={{ width: `${Math.max(4, (prog.done / prog.total) * 100)}%` }} /></span>
+          <p className="muted small mt8">A4 40장 분량의 정통 감정서라 3~6분 정도 걸려요. 이 화면을 닫아도 하단 보관함에서 다시 볼 수 있어요.</p>
+        </> : <p className="muted small mt8">{r?.productId === 'lifetime' ? '정통 감정서는 몇 분 걸릴 수 있어요.' : '보통 1~2분이면 완성돼요.'} 이 화면을 닫아도 하단 보관함에서 다시 볼 수 있어요.</p>}
         <div className="stack mt24"><Skeleton h={18} /><Skeleton h={18} /><Skeleton h={18} /></div>
       </main>
     </>
@@ -431,7 +446,7 @@ export function ReadingPage() {
           <small className="rp-eye">DALSAEGIM PERSONAL REPORT</small>
           <h1 id="rp-t">{who ? <>{who}님을 위해 정리한<br /></> : null}<em>{storyOf(r.productId)}</em></h1>
           <div className="rp-book"><small>달새김사주</small><b>{c.title}</b><span>{c.intro}</span></div>
-          <p className="rp-keys">나의 흐름 · 시기 · 실천 가이드 · {c.chapters.length}가지 핵심 분석</p>
+          <p className="rp-keys">{c.long ? `${c.parts?.length ?? 4}부 ${c.chapters.length}장 · A4 약 40장 분량의 정통 감정서` : `나의 흐름 · 시기 · 실천 가이드 · ${c.chapters.length}가지 핵심 분석`}</p>
           <a href="#rp-sum" className="rp-open">내 풀이 열기</a>
           <p className="rp-note">{c.generatedBy === 'ai' ? 'AI가 사주 계산 결과를 바탕으로 작성한 풀이' : '사주 계산 결과를 바탕으로 자동으로 정리한 풀이'} · 자기 이해를 위한 참고 정보예요. 보관함에서 언제든 다시 열 수 있어요.</p>
         </section>
@@ -441,7 +456,7 @@ export function ReadingPage() {
         )} /></div>}
         <nav className="card rp-toc mt16" aria-label="목차">
           <div className="eyebrow">목차</div>
-          <ol>{c.chapters.map((x, i) => <li key={x.id}><a href={`#${x.id}`}><span>{String(i + 1).padStart(2, '0')}</span>{x.title}</a></li>)}<li><a href="#rp-act"><span>✦</span>실천 가이드</a></li></ol>
+          <ol>{c.chapters.map((x, i) => <li key={x.id}>{c.long && x.part != null && x.part !== c.chapters[i - 1]?.part && <b className="rp-toc-part">{c.parts?.[x.part]}</b>}<a href={`#${x.id}`}><span>{String(i + 1).padStart(2, '0')}</span>{x.title}</a></li>)}<li><a href="#rp-act"><span>✦</span>실천 가이드</a></li></ol>
         </nav>
         {c.visual && (
           <section className="card mt16" aria-labelledby="st-full">
@@ -451,8 +466,9 @@ export function ReadingPage() {
             <SajuTableView table={c.visual.table} full name={who ?? profile.name} />
           </section>
         )}
-        {c.chapters.map((x, i) => (
-          <section key={x.id} id={x.id} className="card mt16" style={{ scrollMarginTop: 70 }}>
+        {c.chapters.map((x, i) => (<div key={x.id}>
+          {c.long && x.part != null && x.part !== c.chapters[i - 1]?.part && <header className="rp-part"><small>PART {x.part + 1}</small><h2>{(c.parts?.[x.part] ?? '').replace(/^제\d부 · /, '')}</h2></header>}
+          <section id={x.id} className="card mt16" style={{ scrollMarginTop: 70 }}>
             <div className="eyebrow">핵심 분석 {String(i + 1).padStart(2, '0')}</div>
             <h2 className="mt4">{x.title}</h2>
             {x.points && <div className="chips mt8">{x.points.map((t) => <span key={t} className="chip sm lav">{t}</span>)}</div>}
@@ -464,10 +480,12 @@ export function ReadingPage() {
             {c.visual?.daeun && c.visual.daeunAt === i && c.visual.daeun.length > 0 && <DaeunTable rows={c.visual.daeun} name={who ?? profile.name} />}
             {c.visual?.years && c.visual.yearsAt === i && <YearBars years={c.visual.years} name={who ?? profile.name} />}
             {c.visual?.lucky && c.visual.luckyAt === i && <LuckyCard l={c.visual.lucky as any} />}
-            <div className="quote">{x.highlight}</div>
-            <button className="link mt8" onClick={() => share(x.highlight)}>이 문장 공유하기</button>
+            {c.visual?.seun && c.visual.seunAt === i && <SeunTable rows={c.visual.seun} />}
+            {c.visual?.wolun && c.visual.wolunAt === i && <WolunTable rows={c.visual.wolun} />}
+            {x.highlight && <div className="quote">{x.highlight}</div>}
+            {x.highlight && <button className="link mt8" onClick={() => share(x.highlight)}>이 문장 공유하기</button>}
           </section>
-        ))}
+        </div>))}
         <section id="rp-act" className="card lav mt16" style={{ scrollMarginTop: 70 }}>
           <div className="eyebrow">실천 가이드</div>
           <h2 className="mt4">{c.closing.title}</h2>
@@ -477,7 +495,9 @@ export function ReadingPage() {
         <button className="btn primary mt16" disabled={saved} onClick={keep}>{saved ? '✓ 타임라인에 새겼어요' : '이 풀이를 타임라인에 새기기'}</button>
         <div className="grid2 mt8">
           <Link to="/friend" className="btn line sm" style={{ width: '100%' }}><I.chat size={18} />상담사에게 묻기</Link>
-          <button className="btn line sm" style={{ width: '100%' }} onClick={() => { const el = document.querySelector('.read') as HTMLElement; if (el) void saveImage(el, `reading_${orderId}`, '#F7F3EE'); }}><I.download size={18} />이미지로 저장</button>
+          {c.long
+            ? <button className="btn line sm" style={{ width: '100%' }} disabled={pdfBusy} onClick={savePdf}><I.download size={18} />{pdfBusy ? 'PDF 만드는 중…' : 'A4 PDF로 저장'}</button>
+            : <button className="btn line sm" style={{ width: '100%' }} onClick={() => { const el = document.querySelector('.read') as HTMLElement; if (el) void saveImage(el, `reading_${orderId}`, '#F7F3EE'); }}><I.download size={18} />이미지로 저장</button>}
         </div>
       </main>
     </>

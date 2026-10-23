@@ -25,3 +25,11 @@ export async function verify<T extends UserClaims | AdminClaims>(token: string):
   }
 }
 export const newId = (prefix = '') => prefix + randomBytes(8).toString('hex');
+
+/** A4 PDF 내려받기 링크(10분) — 인앱 브라우저에서도 파일로 받을 수 있게 주소에 담는 짧은 토큰 */
+export async function signPdf(userId: string, readingId: string) {
+  return new SignJWT({ kind: 'pdf', rid: readingId }).setProtectedHeader({ alg: 'HS256' }).setSubject(userId).setIssuedAt().setExpirationTime('10m').sign(secret());
+}
+export async function verifyPdf(token: string): Promise<{ sub: string; rid: string } | null> {
+  try { const { payload } = await jwtVerify(token, secret()); return payload.kind === 'pdf' && payload.sub && typeof payload.rid === 'string' ? { sub: payload.sub, rid: payload.rid } : null; } catch { return null; }
+}

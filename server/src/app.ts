@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { join, extname } from 'node:path';
 import { openDb, schema as S, type Db } from './db/index.ts';
 import { seedBase, seedDemo } from './services/seed.ts';
-import { newId, signAdmin, signUser, verify, type AdminClaims, type UserClaims } from './services/auth.ts';
+import { newId, signAdmin, signUser, signPdf, verify, verifyPdf, type AdminClaims, type UserClaims } from './services/auth.ts';
 import { exchange, isConfigured, isProvider, startUrl, takeState } from './services/oauth.ts';
 import { contentStats, dashboard, kpi, memberDetail, members, payments, range, subscriptionStats, toCsv } from './services/stats.ts';
 import { shareCard } from './services/card.ts';
@@ -17,6 +17,7 @@ import { fulfillOrder, revokeOrder } from './services/payments/fulfill.ts';
 import { normalizePhone, parsePayappFeedback, payappCancel, payappEnv, payappRequest } from './services/payments/payapp.ts';
 import { latestMarket, liveAI } from './services/reading/generate.ts';
 import { friendReply, friendLive, type ChatMsg } from './services/friend.ts';
+import { readingPdf, pdfReady } from './services/reading/pdf.ts';
 import { synthesize, ttsLive, ttsProvider, ttsUsage, tcVoices, tcVoiceOf, TC_PERSONA, TTS_MAX_CHARS } from './services/tts.ts';
 import { personaOf, defaultTodayLetter, LETTER_FEELINGS, LETTER_TOPICS, LETTER_KAKAO, CHARMS } from '@dalsaegim/content';
 import { writeLetter } from './services/letter.ts';
@@ -356,6 +357,43 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     const titles = all.length > 1 ? await db.select({ id: S.products.id, title: S.products.title }).from(S.products).where(inArray(S.products.id, all.map((x) => x.productId))) : [];
     const { tokensIn, tokensOut, costKrw, model, ...pub } = r; void tokensIn; void tokensOut; void costKrw; void model; // 원가는 관리자만
     return { ...pub, packId: all.length > 1 ? o.productId : null, parts: all.length > 1 ? all.map((x) => ({ productId: x.productId, status: x.status, title: titles.find((t) => t.id === x.productId)?.title ?? x.productId })) : null };
+  });
+  // A4 PDF — ① 로그인한 주인이 10분짜리 링크를 받고 ② 그 주소로 파일을 내려받는다(인앱 브라우저 대응)
+  app.post('/readings/:oid/pdf-link', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, rep) => {
+    const userId = await needUser(req, rep);
+    if (!userId) return;
+    if (!pdfReady()) return rep.code(503).send({ error: 'PDF 저장을 준비하고 있어요. 잠시 뒤 다시 시도해 주세요.' });
+    const [o] = await db.select().from(S.orders).where(and(eq(S.orders.id, (req.params as any).oid), eq(S.orders.userId, userId)));
+    if (!o || o.status !== 'paid') return rep.code(404).send({ error: '결제된 풀이가 없어요' });
+    const want = String((req.query as any)?.part ?? '');
+    const all = await db.select({ id: S.readings.id, productId: S.readings.productId, status: S.readings.status }).from(S.readings).where(eq(S.readings.orderId, o.id));
+    const r = all.find((x) => x.productId === want) ?? all[0];
+    if (!r || r.status !== 'done') return rep.code(409).send({ error: '풀이가 완성되면 저장할 수 있어요' });
+    return { url: `${API()}/pdf?t=${await signPdf(userId, r.id)}` };
+  });
+  const pdfCache = new Map<string, Buffer>();
+  app.get('/pdf', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, rep) => {
+    const t = await verifyPdf(String((req.query as any)?.t ?? ''));
+    if (!t) return rep.code(410).type('text/html; charset=utf-8').send('<meta charset="utf-8"><p style="font:16px sans-serif;padding:24px">링크가 만료됐어요. 풀이 화면에서 다시 눌러 주세요.</p>');
+    const [r] = await db.select().from(S.readings).where(eq(S.readings.id, t.rid));
+    if (!r || r.status !== 'done' || !r.content) return rep.code(404).send({ error: '풀이를 찾지 못했어요' });
+    const [o] = await db.select().from(S.orders).where(eq(S.orders.id, r.orderId));
+    if (!o || o.userId !== t.sub) return rep.code(403).send({ error: '내 풀이만 받을 수 있어요' });
+    const ids = (r.profileId ?? '').split('+').filter(Boolean);
+    const [pf] = ids.length ? await db.select().from(S.profiles).where(eq(S.profiles.id, ids[0])) : [];
+    const c = r.content as any;
+    const name = c.who?.[0] ?? pf?.name ?? '고객';
+    const birth = pf ? `${pf.calendar === 'lunar' ? '음력' : '양력'} ${pf.birthYear}년 ${pf.birthMonth}월 ${pf.birthDay}일${pf.birthHour == null ? '' : ` ${pf.birthHour}시`} · ${pf.gender === 'M' ? '남' : '여'}` : '';
+    const d = new Date(r.doneAt ?? r.createdAt);
+    const key = `${r.id}:${d.getTime()}`;
+    let buf = pdfCache.get(key);
+    if (!buf) {
+      buf = await readingPdf(c, { name, birth, date: `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}` });
+      pdfCache.set(key, buf);
+      if (pdfCache.size > 30) pdfCache.delete(pdfCache.keys().next().value!);
+    }
+    const file = `달새김사주_${c.title ?? '풀이'}_${name}.pdf`;
+    return rep.header('content-type', 'application/pdf').header('content-disposition', `attachment; filename="dalsaegim.pdf"; filename*=UTF-8''${encodeURIComponent(file)}`).header('cache-control', 'private, no-store').send(buf);
   });
   app.get('/me/orders', async (req, rep) => {
     const userId = await needUser(req, rep);

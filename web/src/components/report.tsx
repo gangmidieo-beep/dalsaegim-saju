@@ -4,7 +4,10 @@ type Side = { han: string; kor: string; el: string; yy: string; sip: string };
 type Col = { key: 'hour' | 'day' | 'month' | 'year'; label: string; empty: true } | { key: 'hour' | 'day' | 'month' | 'year'; label: string; empty: false; stem: Side; branch: Side; stage: string; shinsal: string; gwiin: string[] };
 export type Basis = { pos: 'hour' | 'day' | 'month' | 'year'; part: 'stem' | 'branch' | 'pillar'; n: number };
 export type Visual = { table: Col[]; flow?: { points: { y: number; m: number; score: number }[]; top: { y: number; m: number; score: number }[]; low: { y: number; m: number; score: number }[] }; lucky?: { color: string; number: number[]; direction: string; shape: string; item: string; routine: string; element: string; note: string }; flowAt?: number; luckyAt?: number;
-  elements?: { el: string; pct: number }[]; elementsAt?: number; daeun?: DaeunRow[]; daeunAt?: number; years?: { y: number; score: number }[]; yearsAt?: number };
+  elements?: { el: string; pct: number }[]; elementsAt?: number; daeun?: DaeunRow[]; daeunAt?: number; years?: { y: number; score: number }[]; yearsAt?: number;
+  seun?: SeunRow[]; seunAt?: number; wolun?: WolunRow[]; wolunAt?: number };
+export type SeunRow = { y: number; gz: string; sip: string; score: number; love: number; work: number; wealth: number };
+export type WolunRow = { y: number; m: number; gz: string; sip: string; love: number; work: number; wealth: number };
 export type DaeunRow = { text: string; hanja: string; fromAge: number; toAge: number; fromYear: number; toYear: number; theme: string; score: number; now: boolean };
 
 const EL_CLASS: Record<string, string> = { 목: 'wood', 화: 'fire', 토: 'earth', 금: 'metal', 수: 'water' };
@@ -169,6 +172,34 @@ export function YearBars({ years, name }: { years: { y: number; score: number }[
         ))}
       </div>
       <p className="faint" style={{ margin: '6px 0 0', fontSize: 13 }}>금색 막대가 특히 빛나는 해예요(연도 뒤 두 자리).</p>
+    </figure>
+  );
+}
+
+/** 정통사주 장편 — 앞으로 10년 세운표 */
+export function SeunTable({ rows }: { rows: SeunRow[] }) {
+  const top = new Set([...rows].sort((a, b) => b.score - a.score).slice(0, 3).map((x) => x.y));
+  return (
+    <figure className="gtbl">
+      <figcaption>앞으로 10년 세운표</figcaption>
+      <table>
+        <thead><tr><th>해</th><th>간지</th><th>십성</th><th>종합</th><th>연애</th><th>일</th><th>재물</th></tr></thead>
+        <tbody>{rows.map((r) => <tr key={r.y} className={top.has(r.y) ? 'on' : ''}><td>{r.y}</td><td className="gz">{r.gz.replace(/\(.*\)/, '')}<small>{(r.gz.match(/\((.*)\)/) ?? [])[1]}</small></td><td>{r.sip}</td><td><b>{r.score}</b></td><td>{r.love}</td><td>{r.work}</td><td>{r.wealth}</td></tr>)}</tbody>
+      </table>
+      <p className="faint" style={{ margin: '6px 0 0', fontSize: 13 }}>금색 줄이 특히 빛나는 해예요. 지수는 결과를 보장하지 않아요.</p>
+    </figure>
+  );
+}
+/** 정통사주 장편 — 앞으로 12달 월운표 */
+export function WolunTable({ rows }: { rows: WolunRow[] }) {
+  const best = (r: WolunRow) => Math.max(r.love, r.work, r.wealth);
+  return (
+    <figure className="gtbl">
+      <figcaption>앞으로 12달 월운표</figcaption>
+      <table>
+        <thead><tr><th>달</th><th>간지</th><th>십성</th><th>연애</th><th>일</th><th>재물</th></tr></thead>
+        <tbody>{rows.map((r) => <tr key={`${r.y}-${r.m}`}><td>{String(r.y).slice(2)}.{r.m}</td><td className="gz">{r.gz.replace(/\(.*\)/, '')}</td><td>{r.sip}</td>{[r.love, r.work, r.wealth].map((v, i) => <td key={i} className={v === best(r) ? 'hi' : ''}>{v}</td>)}</tr>)}</tbody>
+      </table>
     </figure>
   );
 }

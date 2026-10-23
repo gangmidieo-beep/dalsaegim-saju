@@ -25,7 +25,7 @@ const SH = L.shinsal as Record<string, string>;
 const GROUP = L.groupWork as Record<string, { style: string; fields: string; tip: string }>;
 const WS = WD.sipsin as Record<string, { short: string; money: string; risk: string }>;
 const LUCKY = WD.lucky as Record<string, { color: string; number: number[]; direction: string; shape: string; item: string; routine: string }>;
-const THEME = { 비견: '나다운 길을 굳히는 시기', 겁재: '경쟁 속에서 결단하는 시기', 식신: '여유와 재능이 꽃피는 시기', 상관: '변화와 새로운 도전의 시기', 편재: '기회가 넓어지고 움직임이 많은 시기', 정재: '차곡차곡 쌓아 안정되는 시기', 편관: '책임이 커지고 단단해지는 시기', 정관: '인정과 자리를 얻는 시기', 편인: '배우고 방향을 다시 찾는 시기', 정인: '도움을 받고 마음이 채워지는 시기' } as Record<string, string>;
+export const LIFE_THEME = { 비견: '나다운 길을 굳히는 시기', 겁재: '경쟁 속에서 결단하는 시기', 식신: '여유와 재능이 꽃피는 시기', 상관: '변화와 새로운 도전의 시기', 편재: '기회가 넓어지고 움직임이 많은 시기', 정재: '차곡차곡 쌓아 안정되는 시기', 편관: '책임이 커지고 단단해지는 시기', 정관: '인정과 자리를 얻는 시기', 편인: '배우고 방향을 다시 찾는 시기', 정인: '도움을 받고 마음이 채워지는 시기' } as Record<string, string>;
 // 대운의 십성별 '지금 할 일'
 const DO: Record<string, string> = {
   비견: '내 이름으로 하는 일 하나를 정하고, 남의 기준보다 내 기준으로 계획을 세워 보세요.',
@@ -49,7 +49,7 @@ const iga = (w: string) => `${w}${batchim(w) ? '이' : '가'}`;
 const num = (b: Basis[]) => b.slice(0, 3).map((x, i) => ({ ...x, n: i + 1 }));
 const avg = (xs: number[]) => Math.round(xs.reduce((s, x) => s + x, 0) / Math.max(1, xs.length));
 /** 운의 크기 — 일·재물·사랑·성장 네 지수의 평균(무료 기능과 같은 계산식) */
-const lifeScore = (saju: SajuResult, p: Pillar, seed: string) => { const r = rawDims(saju, p, seed, 0.15); return avg([r.work, r.wealth, r.love, r.growth].map(toScore)); };
+export const lifeScore = (saju: SajuResult, p: Pillar, seed: string) => { const r = rawDims(saju, p, seed, 0.15); return avg([r.work, r.wealth, r.love, r.growth].map(toScore)); };
 
 export function lifetimeReport(saju: SajuResult, name: string, profileId: string, now = new Date()) {
   const table = sajuTable(saju);
@@ -245,7 +245,7 @@ export function lifetimeReport(saju: SajuResult, name: string, profileId: string
   const by = saju.solarDate.year;
   const daeun: DaeunRow[] = cycles.map((x) => {
     const sip = sipsinOfStem(ds, x.stem) as string;
-    return { text: x.text, hanja: x.hanja, fromAge: x.fromAge, toAge: x.toAge, fromYear: by + x.fromAge - 1, toYear: by + x.toAge - 1, theme: THEME[sip] ?? '', score: lifeScore(saju, { text: x.text, hanja: x.hanja, stem: x.stem, branch: x.branch }, `${profileId}:dw:${x.fromAge}`), now: age >= x.fromAge && age <= x.toAge };
+    return { text: x.text, hanja: x.hanja, fromAge: x.fromAge, toAge: x.toAge, fromYear: by + x.fromAge - 1, toYear: by + x.toAge - 1, theme: LIFE_THEME[sip] ?? '', score: lifeScore(saju, { text: x.text, hanja: x.hanja, stem: x.stem, branch: x.branch }, `${profileId}:dw:${x.fromAge}`), now: age >= x.fromAge && age <= x.toAge };
   });
   const curI = daeun.findIndex((x) => x.now);
   const cur = curI >= 0 ? cycles[curI] : null, nxt = curI >= 0 ? cycles[curI + 1] : cycles.find((x) => x.fromAge > age);
@@ -288,7 +288,7 @@ export function lifetimeReport(saju: SajuResult, name: string, profileId: string
         : bestAhead?.now ? `바로 지금이 전성기의 한가운데예요. 미뤄 둔 도전이 있다면 이 10년 안에 꺼내 보세요. 지금 시작한 일이 가장 크게 자라요.`
           : bestAhead ? `아직 오지 않은 시기라, 지금은 그때를 위한 준비의 시간이에요. 실력과 사람, 그리고 작은 저축을 차곡차곡 모아 두세요.` : '',
       lateBest && bestAll && lateBest.score > bestAll.score ? `인생 후반(${lateBest.fromAge}세 무렵 이후)에도 '${lateBest.theme}'의 밝은 기운이 이어져, 나이 들수록 든든해지는 사주예요.` : '',
-      `앞으로 10년(${y0}~${y0 + 9}년) 가운데 특히 빛나는 해는 ${yTop.map((x) => `${x.y}년`).join(', ')}이에요. 이직·이사·창업·결혼처럼 큰 결정은 이런 해에 두면 흐름을 타기 쉬워요. ${yTop.map((x) => { const yp = yearPillarOf(new Date(Date.UTC(x.y, 5, 15, 3))); const sp2 = sipsinOfStem(ds, yp.stem) as string; return `${x.y}년(${yp.text}년)은 '${THEME[sp2] ?? ''}'의 결이 들어오는 해예요.`; }).join(' ')}`,
+      `앞으로 10년(${y0}~${y0 + 9}년) 가운데 특히 빛나는 해는 ${yTop.map((x) => `${x.y}년`).join(', ')}이에요. 이직·이사·창업·결혼처럼 큰 결정은 이런 해에 두면 흐름을 타기 쉬워요. ${yTop.map((x) => { const yp = yearPillarOf(new Date(Date.UTC(x.y, 5, 15, 3))); const sp2 = sipsinOfStem(ds, yp.stem) as string; return `${x.y}년(${yp.text}년)은 '${LIFE_THEME[sp2] ?? ''}'의 결이 들어오는 해예요.`; }).join(' ')}`,
       `${yLow.map((x) => `${x.y}년`).join('과 ')}은 속도를 늦추고 다지는 해예요. 새로 벌이기보다 건강·관계·저축을 챙기면 다음 상승이 더 커져요.`,
       `전성기를 크게 만드는 열쇠는 두 가지예요. 첫째, '${need}' 기운을 생활 속에서 채워 균형을 잡는 것. 둘째, ${GROUP[g1.g].tip}`,
     ].filter(Boolean),
@@ -306,7 +306,7 @@ export function lifetimeReport(saju: SajuResult, name: string, profileId: string
     say: `"${st.motto}"`,
     paras: [
       `${name} 님의 사주를 한 문장으로 새긴다면 이렇게 말하고 싶어요. "${st.motto}"`,
-      `${iga(map.dayMaster.keywords.join('·'))} ${name} 님의 무기이고, '${need}' 기운을 채울 때 그 무기가 가장 잘 쓰여요. 지금은 '${THEME[curSip] ?? ''}'를 지나고 있으니, ${DO[curSip] ?? ''}`,
+      `${iga(map.dayMaster.keywords.join('·'))} ${name} 님의 무기이고, '${need}' 기운을 채울 때 그 무기가 가장 잘 쓰여요. 지금은 '${LIFE_THEME[curSip] ?? ''}'를 지나고 있으니, ${DO[curSip] ?? ''}`,
       `앞으로 열두 달 가운데 일·재물·사랑의 기운이 고르게 밝은 달은 ${monthsLabel(goodMonths, now)}이에요. 지금 달력에 표시해 두고, 그때마다 하고 싶은 일을 하나씩 꺼내 보세요.`,
       `작은 행운의 습관도 곁들여 보세요. 행운의 색은 ${N.color}, 숫자는 ${LK.number.join('·')}, 방향은 ${N.dir}이에요. ${N.act} — 이런 하루하루가 '${need}' 기운을 채워 줘요.`,
       `사주는 정해진 답이 아니라 나를 이해하는 지도예요. 오늘 읽은 내용 가운데 마음에 남는 한 줄을 기록해 두면, 몇 달 뒤 실제로 어땠는지 함께 돌아볼 수 있어요.`,
@@ -328,6 +328,6 @@ export function lifetimeReport(saju: SajuResult, name: string, profileId: string
     `앞으로 10년 빛나는 해 ${yTop.map((x) => x.y).join(', ')} / 다지는 해 ${yLow.map((x) => x.y).join(', ')}`,
     ...chapters.map((ch, i) => `${i + 1}장 근거 표시: ${ch.basis.length ? ch.basis.map((b) => `${'①②③'[b.n - 1]} ${POSL[b.pos as PosKey]} ${b.part === 'stem' ? '천간' : b.part === 'branch' ? '지지' : '전체'}`).join(', ') : '없음'}`),
   ];
-  return { table, chapters, elements: map.elements, daeun, years, lucky, facts, keywords: [...map.dayMaster.keywords, `${need} 기운`] };
+  return { table, chapters, elements: map.elements, daeun, years, lucky, facts, strength, self, need, groups, keywords: [...map.dayMaster.keywords, `${need} 기운`] };
 }
 export type LifetimeReport = ReturnType<typeof lifetimeReport>;

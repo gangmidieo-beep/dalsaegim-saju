@@ -9,13 +9,15 @@ import {
   wealthReport, marriageReport, careerReport, tarotReading, parseCards, monthsLabel, lifetimeReport, type Basis, type SajuTable,
 } from '@dalsaegim/content';
 import R from '../../../../packages/content/data/reading.json' with { type: 'json' };
+import { generateLong, longOn } from './long.ts';
 import { schema as S, type Db } from '../../db/index.ts';
 
-export type Chapter = { id: string; title: string; say: string; body: string; highlight: string; points?: string[]; basis?: Basis[] };
+export type Chapter = { id: string; title: string; say: string; body: string; highlight: string; points?: string[]; basis?: Basis[]; part?: number; partTitle?: string };
 /** 화면에 그릴 계산 자료 — 사주 구성표·3년 흐름·행운(프리미엄 재물 리포트) */
 export type Visual = { table: SajuTable; flow?: { points: { y: number; m: number; score: number }[]; top: { y: number; m: number; score: number }[]; low: { y: number; m: number; score: number }[] }; lucky?: Record<string, unknown>; flowAt?: number; luckyAt?: number;
   // 정통사주: 오행 막대 · 평생 대운표 · 앞으로 10년 흐름
-  elements?: { el: string; pct: number }[]; elementsAt?: number; daeun?: { text: string; hanja: string; fromAge: number; toAge: number; fromYear: number; toYear: number; theme: string; score: number; now: boolean }[]; daeunAt?: number; years?: { y: number; score: number }[]; yearsAt?: number };
+  elements?: { el: string; pct: number }[]; elementsAt?: number; daeun?: { text: string; hanja: string; fromAge: number; toAge: number; fromYear: number; toYear: number; theme: string; score: number; now: boolean }[]; daeunAt?: number; years?: { y: number; score: number }[]; yearsAt?: number;
+  seun?: { y: number; gz: string; sip: string; score: number; love: number; work: number; wealth: number }[]; seunAt?: number; wolun?: { y: number; m: number; gz: string; sip: string; love: number; work: number; wealth: number }[]; wolunAt?: number };
 export type Closing = { title: string; body: string; tips: string[] };
 /** 결과 맨 위 요약 카드(대표님 V88 리포트 틀) — 막대는 엔진이 계산한 지수, 단계는 실제 좋은 달·날 */
 export type Summary = { tone: 'love' | 'money' | 'saju' | 'time'; headline: string; lead: string; metrics: { label: string; score: number; note?: string }[]; steps: { label: string; text: string }[]; action: string; cards?: { id: number; rev: boolean }[] };
@@ -350,13 +352,18 @@ export const parseJson = (text: string) => JSON.parse(text.slice(text.indexOf('{
 const rate = () => ({ inp: +(process.env.AI_PRICE_IN_PER_M ?? 3), out: +(process.env.AI_PRICE_OUT_PER_M ?? 15) });
 export const costKrwOf = (tin: number, tout: number) => Math.round(((tin * rate().inp + tout * rate().out) / 1e6) * KRW_PER_USD);
 
-export async function generateReading(product: { id: string; title: string }, people: Person[], opts: { meta?: OrderMeta; market?: { body: string; flow: number[] | null } | null; http?: typeof fetch; now?: Date } = {}) {
+export async function generateReading(product: { id: string; title: string }, people: Person[], opts: { meta?: OrderMeta; market?: { body: string; flow: number[] | null } | null; http?: typeof fetch; now?: Date; onProgress?: (done: number, total: number) => Promise<void> | void } = {}) {
   const ym = product.id === 'month_detail' ? opts.meta?.ym : undefined;
   if (ym) product = { ...product, title: `${ym.slice(0, 4)}년 ${Number(ym.slice(5))}월 상세운세` }; // 고른 달이 제목에 보이게
   const ps = people.length ? people : [{ name: '달님', gender: 'F', year: 1995, month: 5, day: 15, calendar: 'solar', hour: null } as Person];
   const sajus = ps.map(sajuOfP);
   const facts = buildFacts(product.id, ps, sajus, opts.meta ?? null, opts.market ?? null, opts.now);
   const titles = chaptersFor(product.id);
+  // 정통사주 A4 40장 — AI 가 켜져 있으면 26장 장편(long.ts), 꺼져 있으면 아래 9장 계산 풀이
+  if (product.id === 'lifetime' && liveAI() && longOn()) {
+    const g = await generateLong(product, ps, { http: opts.http, now: opts.now, onProgress: opts.onProgress });
+    return { content: { ...g.content, ...(facts.summary ? { summary: facts.summary } : {}) } as ReadingContent, tokensIn: g.usage.in + g.usage.cacheWrite + g.usage.cacheRead, tokensOut: g.usage.out, costKrw: g.costKrw, issues: g.issues };
+  }
   if (!liveAI() || product.id === 'tarot_some') { const content = engineContent(product, ps, facts); return { content: { ...content, who: ps.map((p) => p.name), facts: facts.lines }, tokensIn: 0, tokensOut: 0, costKrw: 0, issues: [] as string[] }; }
   const half = Math.ceil(titles.length / 2);
   let tokensIn = 0, tokensOut = 0, intro = '';
@@ -386,7 +393,7 @@ export function startReadingWorker(db: Db, log: { warn: (m: string) => void }, h
     if (busy) return;
     busy = true;
     try {
-      await db.update(S.readings).set({ status: 'queued' }).where(and(eq(S.readings.status, 'generating'), lt(S.readings.createdAt, new Date(Date.now() - 600_000))));
+      await db.update(S.readings).set({ status: 'queued' }).where(and(eq(S.readings.status, 'generating'), lt(S.readings.createdAt, new Date(Date.now() - 1_200_000))));
       const list = await db.select().from(S.readings).where(eq(S.readings.status, 'queued')).limit(3);
       if (list.length) await db.update(S.readings).set({ status: 'generating' }).where(inArray(S.readings.id, list.map((x) => x.id)));
       await Promise.all(list.map((r) => runOne(db, r, http).catch((e) => log.warn(`[reading] ${r.id} 실패: ${e.message}`))));
@@ -413,7 +420,8 @@ export async function runOne(db: Db, r: typeof S.readings.$inferSelect, http?: t
   }));
   try {
     const market = r.productId === 'money_invest' || r.productId === 'money_pack' ? await latestMarket(db) : null;
-    const g = await generateReading({ id: r.productId, title: p?.title ?? r.productId }, people, { meta: (o?.meta as OrderMeta) ?? null, market, http });
+    const onProgress = async (done: number, total: number) => { await db.update(S.readings).set({ content: { progress: { done, total } } as any }).where(eq(S.readings.id, r.id)); };
+    const g = await generateReading({ id: r.productId, title: p?.title ?? r.productId }, people, { meta: (o?.meta as OrderMeta) ?? null, market, http, onProgress });
     await db.update(S.readings).set({
       status: 'done', content: { ...g.content, issues: g.issues } as any, model: g.content.generatedBy === 'ai' ? process.env.ANTHROPIC_MODEL ?? null : 'engine',
       tokensIn: g.tokensIn, tokensOut: g.tokensOut, costKrw: g.costKrw, doneAt: new Date(),

@@ -1238,3 +1238,16 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .yrb-bar { width: 70%; display: flex; align-items: flex-end; } .yrb-bar i { display: block; width: 100%; background: #c9cde0; border-radius: 4px 4px 0 0; }
 .yrb-cols > .on .yrb-bar i { background: #c79a4a; } .yrb-cols > .on .yrb-v { color: #7a5c30; font-weight: 800; }
 .yrb-y { font-size: 11px; font-weight: 700; }
+/* 정통사주 장편 — 진행률·부 머리·세운/월운표 */
+.rp-prog { font-size: 15px; color: var(--ink-2); } .rp-prog b { font-size: 22px; color: var(--ink); }
+.rp-progbar { display: block; width: min(320px, 90%); height: 8px; margin: 8px auto 0; border-radius: 99px; background: #ece7dd; overflow: hidden; }
+.rp-progbar i { display: block; height: 100%; background: #c79a4a; border-radius: 99px; transition: width .6s; }
+.rp-toc-part { display: block; margin: 12px 0 4px; font-size: 13px; color: var(--gold-ink); }
+.rp-part { margin: 28px 0 4px; padding: 22px 16px; border-radius: 16px; background: #1b1f3b; color: #f7f3ea; text-align: center; }
+.rp-part small { font-size: 11px; letter-spacing: 2px; color: #d9b26b; font-weight: 800; } .rp-part h2 { margin: 6px 0 0; font-size: 19px; color: #f7f3ea; }
+.gtbl { margin: 0 0 14px; padding: 12px 8px; border-radius: 14px; background: #f9f7f2; border: 1px solid var(--line); }
+.gtbl figcaption { font-size: 14px; font-weight: 800; color: var(--ink); text-align: center; margin-bottom: 8px; }
+.gtbl table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; }
+.gtbl th { font-size: 12px; color: var(--ink-2); font-weight: 700; padding: 6px 2px; border-bottom: 1px solid var(--line); }
+.gtbl td { padding: 7px 2px; border-bottom: 1px solid #efe9de; } .gtbl td.gz { font-weight: 700; } .gtbl td.gz small { display: block; font-size: 10px; color: var(--ink-2); font-weight: 500; }
+.gtbl tr.on td { background: #fbf4e6; } .gtbl tr.on td b { color: #7a5c30; } .gtbl td.hi { color: #7a5c30; font-weight: 800; }
