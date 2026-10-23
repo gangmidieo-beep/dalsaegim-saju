@@ -109,7 +109,7 @@ export async function tcVoiceOf(persona: string | null | undefined, gender: 'F' 
   if (!list.length) throw new Error('Typecast 목소리 없음');
   const pick = pickVoice(list);
   const lk = `${persona ?? gender}|${pick.voice_id}`;
-  if (!logged.has(lk)) { logged.add(lk); console.log(`[tts] ${persona ?? gender} → ${pick.voice_name?.kor ?? ''} ${pick.voice_id} [${(pick.use_cases ?? []).join(',')}] 후보: ${list.slice(0, 8).map((v) => `${v.voice_name?.kor}(${(v.use_cases ?? []).join('/')})`).join(' ')}`); }
+  if (!logged.has(lk)) { logged.add(lk); console.log(`[tts] ${persona ?? gender} → ${pick.voice_name?.kor ?? ''} ${pick.voice_id} [${(pick.use_cases ?? []).join(',')}] 후보(${list.length}): ${list.map((v) => `${v.voice_name?.kor}=${v.voice_id}(${(v.use_cases ?? []).join('/')})`).join(' ')}`); }
   return { id: pick.voice_id, tempo: spec.tempo, pitch: spec.pitch };
 }
 async function typecastAudio(t: string, v: { id: string; tempo: number; pitch: number }, http: typeof fetch): Promise<Buffer> {
