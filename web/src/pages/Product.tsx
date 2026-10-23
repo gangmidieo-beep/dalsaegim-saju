@@ -12,7 +12,7 @@ import { I } from '../components/icons';
 import { track } from '../lib/track';
 import { saveImage } from '../lib/share';
 import { useShare } from '../components/share';
-import { Flow36, LuckyCard, ReportSummary, SajuTableView, type Basis, type Summary, type Visual } from '../components/report';
+import { DaeunTable, ElementBars, Flow36, LuckyCard, ReportSummary, SajuTableView, YearBars, type Basis, type Summary, type Visual } from '../components/report';
 import { CARDS, TarotCard } from '../components/tarot';
 import { dailyCard } from '@dalsaegim/content';
 import { kstMonth, kstToday, kstYear } from '../lib/dates';
@@ -459,7 +459,10 @@ export function ReadingPage() {
             <p className="faint" style={{ margin: '10px 0 12px' }}>{x.say}</p>
             {c.visual && x.basis && x.basis.length > 0 && <div className="mb12"><SajuTableView table={c.visual.table} basis={x.basis} /></div>}
             {c.visual?.flow && c.visual.flowAt === i && <Flow36 flow={c.visual.flow} name={who ?? profile.name} />}
+            {c.visual?.elements && c.visual.elementsAt === i && <ElementBars els={c.visual.elements} name={who ?? profile.name} />}
             {x.body.split(/\n\n+/).map((t, k) => <p key={k}>{t}</p>)}
+            {c.visual?.daeun && c.visual.daeunAt === i && c.visual.daeun.length > 0 && <DaeunTable rows={c.visual.daeun} name={who ?? profile.name} />}
+            {c.visual?.years && c.visual.yearsAt === i && <YearBars years={c.visual.years} name={who ?? profile.name} />}
             {c.visual?.lucky && c.visual.luckyAt === i && <LuckyCard l={c.visual.lucky as any} />}
             <div className="quote">{x.highlight}</div>
             <button className="link mt8" onClick={() => share(x.highlight)}>이 문장 공유하기</button>

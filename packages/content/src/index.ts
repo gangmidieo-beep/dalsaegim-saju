@@ -11,3 +11,4 @@ export * from './charm';
 export * from './wealth';
 export * from './life';
 export * from './tarot';
+export * from './lifetime';

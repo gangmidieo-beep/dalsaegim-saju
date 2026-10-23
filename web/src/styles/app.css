@@ -1211,3 +1211,30 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .read .rp-book span { color: #d6dcea; }
 .gd-fab { transition: padding .2s, gap .2s, transform .25s, opacity .25s; }
 .gd-fab.away { transform: translateY(140%); opacity: 0; pointer-events: none; }
+
+/* 정통사주 — 오행 막대 · 평생 대운표 · 10년 흐름 (10/23) */
+.elb, .dwt, .yrb { margin: 0 0 14px; padding: 14px 12px 12px; border-radius: 14px; background: #f9f7f2; border: 1px solid var(--line); }
+.elb figcaption, .dwt figcaption, .yrb figcaption { font-size: 14px; font-weight: 800; color: var(--ink); text-align: center; margin-bottom: 8px; }
+.elb-row { display: grid; grid-template-columns: 54px 1fr 44px; align-items: center; gap: 8px; margin: 6px 0; }
+.elb-k { font-weight: 800; font-size: 15px; display: flex; align-items: baseline; gap: 3px; }
+.elb-k small { font-size: 11px; font-weight: 600; color: var(--ink-2); }
+.elb-k.wood { color: #2f7d55; } .elb-k.fire { color: #c2412d; } .elb-k.earth { color: #9a6a1f; } .elb-k.metal { color: #6b6f7d; } .elb-k.water { color: #1e2f5c; }
+.elb-track { height: 12px; border-radius: 99px; background: #ece7dd; overflow: hidden; }
+.elb-track i { display: block; height: 100%; border-radius: 99px; }
+.elb-track i.wood { background: #5aa47c; } .elb-track i.fire { background: #d9705c; } .elb-track i.earth { background: #c79a4a; } .elb-track i.metal { background: #a3a7b4; } .elb-track i.water { background: #2c3a66; }
+.elb-row b { font-size: 14px; text-align: right; }
+.dwt ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.dwt li { display: grid; grid-template-columns: 74px 50px 1fr; grid-template-rows: auto auto; column-gap: 8px; row-gap: 4px; align-items: center; padding: 8px 10px; border-radius: 10px; background: #fff; border: 1px solid #ebe6db; }
+.dwt li.now { border-color: #2c3a66; box-shadow: inset 0 0 0 1px #2c3a66; }
+.dwt li.peak { background: #fbf4e6; border-color: #ecd4ac; }
+.dwt-age { grid-row: 1 / 3; font-size: 13px; font-weight: 800; display: grid; } .dwt-age small { font-size: 11px; font-weight: 600; color: var(--ink-2); }
+.dwt-gz { grid-row: 1 / 3; display: grid; justify-items: center; } .dwt-gz b { font-size: 17px; letter-spacing: 1px; } .dwt-gz small { font-size: 11px; color: var(--ink-2); }
+.dwt-th { font-size: 13.5px; line-height: 1.35; } .dwt-th em { font-style: normal; font-size: 11px; font-weight: 800; margin-left: 6px; padding: 1px 6px; border-radius: 99px; background: #2c3a66; color: #fff; white-space: nowrap; } .dwt-th em.g { background: #c79a4a; }
+.dwt-bar { height: 6px; border-radius: 99px; background: #ece7dd; overflow: hidden; } .dwt-bar i { display: block; height: 100%; background: #2c3a66; border-radius: 99px; }
+.dwt li.peak .dwt-bar i { background: #c79a4a; }
+.yrb-cols { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; align-items: end; height: 130px; }
+.yrb-cols > div { display: grid; grid-template-rows: auto 1fr auto; height: 100%; justify-items: center; gap: 2px; }
+.yrb-v { font-size: 10px; color: var(--ink-2); }
+.yrb-bar { width: 70%; display: flex; align-items: flex-end; } .yrb-bar i { display: block; width: 100%; background: #c9cde0; border-radius: 4px 4px 0 0; }
+.yrb-cols > .on .yrb-bar i { background: #c79a4a; } .yrb-cols > .on .yrb-v { color: #7a5c30; font-weight: 800; }
+.yrb-y { font-size: 11px; font-weight: 700; }

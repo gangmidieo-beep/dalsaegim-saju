@@ -3,7 +3,9 @@ import type { ReactNode } from 'react';
 type Side = { han: string; kor: string; el: string; yy: string; sip: string };
 type Col = { key: 'hour' | 'day' | 'month' | 'year'; label: string; empty: true } | { key: 'hour' | 'day' | 'month' | 'year'; label: string; empty: false; stem: Side; branch: Side; stage: string; shinsal: string; gwiin: string[] };
 export type Basis = { pos: 'hour' | 'day' | 'month' | 'year'; part: 'stem' | 'branch' | 'pillar'; n: number };
-export type Visual = { table: Col[]; flow?: { points: { y: number; m: number; score: number }[]; top: { y: number; m: number; score: number }[]; low: { y: number; m: number; score: number }[] }; lucky?: { color: string; number: number[]; direction: string; shape: string; item: string; routine: string; element: string; note: string }; flowAt?: number; luckyAt?: number };
+export type Visual = { table: Col[]; flow?: { points: { y: number; m: number; score: number }[]; top: { y: number; m: number; score: number }[]; low: { y: number; m: number; score: number }[] }; lucky?: { color: string; number: number[]; direction: string; shape: string; item: string; routine: string; element: string; note: string }; flowAt?: number; luckyAt?: number;
+  elements?: { el: string; pct: number }[]; elementsAt?: number; daeun?: DaeunRow[]; daeunAt?: number; years?: { y: number; score: number }[]; yearsAt?: number };
+export type DaeunRow = { text: string; hanja: string; fromAge: number; toAge: number; fromYear: number; toYear: number; theme: string; score: number; now: boolean };
 
 const EL_CLASS: Record<string, string> = { 목: 'wood', 화: 'fire', 토: 'earth', 금: 'metal', 수: 'water' };
 const CIRCLED = ['①', '②', '③', '④'];
@@ -107,5 +109,66 @@ export function ReportSummary({ s, title, cardsNode }: { s: Summary; title: stri
       <h3 className="rs-sub">오늘부터 적용할 한 가지</h3>
       <p className="rs-act">{s.action}</p>
     </section>
+  );
+}
+
+/** 정통사주 — 오행 비율 막대 */
+const EL_NAME: Record<string, string> = { 목: '나무', 화: '불', 토: '흙', 금: '쇠', 수: '물' };
+export function ElementBars({ els, name }: { els: { el: string; pct: number }[]; name?: string }) {
+  const max = Math.max(...els.map((e) => e.pct), 1);
+  return (
+    <figure className="elb">
+      <figcaption>{name ? `${name} 님의 ` : ''}오행 비율</figcaption>
+      {els.map((e) => (
+        <div key={e.el} className="elb-row">
+          <span className={`elb-k ${EL_CLASS[e.el]}`}>{e.el}<small>{EL_NAME[e.el]}</small></span>
+          <span className="elb-track" role="img" aria-label={`${e.el} ${e.pct}%`}><i className={EL_CLASS[e.el]} style={{ width: `${e.pct === 0 ? 0 : Math.max(6, (e.pct / max) * 100)}%` }} /></span>
+          <b>{e.pct}%</b>
+        </div>
+      ))}
+      <p className="faint" style={{ margin: '6px 0 0', fontSize: 13 }}>사주 여덟 글자를 오행으로 나눈 비율이에요. 0%인 기운은 '바깥에서 채워 쓰는 기운'이에요.</p>
+    </figure>
+  );
+}
+
+/** 정통사주 — 평생 대운표(10년 단위) */
+export function DaeunTable({ rows, name }: { rows: DaeunRow[]; name?: string }) {
+  const best = [...rows].filter((r) => r.fromAge >= 17 && r.fromAge <= 65).sort((a, b) => b.score - a.score)[0];
+  return (
+    <figure className="dwt">
+      <figcaption>{name ? `${name} 님의 ` : ''}평생 대운표</figcaption>
+      <ol>
+        {rows.map((r) => (
+          <li key={r.fromAge} className={`${r.now ? 'now' : ''}${best && r.fromAge === best.fromAge ? ' peak' : ''}`}>
+            <span className="dwt-age">{r.fromAge}~{r.toAge}세<small>{r.fromYear}~{r.toYear}</small></span>
+            <span className="dwt-gz"><b>{r.hanja}</b><small>{r.text}</small></span>
+            <span className="dwt-th">{r.theme}{r.now && <em>지금</em>}{best && r.fromAge === best.fromAge && <em className="g">전성기</em>}</span>
+            <span className="dwt-bar" role="img" aria-label={`${r.score}점`}><i style={{ width: `${Math.max(8, Math.min(100, (r.score - 50) * 2.2))}%` }} /></span>
+          </li>
+        ))}
+      </ol>
+      <p className="faint" style={{ margin: '6px 0 0', fontSize: 13 }}>막대는 대운마다 일·재물·사랑·성장 기운을 계산한 지수예요. 결과를 보장하지 않아요.</p>
+    </figure>
+  );
+}
+
+/** 정통사주 — 앞으로 10년 연도별 흐름 */
+export function YearBars({ years, name }: { years: { y: number; score: number }[]; name?: string }) {
+  const top = new Set([...years].sort((a, b) => b.score - a.score).slice(0, 3).map((x) => x.y));
+  const lo = Math.min(...years.map((x) => x.score)) - 4, hi = Math.max(...years.map((x) => x.score));
+  return (
+    <figure className="yrb">
+      <figcaption>{name ? `${name} 님의 ` : ''}앞으로 10년 흐름</figcaption>
+      <div className="yrb-cols" role="img" aria-label={`빛나는 해 ${[...top].sort().join(', ')}년`}>
+        {years.map((x) => (
+          <div key={x.y} className={top.has(x.y) ? 'on' : ''}>
+            <span className="yrb-v">{x.score}</span>
+            <span className="yrb-bar"><i style={{ height: `${Math.max(10, ((x.score - lo) / Math.max(1, hi - lo)) * 100)}%` }} /></span>
+            <span className="yrb-y">{String(x.y).slice(2)}</span>
+          </div>
+        ))}
+      </div>
+      <p className="faint" style={{ margin: '6px 0 0', fontSize: 13 }}>금색 막대가 특히 빛나는 해예요(연도 뒤 두 자리).</p>
+    </figure>
   );
 }

@@ -6,14 +6,16 @@ import { and, desc, eq, inArray, lt } from 'drizzle-orm';
 import { calcSaju, branchRelations, kstParts, type SajuResult } from '@dalsaegim/engine';
 import {
   moneyFlow, newYearPreview, sajuMap, sajuMbti, pathResult, nextMonths, monthFortune, todayFortune, toRanges, MONEY_KINDS, type MoneyKind,
-  wealthReport, marriageReport, careerReport, tarotReading, parseCards, monthsLabel, type Basis, type SajuTable,
+  wealthReport, marriageReport, careerReport, tarotReading, parseCards, monthsLabel, lifetimeReport, type Basis, type SajuTable,
 } from '@dalsaegim/content';
 import R from '../../../../packages/content/data/reading.json' with { type: 'json' };
 import { schema as S, type Db } from '../../db/index.ts';
 
 export type Chapter = { id: string; title: string; say: string; body: string; highlight: string; points?: string[]; basis?: Basis[] };
 /** 화면에 그릴 계산 자료 — 사주 구성표·3년 흐름·행운(프리미엄 재물 리포트) */
-export type Visual = { table: SajuTable; flow?: { points: { y: number; m: number; score: number }[]; top: { y: number; m: number; score: number }[]; low: { y: number; m: number; score: number }[] }; lucky?: Record<string, unknown>; flowAt?: number; luckyAt?: number };
+export type Visual = { table: SajuTable; flow?: { points: { y: number; m: number; score: number }[]; top: { y: number; m: number; score: number }[]; low: { y: number; m: number; score: number }[] }; lucky?: Record<string, unknown>; flowAt?: number; luckyAt?: number;
+  // 정통사주: 오행 막대 · 평생 대운표 · 앞으로 10년 흐름
+  elements?: { el: string; pct: number }[]; elementsAt?: number; daeun?: { text: string; hanja: string; fromAge: number; toAge: number; fromYear: number; toYear: number; theme: string; score: number; now: boolean }[]; daeunAt?: number; years?: { y: number; score: number }[]; yearsAt?: number };
 export type Closing = { title: string; body: string; tips: string[] };
 /** 결과 맨 위 요약 카드(대표님 V88 리포트 틀) — 막대는 엔진이 계산한 지수, 단계는 실제 좋은 달·날 */
 export type Summary = { tone: 'love' | 'money' | 'saju' | 'time'; headline: string; lead: string; metrics: { label: string; score: number; note?: string }[]; steps: { label: string; text: string }[]; action: string; cards?: { id: number; rev: boolean }[] };
@@ -93,6 +95,15 @@ export function buildFacts(productId: string, people: Person[], sajus: SajuResul
     if (productId === 'money_pack' && market) sectionsOut[3] = [...sectionsOut[3].slice(0, 3), `달새김이 보는 올해의 시장 이야기: ${market.body}`, sectionsOut[3][3]];
     metaOut = rep.chapters.map((c) => ({ points: c.points, basis: c.basis, say: c.say, highlight: c.highlight }));
     visual = { table: rep.table, flow: rep.flow, lucky: rep.lucky, flowAt: 2, luckyAt: 6 };
+    keywords = [...rep.keywords, ...keywords];
+  }
+  else if (productId === 'lifetime') {
+    // 정통사주(사주지도 전체 풀이) — 9장 각각 제목에 맞는 내용 + 원국표·오행·평생 대운·10년 흐름·행운(10/23 보충)
+    const rep = lifetimeReport(s, p0.name, id, now);
+    lines.push(...rep.facts);
+    sectionsOut = rep.chapters.map((c) => c.paras);
+    metaOut = rep.chapters.map((c) => ({ points: c.points, basis: c.basis, say: c.say, highlight: c.highlight }));
+    visual = { table: rep.table, elements: rep.elements, elementsAt: 1, daeun: rep.daeun, daeunAt: 6, years: rep.years, yearsAt: 7, lucky: rep.lucky, luckyAt: 8 };
     keywords = [...rep.keywords, ...keywords];
   }
   else if (productId === 'newyear_2027' || productId === 'month_detail') {
@@ -279,20 +290,22 @@ export function buildFacts(productId: string, people: Person[], sajus: SajuResul
 
 /* ---------- 프롬프트 ---------- */
 export function buildPrompt(product: { id: string; title: string }, people: Person[], facts: Facts, titles: string[], meta: OrderMeta, now = new Date()) {
+  const all = chaptersFor(product.id);
+  const refs = facts.sections ? titles.map((t) => { const i = all.indexOf(t); return i >= 0 && facts.sections![i] ? `[${t}] ${facts.sections![i].join(' ')}` : ''; }).filter(Boolean).join('\n') : '';
   const system = `당신은 사주 서비스 "달새김사주"의 풀이 작가 "달새김"이다.
 독자는 20~30대 여성이 중심. 다정하고 세련된 해요체(~해요, ~예요). 과장된 신비주의·공포 금지, 쉬운 말, 한 문단 3~5문장.
 장마다 근거(어떤 기운·어떤 달 때문인지)를 한 줄 넣어(사실에 'N장 근거 표시'가 있으면 본문에 ①②③ 번호를 그대로 써서 사주 구성표의 그 자리를 가리킨다) "내 얘기 같다"는 느낌을 준다. 아래 '계산된 사실'의 숫자·달·키워드와 반드시 일치하게 쓴다(새 숫자를 지어내지 않는다).
 단정 금지(죽음·이혼 확정·파산·큰 병), 의료 조언 금지, "반드시·무조건" 금지.
 돈·투자 주제: 사주로 결과를 예측하지 않는다. 종목·매수·매도·수익 보장 표현 금지. 시장 이야기는 주어진 시장 노트 내용만 쓰고, 없으면 "공식 정보로 함께 확인"을 권한다.
 다른 운세 사이트·책의 문장을 흉내 내지 말고 모두 새로 쓴다. 이름은 "OOO 님"으로 부른다. 희망적으로 마무리하고 실천 조언은 구체적으로.
-출력은 JSON 하나만: {"intro": string, "chapters": [{"title": string, "say": string(한 줄 요약), "body": string(350~600자, 문단은 \\n\\n), "highlight": string(공유용 한 문장)}], "closing": {"title": "달새김이 남기는 말", "body": string, "tips": [실천 조언 3개]}}`;
+출력은 JSON 하나만: {"intro": string, "chapters": [{"title": string, "say": string(한 줄 요약), "body": string(${product.id === 'lifetime' ? '600~900자' : '350~600자'}, 문단은 \\n\\n), "highlight": string(공유용 한 문장)}], "closing": {"title": "달새김이 남기는 말", "body": string, "tips": [실천 조언 3개]}}`;
   const user = `상품: ${product.title}
 사람: ${people.map((p) => `${p.name}(${p.gender === 'M' ? '남' : '여'}, ${p.calendar === 'lunar' ? '음력' : '양력'} ${p.year}.${p.month}.${p.day}${p.hour == null ? ', 시간 모름' : ` ${p.hour}시`})`).join(' / ')}
 오늘: ${now.toISOString().slice(0, 10)}${meta?.q ? `\n고민: ${meta.q}` : ''}${meta?.mbti ? `\nMBTI: ${meta.mbti}` : ''}
 계산된 사실:
 ${facts.lines.map((l) => `- ${l}`).join('\n')}
 참고 문장(그대로 베끼지 말고 소화해서): ${facts.paras.slice(0, 8).join(' ')}
-장 목록(이 순서·제목 그대로): ${titles.map((t, i) => `${i + 1}. ${t}`).join(' / ')}`;
+장 목록(이 순서·제목 그대로): ${titles.map((t, i) => `${i + 1}. ${t}`).join(' / ')}${refs ? `\n장별 초안(계산으로 만든 내용 — 숫자·달·십성·대운은 그대로 살리고 문장은 새로 다듬어 더 깊게):\n${refs}` : ''}`;
   return { system, user };
 }
 

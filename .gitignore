@@ -20,3 +20,4 @@ web/public/img/_incoming/*
 !web/public/img/_incoming/.gitkeep
 server/.data/
 server/test/tmp/
+.scratch/

@@ -21,7 +21,7 @@ const cnt = (saju: SajuResult, ...k: string[]) => k.reduce((s, x) => s + ((saju.
 
 /* ---------- 결혼운 ---------- */
 // 일지(배우자 자리)의 십성 — 결혼 생활에서 드러나는 결
-const SPOUSE: Record<string, { mate: string; life: string; keep: string }> = {
+export const SPOUSE: Record<string, { mate: string; life: string; keep: string }> = {
   비견: { mate: '친구처럼 대등하게 마주 보는 사람', life: '서로의 영역을 존중할 때 가장 편안한 결혼이에요. 함께하되 각자의 시간도 지켜 주는 부부가 잘 맞아요.', keep: '의견이 부딪힐 때 이기려 하기보다 "둘 다 맞을 수 있다"를 먼저 말해 보세요.' },
   겁재: { mate: '에너지가 크고 추진력 있는 사람', life: '함께 목표를 세우면 큰 힘을 내는 부부예요. 다만 돈과 결정의 주도권을 미리 나눠 두면 다툼이 줄어요.', keep: '큰돈이 드는 결정은 하루 묵혀 두고 다시 이야기하는 규칙을 만들어 보세요.' },
   식신: { mate: '다정하고 생활의 즐거움을 아는 사람', life: '맛있는 것, 소소한 여행처럼 일상의 기쁨을 나눌수록 깊어지는 결혼이에요.', keep: '바쁠수록 함께 먹는 한 끼를 지켜 보세요. 대화가 저절로 이어져요.' },
@@ -34,7 +34,7 @@ const SPOUSE: Record<string, { mate: string; life: string; keep: string }> = {
   정인: { mate: '나를 아껴 주고 품어 주는 사람', life: '정서적으로 깊이 기대고 돌보는 결혼이에요. 가족과의 관계도 따뜻하게 이어 가는 부부예요.', keep: '받는 만큼 돌려주는 작은 표현을 잊지 마세요. 서로를 보살피는 마음이 오래가요.' },
 };
 // 부족한 기운을 채워 주는 상대의 결
-const MATE_EL: Record<string, string> = { 목: '따뜻하게 이끌어 주고 성장을 응원하는', 화: '밝고 표현이 솔직한', 토: '듬직하고 약속을 잘 지키는', 금: '단정하고 기준이 분명한', 수: '깊이 들어 주고 마음을 잘 읽는' };
+export const MATE_EL: Record<string, string> = { 목: '따뜻하게 이끌어 주고 성장을 응원하는', 화: '밝고 표현이 솔직한', 토: '듬직하고 약속을 잘 지키는', 금: '단정하고 기준이 분명한', 수: '깊이 들어 주고 마음을 잘 읽는' };
 
 export function marriageReport(saju: SajuResult, name: string, profileId: string, now = new Date()) {
   const map = sajuMap(saju, profileId, now);
