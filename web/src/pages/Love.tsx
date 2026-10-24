@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { nextMonths, toRanges } from '@dalsaegim/content';
 import { useMain } from '../store/app';
 import { useSaju, useToday } from '../lib/fortune';
-import { FlowChart, FlowLegend, Pic, won, type PicName } from '../components/ui';
+import { FlowChart, FlowLegend, ProdPic, won, type PicName } from '../components/ui';
 import { I } from '../components/icons';
 import brand from '../../../brand.config.json';
 
@@ -61,7 +61,7 @@ export default function Love() {
           <div className="stack mt12">
             {LOVE_PRODUCTS.map(([id, pic]) => ({ p: brand.products.find((x) => x.id === id) as ((typeof brand.products)[number] & { adult?: boolean; visible?: boolean }) | undefined, pic })).filter((x) => x.p && x.p.visible !== false).map(({ p: pp, pic }) => { const p = pp!; return (
               <Link key={p.id} to={`/product/${p.id}`} className="card prod-row">
-                <Pic n={pic} />
+                <ProdPic id={p.id} fallback={pic} />
                 <span className="grow">{p.adult ? <em className="pbadge adult">19세 이상</em> : p.badge ? <em className="pbadge">{p.badge}</em> : null}<b style={{ display: 'block' }}>{p.title}</b><small>{p.cardCopy}</small></span>
                 <b className="price">{won(p.price)}</b>
               </Link>

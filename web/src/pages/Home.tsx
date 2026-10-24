@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { useMain } from '../store/app';
 import { useToday } from '../lib/fortune';
 import { apiAuth, apiGet } from '../lib/api';
-import { Foot, CAT_LABEL, Pic, useToast, won, type PicName } from '../components/ui';
+import { Foot, CAT_LABEL, ProdPic, useToast, won, type PicName } from '../components/ui';
 import { GuideWidget } from '../components/Guide';
 import { kstMonth, kstYear } from '../lib/dates';
 import brand from '../../../brand.config.json';
@@ -82,7 +82,7 @@ export default function Home() {
               if (!p) return null;
               return (
                 <Link key={r.id} to={`/product/${r.id}`} className="rep-card" onClick={() => track('content_view', { content: 'home_rep', product: r.id })}>
-                  {r.img ? <span className="rep-img" style={{ backgroundImage: `url(${r.img})` }} aria-hidden /> : <Pic n={r.pic!} />}
+                  <ProdPic id={r.id} fallback={r.pic ?? 'moon'} size="l" />
                   <span className="rep-body">
                     <small className="rep-eye">{r.eye}</small>
                     <b>{r.name}</b>
@@ -155,7 +155,7 @@ export default function Home() {
               <div className="plist">
                 {rows.map(([p, pic]) => (
                   <Link key={p.id} to={`/product/${p.id}`} className="prow">
-                    <Pic n={pic} size="s" />
+                    <ProdPic id={p.id} fallback={pic} />
                     <span className="grow">{p.adult ? <em className="pbadge adult">19세 이상</em> : p.badge ? <em className="pbadge">{p.badge}</em> : null}<b>{p.title}</b><small>{p.cardCopy}</small></span>
                     <span className="pp">{p.listPrice ? <s>{won(p.listPrice)}</s> : null}{won(p.price)}</span>
                   </Link>

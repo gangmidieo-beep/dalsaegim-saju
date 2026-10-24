@@ -1,6 +1,6 @@
 // 전체 운세 — 무료 메뉴와 유료 풀이를 한곳에. 사랑 시리즈를 맨 위에.
 import { Link } from 'react-router-dom';
-import { Pic, Top, won, type PicName } from '../components/ui';
+import { Pic, ProdPic, Top, won, type PicName } from '../components/ui';
 import { GuideWidget } from '../components/Guide';
 import { I } from '../components/icons';
 import brand from '../../../brand.config.json';
@@ -32,6 +32,7 @@ export default function All() {
               <div className="stack mt12">
                 {ps.map((p) => (
                   <Link key={p.id} to={`/product/${p.id}`} className="card prod-row">
+                    <ProdPic id={p.id} />
                     <span className="grow">{(p as { adult?: boolean }).adult ? <em className="pbadge adult">19세 이상</em> : p.badge ? <em className="pbadge">{p.badge}</em> : null}<b style={{ display: 'block' }}>{p.title}</b><small>{p.cardCopy}</small></span>
                     <b className="price">{won(p.price)}</b>
                   </Link>

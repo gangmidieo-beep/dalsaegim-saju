@@ -1347,3 +1347,13 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .charm-types .ct-img[data-b]::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(to bottom, transparent 0, transparent 50%, rgba(11, 18, 38, 0.92) 64%, #0b1226 100%); pointer-events: none; }
 .charm-types .ct-img[data-b]::after { content: ''; position: absolute; left: 14%; right: 14%; top: 58%; height: 1px; background: linear-gradient(90deg, transparent, rgba(232, 201, 143, 0.75), transparent); pointer-events: none; }
 .charm-types .ct-img[data-b] .ct-mark { z-index: 1; }
+
+/* 상품 썸네일(대표님 확정 표지 장면) — 아이콘 칸과 같은 자리·크기, 사진은 둥근 정사각 */
+.ppic { flex: none; width: 56px; height: 56px; border-radius: 14px; overflow: hidden; background: #1b2140; box-shadow: 0 0 0 1px rgba(201, 169, 106, 0.35); display: block; }
+.ppic.s { width: 44px; height: 44px; border-radius: 12px; }
+.ppic.l { width: 68px; height: 68px; border-radius: 16px; }
+.ppic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.pv-cover-img { margin: 0; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 20px rgba(20, 24, 50, 0.18); background: #f7f1e6; }
+.pv-cover-img img { width: 100%; height: auto; display: block; }
+.pv-cover-img figcaption { font-size: 12.5px; color: #8a6d2b; text-align: center; padding: 8px 10px 10px; word-break: keep-all; }

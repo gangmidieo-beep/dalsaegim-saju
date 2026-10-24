@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { API } from '../lib/api';
 import { track } from '../lib/track';
+import { PROD_IMG } from './ui';
 
 type PV = {
   productId: string; title: string; who: string; intro: string; amount: string; summary?: { headline: string; lead: string } | null;
@@ -60,12 +61,19 @@ function PreviewSheet({ productId, onClose }: { productId: string; onClose: () =
           {!pv && !err && <p className="muted">불러오는 중…</p>}
           {pv && (<>
             <p className="pv-tag">실제 결과물 일부 · 예시</p>
-            <section className="pv-cover">
-              <small>DALSAEGIM · READING</small>
-              <h2>{pv.title}</h2>
-              <p className="pv-who">{pv.who} 님을 위한 풀이</p>
-              <p>{pv.intro}</p>
-            </section>
+            {PROD_IMG.has(pv.productId) ? (
+              <figure className="pv-cover-img">
+                <img src={`/img/cover/${pv.productId}.webp`} alt={`${pv.title} 결과지 표지 예시`} width={720} height={1019} />
+                <figcaption>결과지 표지 예시 · 실제 결과지에는 내 이름과 생년월일이 들어가요</figcaption>
+              </figure>
+            ) : (
+              <section className="pv-cover">
+                <small>DALSAEGIM · READING</small>
+                <h2>{pv.title}</h2>
+                <p className="pv-who">{pv.who} 님을 위한 풀이</p>
+                <p>{pv.intro}</p>
+              </section>
+            )}
             <p className="pv-amount"><b>구성</b> {pv.amount}</p>
             {pv.summary && <section className="pv-card"><small>핵심 요약</small><h3>{pv.summary.headline}</h3><p>{pv.summary.lead}</p></section>}
             {pv.toc.length > 0 && (
