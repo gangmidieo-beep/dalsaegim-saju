@@ -5,12 +5,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { nextMonths, toRanges } from '@dalsaegim/content';
 import { useMain } from '../store/app';
 import { useSaju, useToday } from '../lib/fortune';
-import { FlowChart, FlowLegend, Pic, won } from '../components/ui';
+import { FlowChart, FlowLegend, Pic, won, type PicName } from '../components/ui';
 import { I } from '../components/icons';
 import brand from '../../../brand.config.json';
 
 const SITU: [string, string, string][] = [['new', '솔로예요', '언제 인연이 올까?'], ['crush', '썸·짝사랑 중', '그 사람 마음이 궁금해'], ['partner', '연애 중이에요', '이 관계, 계속 가도 될까?'], ['ex', '헤어졌어요', '다시 만날 수 있을까?'], ['breakup', '이별 고민', '이별을 고민 중이에요'], ['marry', '결혼 고민', '결혼 시기가 궁금해']];
-const LOVE_PRODUCTS = ['love_flow', 'reunion', 'gunghap'];
+// 사랑 시리즈 — 홈 '사랑·인연' 묶음과 같은 상품·같은 그림(속궁합·결혼운·썸 타로 포함)
+const LOVE_PRODUCTS: [string, PicName][] = [['love_flow', 'love'], ['reunion', 'moon'], ['gunghap', 'compat'], ['marriage', 'ring'], ['adult_gunghap', 'family'], ['tarot_some', 'tarot']];
 
 export default function Love() {
   const { profile, isSample } = useMain();
@@ -58,13 +59,13 @@ export default function Love() {
         <section className="mt20" aria-label="연애 풀이">
           <h3 className="h3">깊이 보는 사랑 풀이</h3>
           <div className="stack mt12">
-            {LOVE_PRODUCTS.map((id) => brand.products.find((p) => p.id === id)!).map((p) => (
+            {LOVE_PRODUCTS.map(([id, pic]) => ({ p: brand.products.find((x) => x.id === id) as ((typeof brand.products)[number] & { adult?: boolean; visible?: boolean }) | undefined, pic })).filter((x) => x.p && x.p.visible !== false).map(({ p: pp, pic }) => { const p = pp!; return (
               <Link key={p.id} to={`/product/${p.id}`} className="card prod-row">
-                <Pic n={p.id === 'gunghap' ? 'family' : p.id === 'reunion' ? 'moon' : 'love'} />
-                <span className="grow">{p.badge && <em className="pbadge">{p.badge}</em>}<b style={{ display: 'block' }}>{p.title}</b><small>{p.cardCopy}</small></span>
+                <Pic n={pic} />
+                <span className="grow">{p.adult ? <em className="pbadge adult">19세 이상</em> : p.badge ? <em className="pbadge">{p.badge}</em> : null}<b style={{ display: 'block' }}>{p.title}</b><small>{p.cardCopy}</small></span>
                 <b className="price">{won(p.price)}</b>
               </Link>
-            ))}
+            ); })}
           </div>
         </section>
 
