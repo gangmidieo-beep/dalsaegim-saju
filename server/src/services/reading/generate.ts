@@ -429,6 +429,7 @@ export async function runOne(db: Db, r: typeof S.readings.$inferSelect, http?: t
       status: 'done', content: { ...g.content, issues: g.issues } as any, model: g.content.generatedBy === 'ai' ? aiModel(r.productId === 'lifetime' && longOn() ? 'long' : 'reading') || null : 'engine',
       tokensIn: g.tokensIn, tokensOut: g.tokensOut, costKrw: g.costKrw, doneAt: new Date(),
     }).where(eq(S.readings.id, r.id));
+    console.log(`[reading] ${r.id} 완료 ${r.productId} · ${g.content.generatedBy ?? 'engine'} · ${g.content.chapters.length}장 ${g.content.chapters.reduce((n, c) => n + (c.body?.length ?? 0), 0)}자 · 원가 ${g.costKrw}원${g.issues.length ? ` · 확인 ${g.issues.length}건` : ''}`);
   } catch (e) {
     await db.update(S.readings).set({ status: 'failed' }).where(eq(S.readings.id, r.id));
     throw e;
