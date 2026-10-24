@@ -6,13 +6,13 @@
 // · 묶음이 끝날 때마다 onProgress 로 진행률(N/26장)을 저장한다
 import { lifetimeDeep, type LongChapter, type LifetimeDeep } from '@dalsaegim/content';
 import { calcSaju } from '@dalsaegim/engine';
+import { createHash } from 'node:crypto';
 import type { Chapter, Closing, Person, ReadingContent } from './generate.ts';
+import { aiCall, aiCostKrw, aiModel, type SystemPart } from '../ai.ts';
 
 const BANNED = [/사망|죽음|죽(는|을) (것|수|거|운명|위험)/, /이혼(하게|할 수밖에|이 확정)/, /파산/, /(암|중병)에 걸/, /(매수|매도)(하세요|하라|하시)/, /(사세요|파세요)/, /수익(을|이)? ?보장/, /종목/, /반드시|무조건|100%/];
-const KRW_PER_USD = 1450;
-const price = () => ({ inp: +(process.env.AI_PRICE_IN_PER_M ?? 2), out: +(process.env.AI_PRICE_OUT_PER_M ?? 10) });
-export type Usage = { in: number; out: number; cacheWrite: number; cacheRead: number; calls: number };
-export const usageKrw = (u: Usage) => Math.round(((u.in * price().inp + u.cacheWrite * price().inp * 1.25 + u.cacheRead * price().inp * 0.1 + u.out * price().out) / 1e6) * KRW_PER_USD);
+export type Usage = { in: number; out: number; cacheWrite: number; cacheRead: number; calls: number; krw: number };
+export const usageKrw = (u: Usage, model = aiModel('long') || 'claude-sonnet-5-5') => aiCostKrw(model, u);
 export const longOn = () => process.env.READING_LONG !== 'off';
 const scale = () => Math.max(0.3, Math.min(1.5, +(process.env.READING_LEN_SCALE ?? 0.82)));
 
@@ -28,19 +28,10 @@ type Draft = { id: string; title: string; say: string; body: string; highlight: 
 const len = (s: string) => s.replace(/\s/g, '').length;
 const bodyLenTarget = (c: LongChapter) => Math.round(c.len * scale());
 
-async function call(system: { type: 'text'; text: string; cache_control?: { type: 'ephemeral' } }[], user: string, http: typeof fetch, u: Usage, maxTokens = 8000) {
-  const r = await http(process.env.ANTHROPIC_API_URL || 'https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY!, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: process.env.READING_LONG_MODEL || process.env.ANTHROPIC_MODEL, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] }),
-    signal: AbortSignal.timeout(240_000),
-  });
-  if (!r.ok) { const e = new Error(`AI 호출 실패 ${r.status}`) as Error & { status?: number }; e.status = r.status; throw e; }
-  const j = (await r.json()) as any;
-  u.calls++; u.in += j.usage?.input_tokens ?? 0; u.out += j.usage?.output_tokens ?? 0;
-  u.cacheWrite += j.usage?.cache_creation_input_tokens ?? 0; u.cacheRead += j.usage?.cache_read_input_tokens ?? 0;
-  const text = (j.content ?? []).map((c: any) => c.text ?? '').join('');
-  return JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
+async function call(system: SystemPart[], user: string, http: typeof fetch, u: Usage, maxTokens = 8000, cacheKey?: string) {
+  const c = await aiCall({ system, messages: [{ role: 'user', content: user }], kind: 'long', http, maxTokens, json: true, cacheKey });
+  u.calls++; u.in += c.usage.in; u.out += c.usage.out; u.cacheWrite += c.usage.cacheWrite; u.cacheRead += c.usage.cacheRead; u.krw += c.costKrw;
+  return JSON.parse(c.text.slice(c.text.indexOf('{'), c.text.lastIndexOf('}') + 1));
 }
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function withRetry<T>(fn: () => Promise<T>, tries = 3): Promise<T> {
@@ -70,14 +61,15 @@ export async function generateLong(product: { id: string; title: string }, peopl
   const saju = calcSaju({ year: p0.year, month: p0.month, day: p0.day, hour: p0.hour ?? null, calendar: p0.calendar, leapMonth: p0.leap, gender: p0.gender, timeUnknown: p0.hour == null });
   const deep: LifetimeDeep = lifetimeDeep(saju, p0.name, 'r', opts.now);
   const outline = deep.outline;
-  const u: Usage = { in: 0, out: 0, cacheWrite: 0, cacheRead: 0, calls: 0 };
+  const u: Usage = { in: 0, out: 0, cacheWrite: 0, cacheRead: 0, calls: 0, krw: 0 };
   const factsAll = Object.entries(deep.facts).map(([k, v]) => `[${k}]\n${v}`).join('\n\n');
   const person = `${p0.name}(${p0.gender === 'M' ? '남' : '여'}, ${p0.calendar === 'lunar' ? '음력' : '양력'} ${p0.year}.${p0.month}.${p0.day}${p0.hour == null ? ', 태어난 시간 모름' : ` ${p0.hour}시`}) / 오늘 ${(opts.now ?? new Date()).toISOString().slice(0, 10)}`;
   const toc = outline.map((c, i) => `${i + 1}. ${c.title} — ${c.brief}`).join('\n');
   const sys = (intro: boolean) => [
-    { type: 'text' as const, text: RULES.replace('${INTRO}', intro ? ',"intro":"감정서 첫머리 인사(300~400자)","closing":{"title":"달새김이 남기는 말","body":"(빈 문자열)","tips":[]}' : '') },
-    { type: 'text' as const, text: `[대상] ${person}\n\n[전체 목차 — 각 장은 자기 범위만 쓴다]\n${toc}\n\n[계산 자료]\n${factsAll}`, cache_control: { type: 'ephemeral' as const } },
+    { text: RULES.replace('${INTRO}', intro ? ',"intro":"감정서 첫머리 인사(300~400자)","closing":{"title":"달새김이 남기는 말","body":"(빈 문자열)","tips":[]}' : '') },
+    { text: `[대상] ${person}\n\n[전체 목차 — 각 장은 자기 범위만 쓴다]\n${toc}\n\n[계산 자료]\n${factsAll}`, cache: true },
   ];
+  const ck = `long:${createHash('sha256').update(factsAll).digest('hex').slice(0, 24)}`; // 같은 풀이의 묶음끼리 캐시 공유(GPT)
   const draftOf = (c: LongChapter) => deep.fallback(c).join(' ');
   const userFor = (cs: LongChapter[], note = '') => `이번에 쓸 장(이 순서, 제목 그대로):\n${cs.map((c) => `- ${c.id} 「${c.title}」 본문 약 ${bodyLenTarget(c)}자(공백 포함) · 쓸 범위: ${c.brief}\n  집중할 계산 자료: ${c.facts.join(', ')}\n  참고 초안(사실만 가져오고 문장은 새로, 훨씬 깊게): ${draftOf(c).slice(0, 1200)}`).join('\n')}${note}`;
 
@@ -89,7 +81,7 @@ export async function generateLong(product: { id: string; title: string }, peopl
   const conc = Math.max(1, +(process.env.READING_CONCURRENCY ?? 4));
   await pool(batches, conc, async (cs, bi) => {
     try {
-      const j = await withRetry(() => call(sys(bi === 0), userFor(cs, bi === 0 ? '\n첫 묶음이므로 intro 도 함께 쓴다.' : ''), http, u));
+      const j = await withRetry(() => call(sys(bi === 0), userFor(cs, bi === 0 ? '\n첫 묶음이므로 intro 도 함께 쓴다.' : ''), http, u, 8000, ck));
       if (bi === 0 && typeof j.intro === 'string') intro = j.intro;
       for (const c of (j.chapters ?? []) as Draft[]) if (c && cs.some((x) => x.id === c.id) && typeof c.body === 'string') got.set(c.id, c);
     } catch (e) { issues.push(`묶음 ${bi + 1} 실패: ${(e as Error).message}`); }
@@ -101,7 +93,7 @@ export async function generateLong(product: { id: string; title: string }, peopl
   await pool(redo, conc, async (c) => {
     const prev = got.get(c.id);
     const why = !prev ? '' : BANNED.some((re) => re.test(prev.body)) ? '\n앞서 쓴 글에 금지 표현이 있었다. 금지 규칙을 지켜 새로 쓴다.' : `\n앞서 쓴 글이 ${len(prev.body)}자로 짧았다. 목표 분량을 채워 더 깊게 쓴다.`;
-    try { const j = await withRetry(() => call(sys(false), userFor([c], why), http, u), 2); const d = (j.chapters ?? []).find((x: Draft) => x?.id === c.id); if (d?.body) got.set(c.id, d); } catch (e) { issues.push(`${c.id} 다시 쓰기 실패: ${(e as Error).message}`); }
+    try { const j = await withRetry(() => call(sys(false), userFor([c], why), http, u, 8000, ck), 2); const d = (j.chapters ?? []).find((x: Draft) => x?.id === c.id); if (d?.body) got.set(c.id, d); } catch (e) { issues.push(`${c.id} 다시 쓰기 실패: ${(e as Error).message}`); }
   });
   // 그래도 없거나 금지 표현이 남은 장은 계산 초안으로
   const chapters: (Chapter & { part: number; partTitle: string })[] = outline.map((c, i) => {
@@ -121,5 +113,5 @@ export async function generateLong(product: { id: string; title: string }, peopl
     intro: intro || `${p0.name} 님의 사주 여덟 글자를 처음부터 끝까지 풀어 쓴 정통 감정서예요. 타고난 설계도, 사랑·돈·일·사람, 대운·세운·월운의 흐름, 운을 새기는 습관까지 차례로 담았어요.`,
     chapters, closing, who: people.map((p) => p.name), visual: deep.visual as any, facts: Object.values(deep.facts),
   };
-  return { content, usage: u, costKrw: usageKrw(u), issues, totalChars: chapters.reduce((a, c) => a + c.body.length, 0) };
+  return { content, usage: u, costKrw: u.krw, issues, totalChars: chapters.reduce((a, c) => a + c.body.length, 0) };
 }

@@ -2,7 +2,7 @@
 // 원칙: 이름을 부르며 시작, 감정·고민에 맞는 공감·위로·응원, 미래 단정·불안 조성 금지.
 import { calcSaju } from '@dalsaegim/engine';
 import { composeLetter, monthFortune, personaOf, sajuMap, LETTER_FEELINGS, LETTER_TOPICS, type LetterRecall } from '@dalsaegim/content';
-import { callClaude, costKrwOf, parseJson } from './reading/generate.ts';
+import { callClaude, parseJson } from './reading/generate.ts';
 import { friendLive } from './friend.ts';
 
 type ProfileRow = { id: string; name: string; gender: string; birthYear: number; birthMonth: number; birthDay: number; calendar: string; leap: boolean; birthHour: number | null };
@@ -25,13 +25,13 @@ export async function writeLetter(o: { profile: ProfileRow; persona: string; fee
 "지난 고민"이 주어지면 첫머리에 그때를 기억해 묻는다(예: "○○님, 지난번에는 이직을 앞두고 고민이 많으셨지요. 그때와 비교해 지금은 마음이 조금 편안해지셨나요?"). 지난 고민의 결과를 짐작하거나 단정하지 않는다.
 출력은 JSON 하나만: {"title": string(20자 이내), "body": string}`;
   const user = `고객 이름: ${o.profile.name}\n지금 감정: ${f}\n고민: ${t}${o.input ? ` / 직접 쓴 한 줄: ${o.input.slice(0, 100)}` : ''}\n사주 성향: ${map.dayMaster.title} — ${map.dayMaster.line}\n이번 달 사주 흐름: ${flow}${o.recall ? `\n지난 ${o.recall.kind === 'wish' ? '소망' : '고민'}(${o.recall.when}): ${o.recall.what}` : ''}`;
-  const c = await callClaude(system, [{ role: 'user', content: user }], o.http ?? fetch, { model: process.env.FRIEND_MODEL || process.env.ANTHROPIC_MODEL, maxTokens: 600 });
+  const c = await callClaude(system, [{ role: 'user', content: user }], o.http ?? fetch, { kind: 'friend', maxTokens: 600 });
   try {
     const j = parseJson(c.text);
     const body = String(j.body ?? '').trim();
     if (body.length >= 80 && body.length <= 400 && body.includes(o.profile.name) && !BANNED.test(body)) {
-      return { ...base, title: String(j.title ?? base.title).slice(0, 30), body, ai: true, tokensIn: c.tokensIn, tokensOut: c.tokensOut, costKrw: costKrwOf(c.tokensIn, c.tokensOut) };
+      return { ...base, title: String(j.title ?? base.title).slice(0, 30), body, ai: true, tokensIn: c.tokensIn, tokensOut: c.tokensOut, costKrw: c.costKrw };
     }
   } catch { /* 형식이 어긋나면 문구 은행 편지로 */ }
-  return { ...base, ai: false, tokensIn: c.tokensIn, tokensOut: c.tokensOut, costKrw: costKrwOf(c.tokensIn, c.tokensOut) };
+  return { ...base, ai: false, tokensIn: c.tokensIn, tokensOut: c.tokensOut, costKrw: c.costKrw };
 }

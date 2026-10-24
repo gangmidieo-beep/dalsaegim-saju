@@ -76,7 +76,7 @@ describe('정통사주 장편(40장)', () => {
     expect(off.content.chapters).toHaveLength(9);
   });
   it('비용 계산 — 캐시 읽기는 10%, 쓰기는 125%', () => {
-    expect(usageKrw({ in: 0, out: 1_000_000, cacheWrite: 0, cacheRead: 0, calls: 1 })).toBe(14500);
-    expect(usageKrw({ in: 0, out: 0, cacheWrite: 0, cacheRead: 1_000_000, calls: 1 })).toBe(290);
+    expect(usageKrw({ in: 0, out: 1_000_000, cacheWrite: 0, cacheRead: 0, calls: 1, krw: 0 }, 'claude-sonnet-5-5')).toBe(14500);
+    expect(usageKrw({ in: 0, out: 0, cacheWrite: 0, cacheRead: 1_000_000, calls: 1, krw: 0 }, 'claude-sonnet-5-5')).toBe(290);
   });
 });

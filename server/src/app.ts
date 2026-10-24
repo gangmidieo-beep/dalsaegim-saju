@@ -18,6 +18,7 @@ import { normalizePhone, parsePayappFeedback, payappCancel, payappEnv, payappReq
 import { latestMarket, liveAI } from './services/reading/generate.ts';
 import { friendReply, friendLive, type ChatMsg } from './services/friend.ts';
 import { readingPdf, pdfReady } from './services/reading/pdf.ts';
+import { aiProvider } from './services/ai.ts';
 import { synthesize, ttsLive, ttsProvider, ttsUsage, tcVoices, tcVoiceOf, TC_PERSONA, TTS_MAX_CHARS } from './services/tts.ts';
 import { personaOf, defaultTodayLetter, LETTER_FEELINGS, LETTER_TOPICS, LETTER_KAKAO, CHARMS } from '@dalsaegim/content';
 import { writeLetter } from './services/letter.ts';
@@ -78,7 +79,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
       .orderBy(asc(S.subscriptions.expiresAt)).limit(1))[0] ?? null;
   const isPremium = async (userId: string) => !!(await activePass(userId));
 
-  app.get('/health', async () => ({ ok: true, mock: MOCK, ai: liveAI(), friendAi: friendLive(), tts: ttsLive(), ttsProvider: ttsProvider() }));
+  app.get('/health', async () => ({ ok: true, mock: MOCK, ai: liveAI(), aiProvider: aiProvider(), friendAi: friendLive(), tts: ttsLive(), ttsProvider: ttsProvider() }));
   // 자연 음성 — 로그인한 사람만(비용 보호). 꺼져 있으면 503 → 화면이 브라우저 음성으로 대신 읽는다
   app.post('/tts', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req, rep) => {
     if (!ttsLive()) return rep.code(503).send({ error: '자연 음성이 꺼져 있어요' });

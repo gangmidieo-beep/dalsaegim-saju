@@ -1,6 +1,6 @@
 // 유료 풀이 생성 — 결제 완료 → readings(queued) → 워커가 생성 → done.
 // 1) 엔진·콘텐츠 계산으로 "사실"(지수·좋은 달·키워드·성향)을 먼저 만든다 → 무료 요약과 유료 풀이 숫자가 항상 같다.
-// 2) READING_AI=live + ANTHROPIC_API_KEY + ANTHROPIC_MODEL 이면 AI 가 그 사실을 바탕으로 문장을 쓴다(비용 보고·승인 후 켬).
+// 2) READING_AI=live + AI 키(ANTHROPIC_API_KEY 또는 OPENAI_API_KEY) 이면 AI 가 그 사실을 바탕으로 문장을 쓴다(비용 보고·승인 후 켬).
 //    꺼져 있으면 계산 결과와 문구 DB 로 만든 "엔진 풀이"(generatedBy: engine)로 흐름이 끝까지 돈다.
 import { and, desc, eq, inArray, lt } from 'drizzle-orm';
 import { calcSaju, branchRelations, kstParts, type SajuResult } from '@dalsaegim/engine';
@@ -10,6 +10,7 @@ import {
 } from '@dalsaegim/content';
 import R from '../../../../packages/content/data/reading.json' with { type: 'json' };
 import { generateLong, longOn } from './long.ts';
+import { aiCall, aiCostKrw, aiModel, aiProvider, type AiKind } from '../ai.ts';
 import { schema as S, type Db } from '../../db/index.ts';
 
 export type Chapter = { id: string; title: string; say: string; body: string; highlight: string; points?: string[]; basis?: Basis[]; part?: number; partTitle?: string };
@@ -333,24 +334,16 @@ export function engineContent(product: { id: string; title: string }, people: Pe
   };
 }
 
-/* ---------- AI 호출 ---------- */
-export const liveAI = () => process.env.READING_AI === 'live' && !!process.env.ANTHROPIC_API_KEY && !!process.env.ANTHROPIC_MODEL;
-const KRW_PER_USD = 1400;
-export async function callClaude(system: string, messages: { role: 'user' | 'assistant'; content: string }[], http: typeof fetch, opts: { model?: string; maxTokens?: number } = {}) {
-  const r = await http('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY!, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model: opts.model ?? process.env.ANTHROPIC_MODEL, max_tokens: opts.maxTokens ?? 8000, system, messages }),
-    signal: AbortSignal.timeout(180_000),
-  });
-  if (!r.ok) throw new Error(`AI 호출 실패 ${r.status}`);
-  const j = (await r.json()) as any;
-  const text = (j.content ?? []).map((c: any) => c.text ?? '').join('');
-  return { text, tokensIn: j.usage?.input_tokens ?? 0, tokensOut: j.usage?.output_tokens ?? 0 };
+/* ---------- AI 호출(Claude 또는 GPT — services/ai.ts) ---------- */
+export const liveAI = () => process.env.READING_AI === 'live' && aiProvider() != null;
+/** 예전 이름 유지 — 실제로는 키가 있는 업체(Claude/GPT)로 보낸다 */
+export async function callClaude(system: string, messages: { role: 'user' | 'assistant'; content: string }[], http: typeof fetch, opts: { model?: string; maxTokens?: number; kind?: AiKind } = {}) {
+  const c = await aiCall({ system, messages, http, kind: opts.kind ?? 'reading', model: opts.model, maxTokens: opts.maxTokens, json: true, timeoutMs: 180_000 });
+  return { text: c.text, tokensIn: c.usage.in + c.usage.cacheRead + c.usage.cacheWrite, tokensOut: c.usage.out, costKrw: c.costKrw, model: c.model };
 }
 export const parseJson = (text: string) => JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1));
-const rate = () => ({ inp: +(process.env.AI_PRICE_IN_PER_M ?? 3), out: +(process.env.AI_PRICE_OUT_PER_M ?? 15) });
-export const costKrwOf = (tin: number, tout: number) => Math.round(((tin * rate().inp + tout * rate().out) / 1e6) * KRW_PER_USD);
+/** 예전 호출용(모델 모를 때) — 유료 풀이 모델 요금으로 계산 */
+export const costKrwOf = (tin: number, tout: number) => aiCostKrw(aiModel('reading') || 'claude-sonnet-5-5', { in: tin, out: tout, cacheRead: 0, cacheWrite: 0 });
 
 export async function generateReading(product: { id: string; title: string }, people: Person[], opts: { meta?: OrderMeta; market?: { body: string; flow: number[] | null } | null; http?: typeof fetch; now?: Date; onProgress?: (done: number, total: number) => Promise<void> | void } = {}) {
   const ym = product.id === 'month_detail' ? opts.meta?.ym : undefined;
@@ -366,7 +359,7 @@ export async function generateReading(product: { id: string; title: string }, pe
   }
   if (!liveAI() || product.id === 'tarot_some') { const content = engineContent(product, ps, facts); return { content: { ...content, who: ps.map((p) => p.name), facts: facts.lines }, tokensIn: 0, tokensOut: 0, costKrw: 0, issues: [] as string[] }; }
   const half = Math.ceil(titles.length / 2);
-  let tokensIn = 0, tokensOut = 0, intro = '';
+  let tokensIn = 0, tokensOut = 0, costKrw = 0, intro = '';
   const chapters: Chapter[] = [];
   let closing: Closing = { title: '달새김이 남기는 말', body: '', tips: [] };
   for (const [k, part] of [titles.slice(0, half), titles.slice(half)].entries()) {
@@ -376,14 +369,14 @@ export async function generateReading(product: { id: string; title: string }, pe
     for (let attempt = 0; ; attempt++) {
       try { const c = await callClaude(system, [{ role: 'user', content: user + note }], opts.http ?? fetch); res = { json: parseJson(c.text), ...c }; break; } catch (e) { if (attempt >= 2) throw e; }
     }
-    tokensIn += res.tokensIn; tokensOut += res.tokensOut;
+    tokensIn += res.tokensIn; tokensOut += res.tokensOut; costKrw += res.costKrw;
     if (k === 0) intro = res.json.intro ?? ''; else if (res.json.closing?.body) closing = { title: res.json.closing.title || closing.title, body: res.json.closing.body, tips: res.json.closing.tips ?? [] };
     for (const c of res.json.chapters ?? []) chapters.push({ id: `c${chapters.length + 1}`, title: c.title, say: c.say, body: c.body, highlight: c.highlight });
   }
   // 근거 번호·소제목·그림 자료는 계산값 그대로 붙인다(AI 가 바꾸지 못하게)
   chapters.forEach((c, i) => { const m = facts.meta?.[i]; if (m) Object.assign(c, { points: m.points, basis: m.basis }); });
   const content: ReadingContent = { productId: product.id, title: product.title, intro, chapters, closing, who: ps.map((p) => p.name), facts: facts.lines, ...(facts.visual ? { visual: facts.visual } : {}), ...(facts.summary ? { summary: facts.summary } : {}), generatedBy: 'ai' };
-  return { content, tokensIn, tokensOut, costKrw: costKrwOf(tokensIn, tokensOut), issues: checkQuality(content, ps.map((p) => p.name), titles) };
+  return { content, tokensIn, tokensOut, costKrw, issues: checkQuality(content, ps.map((p) => p.name), titles) };
 }
 
 /* ---------- 워커: 3초마다 대기 풀이를 최대 3개씩 ---------- */
@@ -423,7 +416,7 @@ export async function runOne(db: Db, r: typeof S.readings.$inferSelect, http?: t
     const onProgress = async (done: number, total: number) => { await db.update(S.readings).set({ content: { progress: { done, total } } as any }).where(eq(S.readings.id, r.id)); };
     const g = await generateReading({ id: r.productId, title: p?.title ?? r.productId }, people, { meta: (o?.meta as OrderMeta) ?? null, market, http, onProgress });
     await db.update(S.readings).set({
-      status: 'done', content: { ...g.content, issues: g.issues } as any, model: g.content.generatedBy === 'ai' ? process.env.ANTHROPIC_MODEL ?? null : 'engine',
+      status: 'done', content: { ...g.content, issues: g.issues } as any, model: g.content.generatedBy === 'ai' ? aiModel(r.productId === 'lifetime' && longOn() ? 'long' : 'reading') || null : 'engine',
       tokensIn: g.tokensIn, tokensOut: g.tokensOut, costKrw: g.costKrw, doneAt: new Date(),
     }).where(eq(S.readings.id, r.id));
   } catch (e) {

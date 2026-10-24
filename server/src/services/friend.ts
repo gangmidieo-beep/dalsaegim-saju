@@ -4,14 +4,15 @@
 // AI 키가 없으면(또는 FRIEND_AI 가 live 가 아니면) 계산 결과로 짧은 답을 만든다(흐름 확인·시연용).
 import { calcSaju, type SajuResult } from '@dalsaegim/engine';
 import { sajuMap, todayFortune, monthFortune, nextMonths, toRanges, pick, personaOf, type Dim } from '@dalsaegim/content';
-import { callClaude, costKrwOf, parseJson } from './reading/generate.ts';
+import { callClaude, parseJson } from './reading/generate.ts';
+import { aiProvider } from './ai.ts';
 import { ACTIONS, CLARIFY, CLOSE, detectFormat, detectTopic } from './friendRules.ts';
 
 export type ChatMsg = { role: 'user' | 'friend'; text: string; at: string };
 export type MemoryDraft = { category: string; title: string; summary: string; sajuNote: string };
 type ProfileRow = { id: string; name: string; gender: string; birthYear: number; birthMonth: number; birthDay: number; calendar: string; leap: boolean; birthHour: number | null };
 
-export const friendLive = () => (process.env.FRIEND_AI ?? process.env.READING_AI) === 'live' && !!process.env.ANTHROPIC_API_KEY && !!(process.env.FRIEND_MODEL || process.env.ANTHROPIC_MODEL);
+export const friendLive = () => (process.env.FRIEND_AI ?? process.env.READING_AI) === 'live' && aiProvider() != null;
 
 // 주제 읽기는 friendRules.ts(최근 질문 우선 · 부정 표현 제외 · 형식 요청)
 export function topicOf(text: string, fallback?: string | null) {
@@ -97,13 +98,12 @@ export async function friendReply(o: {
   for (const m of o.history.slice(-12)) msgs.push({ role: m.role === 'user' ? 'user' : 'assistant', content: m.role === 'user' ? m.text : JSON.stringify({ reply: m.text }) });
   msgs.push({ role: 'user', content: o.text });
   // 무료 상담은 가벼운 모델(FRIEND_MODEL_FREE), 이용권 질문은 고급 모델(FRIEND_MODEL) — 비용 보고 10/21
-  const model = (o.tier === 'free' && process.env.FRIEND_MODEL_FREE) || process.env.FRIEND_MODEL || process.env.ANTHROPIC_MODEL;
-  const c = await callClaude(system, msgs, o.http ?? fetch, { model, maxTokens: 900 });
+  const c = await callClaude(system, msgs, o.http ?? fetch, { kind: o.tier === 'free' ? 'friendFree' : 'friend', maxTokens: 900 });
   let reply = c.text.trim();
   try {
     const j = parseJson(c.text);
     reply = String(j.reply ?? reply);
     if (j.memory?.title) Object.assign(draft, { category: String(j.memory.category ?? draft.category), title: String(j.memory.title).slice(0, 40), summary: String(j.memory.summary ?? j.memory.title).slice(0, 120) });
   } catch { /* JSON 이 아니면 본문 그대로 */ }
-  return { reply, draft, topic: topic.id, tokensIn: c.tokensIn, tokensOut: c.tokensOut, costKrw: costKrwOf(c.tokensIn, c.tokensOut), ai: true };
+  return { reply, draft, topic: topic.id, tokensIn: c.tokensIn, tokensOut: c.tokensOut, costKrw: c.costKrw, ai: true };
 }
