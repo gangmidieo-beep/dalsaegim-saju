@@ -5,14 +5,14 @@
 import { calcSaju, type SajuResult } from '@dalsaegim/engine';
 import { sajuMap, todayFortune, monthFortune, nextMonths, toRanges, pick, personaOf, type Dim } from '@dalsaegim/content';
 import { callClaude, parseJson } from './reading/generate.ts';
-import { aiProvider } from './ai.ts';
+import { aiCapReached, aiProvider } from './ai.ts';
 import { ACTIONS, CLARIFY, CLOSE, detectFormat, detectTopic } from './friendRules.ts';
 
 export type ChatMsg = { role: 'user' | 'friend'; text: string; at: string };
 export type MemoryDraft = { category: string; title: string; summary: string; sajuNote: string };
 type ProfileRow = { id: string; name: string; gender: string; birthYear: number; birthMonth: number; birthDay: number; calendar: string; leap: boolean; birthHour: number | null };
 
-export const friendLive = () => (process.env.FRIEND_AI ?? process.env.READING_AI) === 'live' && aiProvider() != null;
+export const friendLive = () => (process.env.FRIEND_AI ?? process.env.READING_AI) === 'live' && aiProvider() != null && !aiCapReached();
 
 // 주제 읽기는 friendRules.ts(최근 질문 우선 · 부정 표현 제외 · 형식 요청)
 export function topicOf(text: string, fallback?: string | null) {

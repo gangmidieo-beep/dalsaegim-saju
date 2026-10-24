@@ -45,12 +45,21 @@ export function aiCostKrw(model: string, u: AiUsage) {
 }
 
 /** 대화 한 번 — system 은 앞쪽(바뀌지 않는 부분)부터. json=true 면 JSON 한 개만 받는다. */
+// 하루 AI 사용 한도(원). 테스트 기간처럼 결제가 가짜(MOCK)일 때 누구나 유료 풀이를 만들 수 있으므로 상한을 둔다.
+// 한도를 넘으면 AI 를 부르지 않고 오류 → 풀이는 계산 초안으로, 상담은 짧은 기본 답변으로 대신한다. 비우면 한도 없음.
+const spent = { day: '', krw: 0 };
+const kstDay = () => new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+export function aiSpentToday() { if (spent.day !== kstDay()) { spent.day = kstDay(); spent.krw = 0; } return spent.krw; }
+export const aiDailyCap = () => { const v = Number(process.env.AI_DAILY_CAP_KRW); return Number.isFinite(v) && v > 0 ? v : null; };
+export const aiCapReached = () => { const c = aiDailyCap(); return c != null && aiSpentToday() >= c; };
 export async function aiCall(o: {
   system: string | SystemPart[]; messages: { role: 'user' | 'assistant'; content: string }[]; kind: AiKind; http?: typeof fetch;
   maxTokens?: number; json?: boolean; cacheKey?: string; timeoutMs?: number; model?: string;
 }): Promise<{ text: string; usage: AiUsage; model: string; costKrw: number }> {
   const p = aiProvider();
   if (!p) throw new Error('AI 키가 없어요');
+  const cap = aiDailyCap();
+  if (cap != null && aiCapReached()) throw Object.assign(new Error(`오늘 AI 사용 한도(${cap}원)에 닿았어요`), { status: 429 });
   const http = o.http ?? fetch;
   const model = o.model && fits(p, o.model) ? o.model : aiModel(o.kind, p);
   const parts: SystemPart[] = typeof o.system === 'string' ? [{ text: o.system }] : o.system;
@@ -87,5 +96,7 @@ export async function aiCall(o: {
     u = { in: (j.usage?.prompt_tokens ?? 0) - cached, out: j.usage?.completion_tokens ?? 0, cacheWrite: 0, cacheRead: cached };
     if (j.choices?.[0]?.finish_reason === 'length' && !text) throw new Error('AI 응답이 길이 제한에 걸렸어요');
   }
-  return { text, usage: u, model, costKrw: aiCostKrw(model, u) };
+  const costKrw = aiCostKrw(model, u);
+  aiSpentToday(); spent.krw += costKrw;
+  return { text, usage: u, model, costKrw };
 }

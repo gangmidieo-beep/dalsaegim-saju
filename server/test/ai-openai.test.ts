@@ -5,7 +5,7 @@ import { generateLong } from '../src/services/reading/long.ts';
 import { generateReading, liveAI } from '../src/services/reading/generate.ts';
 import { friendLive } from '../src/services/friend.ts';
 
-const KEYS = ['ANTHROPIC_API_KEY', 'ANTHROPIC_MODEL', 'OPENAI_API_KEY', 'OPENAI_MODEL', 'AI_PROVIDER', 'AI_MODEL', 'FRIEND_MODEL', 'FRIEND_MODEL_FREE', 'READING_AI', 'FRIEND_AI', 'READING_LONG_MODEL'];
+const KEYS = ['ANTHROPIC_API_KEY', 'ANTHROPIC_MODEL', 'OPENAI_API_KEY', 'OPENAI_MODEL', 'AI_PROVIDER', 'AI_MODEL', 'FRIEND_MODEL', 'FRIEND_MODEL_FREE', 'READING_AI', 'FRIEND_AI', 'READING_LONG_MODEL', 'AI_DAILY_CAP_KRW'];
 const saved: Record<string, string | undefined> = {};
 beforeEach(() => { for (const k of KEYS) { saved[k] = process.env[k]; delete process.env[k]; } });
 afterEach(() => { for (const k of KEYS) { if (saved[k] == null) delete process.env[k]; else process.env[k] = saved[k]; } });
@@ -74,5 +74,24 @@ describe('GPT 로 호출', () => {
     expect(g.costKrw).toBeGreaterThan(0);
     const r = await generateReading({ id: 'love_flow', title: '연애' }, [person], { http, now: new Date('2026-10-23T03:00:00Z') });
     expect(r.content.generatedBy).toBe('ai');
+  });
+});
+
+describe('하루 AI 한도(AI_DAILY_CAP_KRW)', () => {
+  it('한도에 닿으면 AI 를 더 부르지 않고 계산 풀이·기본 답변으로', async () => {
+    process.env.OPENAI_API_KEY = 'sk-test'; process.env.READING_AI = 'live';
+    const { aiSpentToday, aiCapReached } = await import('../src/services/ai.ts');
+    process.env.AI_DAILY_CAP_KRW = String(aiSpentToday() + 1);
+    expect(aiCapReached()).toBe(false);
+    const { http, calls } = fakeGPT();
+    await aiCall({ system: 'x', messages: [{ role: 'user', content: '안녕' }], kind: 'reading', http, json: true });
+    expect(aiCapReached()).toBe(true);
+    expect(liveAI()).toBe(false); expect(friendLive()).toBe(false);
+    await expect(aiCall({ system: 'x', messages: [{ role: 'user', content: '안녕' }], kind: 'reading', http })).rejects.toThrow(/한도/);
+    expect(calls).toHaveLength(1);
+    const r = await generateReading({ id: 'love_flow', title: '연애' }, [person], { http, now: new Date('2026-10-23T03:00:00Z') });
+    expect(r.content.generatedBy).not.toBe('ai');
+    delete process.env.AI_DAILY_CAP_KRW;
+    expect(liveAI()).toBe(true);
   });
 });

@@ -10,7 +10,7 @@ import {
 } from '@dalsaegim/content';
 import R from '../../../../packages/content/data/reading.json' with { type: 'json' };
 import { generateLong, longOn } from './long.ts';
-import { aiCall, aiCostKrw, aiModel, aiProvider, type AiKind } from '../ai.ts';
+import { aiCall, aiCapReached, aiCostKrw, aiModel, aiProvider, type AiKind } from '../ai.ts';
 import { schema as S, type Db } from '../../db/index.ts';
 
 export type Chapter = { id: string; title: string; say: string; body: string; highlight: string; points?: string[]; basis?: Basis[]; part?: number; partTitle?: string };
@@ -335,7 +335,7 @@ export function engineContent(product: { id: string; title: string }, people: Pe
 }
 
 /* ---------- AI 호출(Claude 또는 GPT — services/ai.ts) ---------- */
-export const liveAI = () => process.env.READING_AI === 'live' && aiProvider() != null;
+export const liveAI = () => process.env.READING_AI === 'live' && aiProvider() != null && !aiCapReached(); // 하루 한도에 닿으면 계산 풀이로
 /** 예전 이름 유지 — 실제로는 키가 있는 업체(Claude/GPT)로 보낸다 */
 export async function callClaude(system: string, messages: { role: 'user' | 'assistant'; content: string }[], http: typeof fetch, opts: { model?: string; maxTokens?: number; kind?: AiKind } = {}) {
   const c = await aiCall({ system, messages, http, kind: opts.kind ?? 'reading', model: opts.model, maxTokens: opts.maxTokens, json: true, timeoutMs: 180_000 });
