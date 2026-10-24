@@ -193,10 +193,10 @@ export function MonthPick({ ym, onPick }: { ym: string; onPick: (ym: string) => 
     <section className="card mt16" aria-label="운세를 볼 달 고르기">
       <h3 className="h3">궁금한 달을 골라 주세요</h3>
       <div className="mchips mt12">
-        {Array.from({ length: 12 }, (_, i) => { const mm = i + 1; const yy = mm < m ? y + 1 : y; const v = `${yy}-${String(mm).padStart(2, '0')}`; return <button key={v} className={`${v === ym ? 'on' : ''}${mm === m ? ' now' : ''}`} aria-pressed={v === ym} aria-label={`${yy}년 ${mm}월${mm === m ? ' (이번 달)' : ''}${v === ym ? ' · 선택됨' : ''}`} onClick={() => onPick(v)}><b>{v === ym && <span aria-hidden>✓ </span>}{mm}월</b>{mm === m && <small>이번 달</small>}</button>; })}
+        {Array.from({ length: 12 }, (_, i) => { const mm = i + 1; const yy = mm < m ? y + 1 : y; const v = `${yy}-${String(mm).padStart(2, '0')}`; return <button key={v} className={`${v === ym ? 'on' : ''}${mm === m ? ' now' : ''}`} aria-pressed={v === ym} aria-label={`${yy}년 ${mm}월${mm === m ? ' (이번 달)' : ''}${v === ym ? ' · 선택됨' : ''}`} onClick={() => onPick(v)}>{v === ym && <span className="ck" aria-hidden>✓</span>}<b>{mm}월</b>{mm === m && <small>이번 달</small>}</button>; })}
       </div>
       <p className="mpick-sel mt8">선택한 달: <b>{ym.slice(0, 4)}년 {Number(ym.slice(5))}월</b> · 날짜별 흐름과 좋은 날을 풀어 드려요.</p>
-      <p className="faint" style={{ margin: '2px 0 0', wordBreak: 'keep-all' }}>금색 채움 ✓ = 내가 고른 달 · 금색 테두리 ● = 이번 달</p>
+      <p className="faint" style={{ margin: '2px 0 0', wordBreak: 'keep-all' }}>금색 채움 ✓ = 내가&nbsp;고른&nbsp;달 · 금색 테두리 ● = 이번&nbsp;달</p>
     </section>
   );
 }

@@ -1324,3 +1324,13 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .ct-img[data-b='estate'] { --s: 152.8%; --px: 52%; --py: 0.8%; }
 .ct-img[data-b='work'] { --s: 163.5%; --px: 51%; --py: 2.6%; }
 .charm-types small { min-height: 2.6em; display: flex; align-items: flex-start; justify-content: center; }
+
+/* 월 선택 — 고르면 칸이 늘어나던 것: 칸 높이 고정, ✓ 는 오른쪽 위 모서리, '이번 달' 은 칸 아래쪽에 겹쳐 둔다 */
+.mchips button { height: 58px; min-height: 0; padding: 0; justify-content: center; }
+.mchips button b { line-height: 1.2; white-space: nowrap; }
+.mchips button .ck { position: absolute; top: 3px; right: 6px; font-size: 11px; font-weight: 900; line-height: 1; }
+.mchips button small { position: absolute; top: auto; bottom: 5px; left: 50%; transform: translateX(-50%); }
+.mchips button.now b { margin-bottom: 10px; }
+/* 풀이 미리보기 버튼 — 왼쪽에 치우쳐 어색하던 것 → 가운데, 글자에 맞춘 폭 */
+.pv-btn { width: fit-content; min-width: 210px; margin: 14px auto 0; padding: 0 22px; justify-content: center; text-align: center; border-radius: 999px; }
+.pv-btn .pv-chev { margin-left: 2px; }
