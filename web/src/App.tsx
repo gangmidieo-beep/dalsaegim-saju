@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigationType } from 'react-router-dom';
 import { ToastProvider, TabBar } from './components/ui';
 import { track } from './lib/track';
 import { ShareProvider } from './components/share';
@@ -28,8 +28,24 @@ const TAB = ['/', '/all', '/records', '/box', '/me', '/timeline'];
 
 export function App() {
   const loc = useLocation();
+  // R6 REQ-23 — 뒤로가기(POP)면 보던 위치로, 새 화면(PUSH)이면 맨 위로
+  const navType = useNavigationType();
+  useEffect(() => { try { history.scrollRestoration = 'manual'; } catch { /* 일부 브라우저 */ } }, []);
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const key = `scroll:${loc.key}`;
+    if (navType === 'POP') {
+      let y = 0;
+      try { y = Number(sessionStorage.getItem(key) ?? 0); } catch { /* 저장소 막힘 */ }
+      // 늦게 그려지는 화면(지연 로딩·목록)도 있어 높이가 찰 때까지 잠깐 다시 시도
+      let n = 0;
+      const go = () => { window.scrollTo(0, y); if (Math.abs(window.scrollY - y) > 2 && n++ < 20) setTimeout(go, 50); };
+      requestAnimationFrame(go);
+    } else window.scrollTo(0, 0);
+    const save = () => { try { sessionStorage.setItem(key, String(Math.round(window.scrollY))); } catch { /* 저장소 막힘 */ } };
+    window.addEventListener('scroll', save, { passive: true });
+    return () => window.removeEventListener('scroll', save);
+  }, [loc.key]);
+  useEffect(() => {
     track('page_view', { path: loc.pathname });
     if (new URLSearchParams(loc.search).get('utm_source') === 'share') track('share_link_open', { path: loc.pathname });
   }, [loc.pathname]);

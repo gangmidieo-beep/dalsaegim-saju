@@ -8,7 +8,7 @@ const ttsCalls: any[] = [];
 let failTts = 0;
 const VOICES: Record<string, any[]> = {
   'female|elder': [{ voice_id: 'tc_grandma', voice_name: { kor: '할머니', eng: 'Grandma' }, gender: 'female', age: 'elder', voice_type: 'original' }],
-  'male|elder': [{ voice_id: 'tc_grandpa', voice_name: { kor: '할아버지', eng: 'Grandpa' }, gender: 'male', age: 'elder', voice_type: 'original' }],
+  'male|elder': [{ voice_id: 'tc_grandpa', voice_name: { kor: '할아버지', eng: 'Grandpa' }, gender: 'male', age: 'elder', voice_type: 'original' }, { voice_id: 'tc_grandpa2', voice_name: { kor: '할아버지2' }, gender: 'male', age: 'elder', use_cases: ['Game'] }],
   'female|young_adult': [{ voice_id: 'tc_young_f', gender: 'female', age: 'young_adult' }],
   'male|young_adult': [{ voice_id: 'tc_young_m', gender: 'male', age: 'young_adult' }],
   'male|middle_age': [],
@@ -102,5 +102,16 @@ describe('목소리 고르기', () => {
     const { pickVoice } = await import('../src/services/tts.ts');
     expect(pickVoice([{ voice_id: 'tc_a', use_cases: ['Game', 'Anime'] }, { voice_id: 'tc_b', use_cases: ['Audiobook'] }, { voice_id: 'tc_c' }]).voice_id).toBe('tc_b');
     expect(pickVoice([{ voice_id: 'tc_a', use_cases: ['Ads'] }, { voice_id: 'tc_c' }]).voice_id).toBe('tc_c');
+  });
+});
+
+describe('시청취 후보(R6 REQ-13)', () => {
+  it('"cheongun~2" 는 같은 성별·나이대 후보의 2번째, 다른 성별·없는 번호는 막는다', async () => {
+    const { tcVoiceOf } = await import('../src/services/tts.ts');
+    expect((await tcVoiceOf('cheongun~1', 'M', fake)).id).toBe('tc_grandpa');
+    expect((await tcVoiceOf('cheongun~2', 'M', fake)).id).toBe('tc_grandpa2');
+    expect((await tcVoiceOf('cheongun~9', 'M', fake)).id).toBe('tc_grandpa2');
+    expect((await tcVoiceOf('cheongun~1', 'M', fake)).tempo).toBeLessThan(1);
+    await expect(tcVoiceOf('cheongun~0', 'M', fake)).rejects.toThrow();
   });
 });

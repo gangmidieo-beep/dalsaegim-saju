@@ -37,6 +37,16 @@
      "product": "love_flow"
     },
     {
+     "id": "breakup",
+     "label": "이별 고민",
+     "q": [
+      "이 관계를 이어가도 될까?",
+      "이별을 고민하는 내 마음 정리",
+      "관계를 정리할 때 살필 점"
+     ],
+     "product": "love_flow"
+    },
+    {
      "id": "new",
      "label": "새로운 만남",
      "q": [

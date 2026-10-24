@@ -94,12 +94,25 @@ export function tcVoices(gender: 'F' | 'M', age: Age | null, http: typeof fetch 
 const CALM = /audiobook|conversation|narrat|documentar|educat|news|podcast|story|meditat|counsel|calm|e-?learning/i;
 const LOUD = /game|anime|cartoon|kid|child|ads?$|advert|promo|comic|horror|sport/i;
 const logged = new Set<string>();
+const vScore = (v: TcVoice) => (v.use_cases ?? []).reduce((n, u) => n + (CALM.test(u) ? 2 : 0) - (LOUD.test(u) ? 3 : 0), 0);
+/** 상담 어울림 순(같으면 원래 순서) */
+export const rankVoices = (list: TcVoice[]) => list.map((v, i) => ({ v, i, s: vScore(v) })).sort((a, b) => b.s - a.s || a.i - b.i).map((x) => x.v);
 export function pickVoice(list: TcVoice[]): TcVoice {
-  const score = (v: TcVoice) => (v.use_cases ?? []).reduce((n, u) => n + (CALM.test(u) ? 2 : 0) - (LOUD.test(u) ? 3 : 0), 0);
-  return list.map((v, i) => ({ v, i, s: score(v) })).sort((a, b) => b.s - a.s || a.i - b.i)[0].v;
+  return rankVoices(list)[0];
 }
 /** 상담사 → 타입캐스트 목소리(id·속도·높낮이). 성별이 다른 목소리로 대신 읽지 않는다. */
 export async function tcVoiceOf(persona: string | null | undefined, gender: 'F' | 'M', http: typeof fetch = fetch) {
+  // 시청취(R6 REQ-13): "cheongun~3" = 그 상담사 성별·나이대 후보 중 3번째(상담 어울림 순). 운영 화면에서는 쓰지 않는다.
+  const aud = /^([a-z]+)~(\d{1,2})$/.exec(persona ?? '');
+  if (aud && TC_PERSONA[aud[1]] && TC_PERSONA[aud[1]].gender === gender) {
+    const sp = TC_PERSONA[aud[1]];
+    const list = rankVoices(await tcVoices(gender, sp.age, http));
+    const v = list[Math.min(+aud[2], list.length) - 1];
+    if (!v) throw new Error('Typecast 목소리 없음');
+    const lk = `aud|${persona}|${v.voice_id}`;
+    if (!logged.has(lk)) { logged.add(lk); console.log(`[tts-audition] ${persona} → ${v.voice_name?.kor ?? v.voice_name?.eng ?? ''} ${v.voice_id} [${(v.use_cases ?? []).join(',')}] (후보 ${list.length})`); }
+    return { id: v.voice_id, tempo: sp.tempo, pitch: sp.pitch };
+  }
   const p = persona ? TC_PERSONA[persona] : undefined;
   const spec: TcSpec = p && p.gender === gender ? p : { gender, age: 'young_adult', tempo: 1, pitch: 0 };
   const own = p && p.gender === gender ? process.env[`TYPECAST_VOICE_${persona!.toUpperCase()}`] : undefined;

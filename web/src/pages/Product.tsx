@@ -5,7 +5,7 @@ import detail from '@dalsaegim/content/data/detail.json';
 import tarotData from '@dalsaegim/content/data/tarot.json';
 import reading from '@dalsaegim/content/data/reading.json';
 import { useApp, useMain } from '../store/app';
-import { apiAuth } from '../lib/api';
+import { API, apiAuth } from '../lib/api';
 import { PAY_GROUPS, PAY_METHODS, PENDING, isInAppBrowser, methodOf, phoneOk, purchase, savePhone, savedPhone } from '../platform/payments';
 import { Moon, Skeleton, Top, won, useToast } from '../components/ui';
 import { I } from '../components/icons';
@@ -14,6 +14,8 @@ import { saveImage } from '../lib/share';
 import { useShare } from '../components/share';
 import { DaeunTable, ElementBars, Flow36, LuckyCard, ReportSummary, SajuTableView, SeunTable, WolunTable, YearBars, type Basis, type Summary, type Visual } from '../components/report';
 import { CARDS, TarotCard } from '../components/tarot';
+import { PreviewButton } from '../components/Preview';
+import longOutline from '@dalsaegim/content/data/lifetime-long.json';
 import { dailyCard } from '@dalsaegim/content';
 import { kstMonth, kstToday, kstYear } from '../lib/dates';
 import brand from '../../../brand.config.json';
@@ -36,6 +38,13 @@ const FREE_BY: Record<string, string[]> = { month_detail: ['오늘의 운세(매
 const PACK: Record<string, string[]> = { money_pack: ['money_wealth', 'money_business', 'money_invest', 'money_estate'] };
 const findP = (id?: string) => brand.products.find((p) => p.id === id) as Prod | undefined;
 
+// 정통사주 40장(AI 장편)이 켜져 있는지 — 서버 /health 의 ai 로 판단(한 번만 묻는다)
+let aiOnP: Promise<boolean> | null = null;
+function useLongOn(enabled: boolean) {
+  const [on, setOn] = useState(false);
+  useEffect(() => { if (!enabled) return; (aiOnP ??= fetch(`${API}/health`).then((r) => r.json()).then((j) => !!j.ai).catch(() => false)).then(setOn); }, [enabled]);
+  return on;
+}
 type Detail = { sub: string; target: string[]; why: string; sample?: { title: string; body: string; q: string } };
 export function ProductDetail() {
   const { id } = useParams();
@@ -48,6 +57,8 @@ export function ProductDetail() {
   const ch = (reading.chapters as Record<string, string[]>)[id ?? ''];
   const pack = PACK[id ?? ''];
   const packTotal = pack ? pack.reduce((n, pid) => n + ((reading.chapters as Record<string, string[]>)[pid]?.length ?? 0), 0) : 0;
+  const longOn = useLongOn(id === 'lifetime');
+  const longChapters = longOutline.parts.reduce((n, x) => n + x.chapters.length, 0);
   useEffect(() => { if (p) track('product_view', { product: p.id }); }, [p?.id]);
   if (!p || !p.visible) return <><Top title="풀이" /><main className="screen"><p>없는 상품이에요.</p><Link to="/" className="btn primary">홈으로</Link></main></>;
   const isMonth = p.id === 'month_detail', isTarot = p.id === 'tarot_some';
@@ -74,6 +85,8 @@ export function ProductDetail() {
           </div>
         </section>
 
+        {(p.kind === 'reading' || p.id === 'friend_pass') && <PreviewButton productId={p.id} />}
+
         {isMonth && <MonthPick ym={ym!} onPick={(v) => { const n = new URLSearchParams(sp); n.set('ym', v); nav(`/product/${p.id}?${n}`, { replace: true }); }} />}
         {isTarot && <TarotPick picked={cards} onChange={setCards} />}
         {p.adult && <div className="adult-box mt16"><b>19세 이상 이용 상품이에요</b><p>결제 전에 휴대폰 본인인증으로 만 19세 이상인지 한 번만 확인해요. 생년월일은 저장하지 않아요. 표현은 자극적이지 않게, 두 사람의 친밀감·속도·배려를 중심으로 풀어 드려요.</p></div>}
@@ -93,6 +106,17 @@ export function ProductDetail() {
                 <ol className="pd-toc mt8">{cc.map((c, i) => <li key={c}><span>{String(i + 1).padStart(2, '0')}</span>{c}</li>)}</ol>
               </div>); })}
             <p className="faint mt8">결제하면 보관함에서 네 가지 풀이를 하나씩 따로 열어 볼 수 있어요.</p>
+          </section>
+        ) : p.id === 'lifetime' && longOn ? (
+          <section className="card mt16" aria-labelledby="pd-guide">
+            <small className="pd-eye dark">READING GUIDE</small>
+            <h3 className="h3 mt4" id="pd-guide">{longOutline.parts.length}부 {longChapters}장 · A4 약 40쪽 정통 감정서</h3>
+            <p className="faint mt4" style={{ margin: '4px 0 0' }}>결과 화면에서 읽고, A4 PDF로 저장할 수 있어요. 작성에 3~6분 걸려요.</p>
+            {longOutline.parts.map((pt, pi) => { const start = longOutline.parts.slice(0, pi).reduce((n, x) => n + x.chapters.length, 0); return (
+              <div key={pt.title} className="pk-part mt12">
+                <b>{pt.title}</b>
+                <ol className="pd-toc mt8">{pt.chapters.map((c, i) => <li key={c.id}><span>{String(start + i + 1).padStart(2, '0')}</span>{c.title}</li>)}</ol>
+              </div>); })}
           </section>
         ) : ch && (
           <section className="card mt16" aria-labelledby="pd-guide">
@@ -128,7 +152,7 @@ export function ProductDetail() {
               {p.kind === 'pass'
                 ? <>{PASS_TERMS.slice(0, 4).map((t) => <p key={t}>· {t}</p>)}</>
                 : p.id === 'tarot_some' ? <><p>· 고른 카드 3장의 자리별 해석(정·역방향)</p><p>· 세 장이 함께 말하는 흐름</p><p>· 내 사주로 본 마음이 닿는 달</p><p>· 언제든 다시 보기(보관함)</p></>
-                : <><p>· {pack ? `${pack.length}가지 풀이 · 모두 ${packTotal}가지 핵심 분석` : `내 사주 맞춤 ${ch?.length ?? ''}가지 핵심 분석`}</p><p>· 좋은 시기·조심할 시기와 그 이유</p><p>· 바로 할 수 있는 조언</p><p>· 언제든 다시 보기(보관함)</p></>}
+                : <><p>· {pack ? `${pack.length}가지 풀이 · 모두 ${packTotal}가지 핵심 분석` : p.id === 'lifetime' && longOn ? `A4 약 40쪽 정통 감정서(${longChapters}장) · PDF 저장` : `내 사주 맞춤 ${ch?.length ?? ''}가지 핵심 분석`}</p><p>· 좋은 시기·조심할 시기와 그 이유</p><p>· 바로 할 수 있는 조언</p><p>· 언제든 다시 보기(보관함)</p></>}
             </div>
           </div>
         </section>
@@ -172,7 +196,7 @@ export function MonthPick({ ym, onPick }: { ym: string; onPick: (ym: string) => 
         {Array.from({ length: 12 }, (_, i) => { const mm = i + 1; const yy = mm < m ? y + 1 : y; const v = `${yy}-${String(mm).padStart(2, '0')}`; return <button key={v} className={`${v === ym ? 'on' : ''}${mm === m ? ' now' : ''}`} aria-pressed={v === ym} aria-label={`${yy}년 ${mm}월${mm === m ? ' (이번 달)' : ''}${v === ym ? ' · 선택됨' : ''}`} onClick={() => onPick(v)}><b>{v === ym && <span aria-hidden>✓ </span>}{mm}월</b>{mm === m && <small>이번 달</small>}</button>; })}
       </div>
       <p className="mpick-sel mt8">선택한 달: <b>{ym.slice(0, 4)}년 {Number(ym.slice(5))}월</b> · 날짜별 흐름과 좋은 날을 풀어 드려요.</p>
-      <p className="faint" style={{ margin: '2px 0 0' }}>✓ 표시 = 내가 고른 달 · ‘이번 달’ = 오늘이 속한 달</p>
+      <p className="faint" style={{ margin: '2px 0 0' }}>금색 채움 ✓ = 내가 고른 달 · 금색 테두리 ● = 이번 달(오늘이 속한 달)</p>
     </section>
   );
 }
@@ -218,7 +242,9 @@ export function Checkout() {
   const { id } = useParams();
   const [sp] = useSearchParams();
   const p = findP(id);
-  const { profiles, mainId } = useApp();
+  const { profiles, mainId, removeProfile } = useApp();
+  const [menu, setMenu] = useState<string | null>(null);
+  const [askDel, setAskDel] = useState<string | null>(null);
   const { profile, isSample } = useMain();
   const [pick, setPick] = useState<string[]>(isSample ? [] : [profile.id]);
   const [method, setMethod] = useState(() => (isInAppBrowser() && methodOf('kakaopay') ? 'kakaopay' : PAY_METHODS[0]?.id ?? 'card'));
@@ -293,10 +319,25 @@ export function Checkout() {
             ) : (
               <div className="stack mt12">
                 {profiles.map((x) => (
-                  <button key={x.id} className={`opt${pick.includes(x.id) ? ' picked' : ''}`} style={{ padding: 14 }} onClick={() => toggle(x.id)} aria-pressed={pick.includes(x.id)}>
-                    <b style={{ flex: 1, fontSize: 16 }}>{x.name} <span className="faint">· {x.relation ?? (x.id === mainId ? '나' : '')}</span></b>
-                    <span className="muted small">{x.calendar === 'lunar' ? '음력' : '양력'} {x.year}.{x.month}.{x.day} · {x.hour == null ? '시간 모름' : `${x.hour}시`}</span>
-                  </button>
+                  <div key={x.id} className="prof-row">
+                    <button className={`opt${pick.includes(x.id) ? ' picked' : ''}`} style={{ padding: 14 }} onClick={() => toggle(x.id)} aria-pressed={pick.includes(x.id)}>
+                      <b style={{ flex: 1, fontSize: 16 }}>{x.name} <span className="faint">· {x.relation ?? (x.id === mainId ? '나' : '')}</span></b>
+                      <span className="muted small">{x.calendar === 'lunar' ? '음력' : '양력'} {x.year}.{x.month}.{x.day} · {x.hour == null ? '시간 모름' : `${x.hour}시`}</span>
+                    </button>
+                    <button className="prof-more" aria-label={`${x.name} 사주 수정·삭제`} aria-expanded={menu === x.id} onClick={() => { setMenu(menu === x.id ? null : x.id); setAskDel(null); }}>⋯</button>
+                    {menu === x.id && (askDel === x.id ? (
+                      <div className="prof-menu" role="group" aria-label="삭제 확인">
+                        <span>{x.name} 님 사주를 지울까요? 이미 받은 풀이는 그대로 남아요.</span>
+                        <button className="btn sm danger" onClick={async () => { await apiAuth(`/profiles/${x.id}`, { method: 'DELETE' }).catch(() => {}); removeProfile(x.id); setPick((ps) => ps.filter((y) => y !== x.id)); setMenu(null); setAskDel(null); toast('사주를 지웠어요. 결제할 사람을 다시 골라 주세요'); }}>삭제</button>
+                        <button className="btn line sm" onClick={() => setAskDel(null)}>취소</button>
+                      </div>
+                    ) : (
+                      <div className="prof-menu" role="group" aria-label="사주 관리">
+                        <Link className="btn line sm" to={`/profile/${x.id}/edit?next=${encodeURIComponent(window.location.pathname + window.location.search)}`}>수정</Link>
+                        <button className="btn line sm" onClick={() => setAskDel(x.id)}>삭제</button>
+                      </div>
+                    ))}
+                  </div>
                 ))}
               </div>
             )}

@@ -71,7 +71,13 @@ export default function ProfileNew() {
     track('profile_saved', { rel: p.relation, timeKnown: p.hour != null });
     return p;
   };
-  const submit = () => {
+  // R6 REQ-07 — 같은 사람·같은 생년월일시가 이미 있으면 새로 쌓지 않고 먼저 묻는다(임의 병합은 하지 않음)
+  const [dup, setDup] = useState<typeof profiles[number] | null>(null);
+  const sameAs = (x: typeof profiles[number]) => x.name.trim() === f.name.trim() && x.year === y && x.month === m && x.day === d && x.calendar === f.calendar && (x.hour ?? null) === (unknown ? null : kst ? kst.hour : f.hour ?? null);
+  const submit = (force = false) => {
+    const twin = !editing && !force ? profiles.find(sameAs) : undefined;
+    if (twin) { setDup(twin); return; }
+    setDup(null);
     if (editing || !first || account) { const p = save(); toast(editing ? '사주를 고쳤어요' : `${p.name} 님의 사주를 새겼어요`); if (editing || !first) { nav(next, { replace: true }); return; } setStep(2); return; }
     save(); setStep(1);
   };
@@ -144,6 +150,16 @@ export default function ProfileNew() {
             <p className="faint mt16">입력한 사주는 풀이와 달빛 상담에만 쓰이고, 마이에서 언제든 지울 수 있어요.</p>
             {tried && missing.length > 0 && <p className="form-err" role="alert">{missing.join(', ')}을(를) 확인해 주세요</p>}
             <button className={`btn primary mt16${ready ? '' : ' soft-off'}`} aria-disabled={!ready} onClick={() => (ready ? submit() : setTried(true))}>{editing ? '고친 내용 저장하기' : first ? '사주 저장하고 다음으로' : '사주 저장하기'}</button>
+            {dup && (
+              <div className="dup-box mt12" role="alert">
+                <b>이미 저장된 같은 사주가 있어요</b>
+                <p>{dup.name} · {dup.calendar === 'lunar' ? '음력' : '양력'} {dup.year}.{dup.month}.{dup.day} · {dup.hour == null ? '시간 모름' : `${dup.hour}시`}</p>
+                <div className="grid2 mt8">
+                  <button className="btn primary sm" onClick={() => { if (first || f.relation === '나') setMain(dup.id); nav(next, { replace: true }); }}>저장된 사주 쓰기</button>
+                  <button className="btn line sm" onClick={() => submit(true)}>그래도 새로 저장</button>
+                </div>
+              </div>
+            )}
             {!editing && <p className="faint center mt8">버튼을 누르면 이 기기에 사주가 저장돼요. 마이에서 언제든 고치거나 지울 수 있어요.</p>}
           </section>
         )}

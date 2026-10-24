@@ -9,7 +9,7 @@ import { FlowChart, FlowLegend, Pic, won } from '../components/ui';
 import { I } from '../components/icons';
 import brand from '../../../brand.config.json';
 
-const SITU: [string, string, string][] = [['new', '솔로예요', '언제 인연이 올까?'], ['crush', '썸·짝사랑 중', '그 사람 마음이 궁금해'], ['partner', '연애 중이에요', '이 관계, 계속 가도 될까?'], ['ex', '헤어졌어요', '다시 만날 수 있을까?'], ['marry', '결혼 고민', '결혼 시기가 궁금해']];
+const SITU: [string, string, string][] = [['new', '솔로예요', '언제 인연이 올까?'], ['crush', '썸·짝사랑 중', '그 사람 마음이 궁금해'], ['partner', '연애 중이에요', '이 관계, 계속 가도 될까?'], ['ex', '헤어졌어요', '다시 만날 수 있을까?'], ['breakup', '이별 고민', '이별을 고민 중이에요'], ['marry', '결혼 고민', '결혼 시기가 궁금해']];
 const LOVE_PRODUCTS = ['love_flow', 'reunion', 'gunghap'];
 
 export default function Love() {
@@ -38,9 +38,10 @@ export default function Love() {
           <div className="between"><h3 className="h3">앞으로 12달, 나의 연애 흐름</h3><span className="faint">오늘 연애 <b style={{ color: '#b33c66', fontSize: 17 }}>{t.fields.love.score}</b>점</span></div>
           <div className="mt8"><FlowChart points={f.nm.map((x) => x.score)} labels={f.nm.map((x) => `${x.month}월`)} good={f.gi} careful={f.ci} current={0} /></div>
           <FlowLegend />
+          {isSample && <p className="sample-note">예시 데이터예요 · 내 사주를 입력하면 나에게 맞춘 흐름으로 바뀌어요</p>}
           <p className="explain">그래프는 사주의 연애 기운(일간과 각 달의 기운이 만나는 정도)을 0~100으로 나타낸 거예요. 높을수록 마음이 닿기 쉬운 달이에요.</p>
           <div className="love-stats mt12">
-            <div><small>인연이 들어오는 달</small><b>{months(f.meet)}</b></div>
+            <div><small>인연의 달</small><b>{months(f.meet)}</b></div>
             <div><small>마음이 닿는 달</small><b>{months(f.good)}</b></div>
             <div className="c"><small>천천히 가면 좋은 달</small><b>{months(f.careful)}</b></div>
           </div>

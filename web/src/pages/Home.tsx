@@ -125,10 +125,10 @@ export default function Home() {
               <span className="ct-thumb" style={{ backgroundImage: `url(${imgOf(wish.type)})` }} />
               <div className="grow">
                 <small>{charmOf(wish.type).name}</small>
-                <h2 className="h3">지난번 새긴 소망은 어떻게 진행되고 있나요?</h2>
-                <p className="small" style={{ margin: '4px 0 0' }}>“{wish.goal ?? wish.wish}”</p>
+                <h2 className="h3">소망의 현재 상태</h2>
+                <p className="small wish-q" style={{ margin: '4px 0 0' }}>“{wish.goal ?? wish.wish}”</p>
                 <div className="ask-btns mt12">
-                  {([['doing', '진행 중이에요'], ['done', '이루었어요'], ['later', '다음에']] as const).map(([k, l]) => <button key={k} className="btn line sm" onClick={() => wishStep(k)}>{l}</button>)}
+                  {([['doing', '진행 중'], ['done', '이루었어요'], ['later', '나중에']] as const).map(([k, l]) => <button key={k} className="btn line sm" onClick={() => wishStep(k)}>{l}</button>)}
                 </div>
               </div>
             </section>

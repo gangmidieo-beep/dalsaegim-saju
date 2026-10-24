@@ -14,7 +14,7 @@ export const PATHS = P.categories as PathCat[];
 const DIM_LABEL: Partial<Record<Dim, string>> = { love: '연애', work: '일', wealth: '재물', expand: '사업', invest: '투자', move: '이사', spend: '지출', family: '가족', growth: '성장', health: '컨디션', partner: '관계' };
 const MAP_AREA: Record<string, 'love' | 'money' | 'work' | 'family' | 'growth'> = { love: 'love', work: 'work', money: 'money', family: 'family', future: 'growth', self: 'growth' };
 const V_DIM: Partial<Record<Dim, string>> = { love: '연애', work: '직장', wealth: '재물', expand: '사업', invest: '투자', move: '이사', spend: '재물', family: '가족', growth: '성장', health: '건강', partner: '관계' };
-const V_SUB: Record<string, string> = { move: '이직', job: '취업', biz: '창업', exam: '합격', marry: '결혼', new: '인연', crush: '연애' };
+const V_SUB: Record<string, string> = { move: '이직', job: '취업', biz: '창업', exam: '합격', marry: '결혼', new: '인연', crush: '연애', breakup: '관계' };
 const MEM_CAT: Record<string, string> = { future: 'growth', self: 'growth' };
 // 결과 한 줄 — 가장 좋은 두 달의 평균 점수대에 따라
 const VERDICT: Record<number, string> = { 5: '강하게 들어옵니다', 4: '또렷하게 열립니다', 3: '서서히 열립니다', 2: '천천히 준비되는 때예요', 1: '쉬어 가며 힘을 모을 때예요' };

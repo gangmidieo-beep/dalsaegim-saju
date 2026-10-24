@@ -1251,3 +1251,62 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .gtbl th { font-size: 12px; color: var(--ink-2); font-weight: 700; padding: 6px 2px; border-bottom: 1px solid var(--line); }
 .gtbl td { padding: 7px 2px; border-bottom: 1px solid #efe9de; } .gtbl td.gz { font-weight: 700; } .gtbl td.gz small { display: block; font-size: 10px; color: var(--ink-2); font-weight: 500; }
 .gtbl tr.on td { background: #fbf4e6; } .gtbl tr.on td b { color: #7a5c30; } .gtbl td.hi { color: #7a5c30; font-weight: 800; }
+/* R6 REQ-15 — 짧은 제목·값은 낱말 단위로만 줄바꿈, 카드 높이 통일 */
+.love-stats > div { display: flex; flex-direction: column; justify-content: center; min-height: 64px; }
+.love-stats small, .love-stats b { word-break: keep-all; text-wrap: balance; line-height: 1.35; }
+/* R6 REQ-16 — 월 선택 의미 통일: '이번 달' = 금색 테두리 + 작은 점, '고른 달' = 금색 채움 + 남색 글자(메인·상세 같은 규칙) */
+.mgrid a.now { background: rgba(255, 255, 255, 0.06); color: #f1f3f9; border: 2px solid var(--champ); }
+.mgrid a.now i { background: var(--champ); color: #1d2440; }
+.mgrid a.now b::after, .mchips button.now b::after { content: ''; display: inline-block; width: 5px; height: 5px; margin-left: 3px; border-radius: 50%; background: var(--champ); vertical-align: middle; }
+.mchips button.now { background: var(--paper); border: 2px solid var(--champ); }
+.mchips button.on { background: var(--champ); border: 2px solid var(--champ); color: #1d2440; box-shadow: 0 0 0 2px rgba(232, 201, 143, 0.35); }
+.mchips button.on small { background: #1d2440; color: #f6dfb0; }
+.mchips button.on.now b::after { background: #1d2440; }
+/* R6 REQ-17 — 소망 문구는 2줄까지 미리보기, 버튼 3개 한 줄·같은 높이 */
+.wish-ask .wish-q { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.wish-ask .ask-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.wish-ask .ask-btns .btn { min-height: 44px; white-space: nowrap; padding: 0 6px; }
+/* R6 REQ-01·21 — 풀이 미리보기 버튼·창 */
+.pv-btn { display: flex; align-items: center; gap: 10px; width: min(100%, 280px); min-height: 46px; margin: 12px 0 0; padding: 0 14px; border-radius: 14px; border: 1.5px solid var(--night); background: var(--paper); color: var(--night); font-weight: 800; font-size: 15px; text-align: left; }
+.pv-btn .pv-moon { width: 24px; height: 24px; border-radius: 50%; background: var(--night); position: relative; flex: none; }
+.pv-btn .pv-moon::after { content: ''; position: absolute; inset: 5px 5px 5px 7px; border-radius: 50%; box-shadow: -4px 0 0 0 #e8c98f; }
+.pv-btn .pv-chev { margin-left: auto; font-size: 20px; line-height: 1; }
+.pv-wrap { position: fixed; inset: 0; z-index: 90; background: rgba(15, 18, 36, 0.55); display: flex; align-items: flex-end; justify-content: center; }
+.pv-sheet { width: min(100%, 480px); max-height: 92dvh; display: flex; flex-direction: column; background: #f7f3ee; border-radius: 20px 20px 0 0; overflow: hidden; }
+.pv-top { display: flex; align-items: center; justify-content: space-between; padding: 12px 8px 10px 18px; border-bottom: 1px solid var(--line); background: #fff; }
+.pv-top b { font-size: 16px; color: var(--ink); }
+.pv-x { width: 44px; height: 44px; border: 0; background: none; font-size: 18px; color: var(--ink-2); }
+.pv-body { overflow-y: auto; padding: 14px 16px 8px; overscroll-behavior: contain; }
+.pv-tag { display: inline-block; margin: 0 0 10px; padding: 3px 10px; border-radius: 99px; background: #fbf3e2; color: #7a5c30; font-size: 12.5px; font-weight: 800; }
+.pv-cover { padding: 18px 16px; border-radius: 16px; background: #1b1f3b; color: #f7f3ea; }
+.pv-cover small { font-size: 10.5px; letter-spacing: 1.5px; color: #d9b26b; font-weight: 800; }
+.pv-cover h2 { margin: 6px 0 2px; font-size: 21px; color: #f7f3ea; }
+.pv-cover .pv-who { color: #e8c98f; font-weight: 700; margin: 0 0 8px; }
+.pv-cover p { font-size: 14px; line-height: 1.65; color: #dcd6c8; margin: 0; }
+.pv-amount { margin: 10px 2px; font-size: 14px; color: var(--ink); } .pv-amount b { color: #7a5c30; margin-right: 6px; }
+.pv-card { margin: 10px 0 0; padding: 14px; border-radius: 14px; background: #fff; border: 1px solid var(--line); }
+.pv-card small { font-size: 11.5px; font-weight: 800; color: #7a5c30; }
+.pv-card h3 { margin: 4px 0 6px; font-size: 17px; color: var(--ink); }
+.pv-card p { font-size: 14.5px; line-height: 1.75; margin: 6px 0 0; word-break: keep-all; }
+.pv-card .pv-say { color: #7a5c30; font-weight: 700; font-size: 13.5px; }
+.pv-toc { list-style: none; margin: 6px 0 0; padding: 0; font-size: 14px; }
+.pv-toc li { padding: 5px 0; border-bottom: 1px solid #f0ebe1; } .pv-toc li span { color: #7a5c30; font-weight: 800; margin-right: 8px; font-size: 12.5px; }
+.pv-toc .pv-part { display: block; margin: 8px 0 4px; font-size: 12.5px; color: var(--ink-2); }
+.pv-card.locked { position: relative; } .pv-card.locked p:last-of-type { -webkit-mask-image: linear-gradient(#000 30%, transparent); mask-image: linear-gradient(#000 30%, transparent); }
+.pv-lock { margin-top: 8px; padding: 10px; border-radius: 10px; background: #f3f0f8; text-align: center; font-size: 13.5px; font-weight: 700; color: var(--ink-2); }
+.pv-note { margin: 12px 2px 4px; font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
+.pv-foot { padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid var(--line); }
+.pv-foot .btn { width: 100%; }
+
+/* R6 REQ-07 — 같은 사주 중복 저장 안내, 결제 화면 사주 수정·삭제 */
+.dup-box { border: 1px solid var(--gold, #c9a961); background: rgba(201,169,97,.08); border-radius: 14px; padding: 14px; }
+.dup-box b { display: block; font-size: 15px; }
+.dup-box p { margin: 4px 0 0; font-size: 14px; color: var(--muted, #6b6f80); }
+.prof-row { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: stretch; }
+.prof-row > .opt { min-width: 0; }
+.prof-more { min-width: 44px; border: 1px solid var(--line, #e3e1ea); border-radius: 12px; background: transparent; font-size: 20px; line-height: 1; color: var(--muted, #6b6f80); }
+.prof-menu { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; border-radius: 12px; background: rgba(28,32,64,.04); font-size: 14px; word-break: keep-all; }
+.prof-menu > span { flex: 1 1 100%; }
+.btn.danger { background: #b3403c; color: #fff; border-color: #b3403c; }
+/* R6 REQ-23 — 예시 그래프 표시 */
+.sample-note { margin: 8px 0 0; font-size: 13px; color: #8a6d2b; background: rgba(201,169,97,.12); border-radius: 10px; padding: 6px 10px; word-break: keep-all; }

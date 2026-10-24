@@ -18,6 +18,7 @@ import { normalizePhone, parsePayappFeedback, payappCancel, payappEnv, payappReq
 import { latestMarket, liveAI } from './services/reading/generate.ts';
 import { friendReply, friendLive, type ChatMsg } from './services/friend.ts';
 import { readingPdf, pdfReady } from './services/reading/pdf.ts';
+import { previewOf } from './services/reading/preview.ts';
 import { aiProvider } from './services/ai.ts';
 import { synthesize, ttsLive, ttsProvider, ttsUsage, tcVoices, tcVoiceOf, TC_PERSONA, TTS_MAX_CHARS } from './services/tts.ts';
 import { personaOf, defaultTodayLetter, LETTER_FEELINGS, LETTER_TOPICS, LETTER_KAKAO, CHARMS } from '@dalsaegim/content';
@@ -254,6 +255,13 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
   });
 
   /* ---------- 상품·배너 (화면이 읽는 값) ---------- */
+  // 풀이 미리보기 — 예시 인물로 만든 실제 결과 일부(표지·목차·본문 발췌). 로그인 없이, AI 비용 없이
+  app.get('/products/:id/preview', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (req, rep) => {
+    const [p] = await db.select().from(S.products).where(and(eq(S.products.siteId, SITE()), eq(S.products.id, (req.params as any).id), eq(S.products.visible, true)));
+    if (!p || (p.kind !== 'reading' && p.id !== 'friend_pass')) return rep.code(404).send({ error: '미리보기가 없는 상품이에요' });
+    const v = previewOf({ id: p.id, title: p.title, kind: p.kind, adult: p.adult });
+    return rep.header('cache-control', 'public, max-age=600').send(v);
+  });
   app.get('/products', async () => db.select().from(S.products).where(and(eq(S.products.siteId, SITE()), eq(S.products.visible, true))).orderBy(asc(S.products.sort)));
   app.get('/banners', async (req) => {
     const { slot = 'home' } = req.query as { slot?: string };

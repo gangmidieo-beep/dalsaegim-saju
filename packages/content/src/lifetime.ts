@@ -93,7 +93,7 @@ export function lifetimeReport(saju: SajuResult, name: string, profileId: string
         ? `${map.dayMaster.char}${batchim(map.dayMaster.char) ? '은' : '는'} 양(陽)의 글자라 마음먹은 것을 겉으로 드러내고 먼저 움직이는 편이에요. 생각보다 행동이 앞설 때 일이 풀리고, 기다림이 길어지면 오히려 답답함을 느껴요.`
         : `${map.dayMaster.char}${batchim(map.dayMaster.char) ? '은' : '는'} 음(陰)의 글자라 겉으로는 차분해 보여도 안으로 단단하게 다지는 힘이 있어요. 충분히 살펴본 뒤 움직일 때 실수가 적고, 한번 정한 일은 끝까지 해내요.`,
       `일간이 앉은 자리(일지)는 ${dayC.branch.han}(${dayC.branch.kor}), 십이운성으로는 '${dayC.stage}'의 자리예요. ${STAGE[dayC.stage] ?? ''} 일지의 십성은 '${dayC.branch.sip}'${batchim(dayC.branch.sip) ? '이라' : '라'}, ${SIP[dayC.branch.sip] ?? ''}`,
-      top1 ? `사주 여덟 글자 가운데 가장 많이 보이는 기운은 '${top1[0]}'(${top1[1]}개)${top2 ? `이고, 그다음은 '${top2[0]}'(${top2[1]}개)` : ''}예요. ${SIP[top1[0]] ?? ''}${top2 ? ` 여기에 ${top2[0]}의 결이 더해져 ${SIP[top2[0]] ?? ''}` : ''}` : '',
+      top1 ? `사주 여덟 글자 가운데 가장 많이 보이는 기운은 '${top1[0]}'(${top1[1]}개)${top2 ? `이고, 그다음은 '${top2[0]}'(${top2[1]}개)` : ''}예요. ${top1[0] === dayC.branch.sip ? `일지와 같은 기운이 사주 전체에서도 가장 두드러져, 이 성향이 삶의 바탕색이 돼요.` : SIP[top1[0]] ?? ''}${top2 ? ` 여기에 ${top2[0]}의 결이 더해져 ${SIP[top2[0]] ?? ''}` : ''}` : '',
       `${st.shadow}`,
       `${st.env} ${name} 님이 가진 ${map.dayMaster.keywords.join('·')}의 힘은 이런 환경에서 가장 크게 자라요.`,
     ].filter(Boolean),
