@@ -1315,3 +1315,12 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .pay-left { border: 1px solid var(--gold, #c9a961); background: rgba(201,169,97,.08); border-radius: 14px; padding: 14px; word-break: keep-all; }
 .pay-left b { display: block; font-size: 15px; }
 .pay-left p { margin: 4px 0 0; font-size: 14px; color: var(--muted, #6b6f80); }
+
+/* 부적 고르기 9칸 — 바탕 그림 5종마다 달의 위치·크기가 달라 칸마다 높낮이·좌우가 어긋나던 것 → 그림별로 달 중심을 같은 자리(가운데·위 29%)·같은 크기로 맞춤 */
+.charm-types .ct-img[data-b] { background-size: var(--s) auto; background-position: var(--px) var(--py); background-repeat: no-repeat; background-color: #0b1226; }
+.ct-img[data-b='goal'] { --s: 162.4%; --px: 52.9%; --py: 14.8%; }
+.ct-img[data-b='business'] { --s: 156.9%; --px: 53%; --py: 1.1%; }
+.ct-img[data-b='wealth'] { --s: 175.9%; --px: 51.4%; --py: 6.2%; }
+.ct-img[data-b='estate'] { --s: 152.8%; --px: 52%; --py: 0.8%; }
+.ct-img[data-b='work'] { --s: 163.5%; --px: 51%; --py: 2.6%; }
+.charm-types small { min-height: 2.6em; display: flex; align-items: flex-start; justify-content: center; }

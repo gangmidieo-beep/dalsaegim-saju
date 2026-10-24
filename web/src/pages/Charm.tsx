@@ -176,7 +176,7 @@ export default function CharmPage() {
           <div className="charm-types">
             {shown.map((x) => (
               <button key={x.id} className={type === x.id ? 'on' : ''} onClick={() => setType(x.id)} aria-pressed={type === x.id}>
-                <span className="ct-img" style={{ backgroundImage: `url(${imgOf(x.id)})`, ['--tint' as string]: x.tint }}><i className="ct-mark" aria-hidden>{x.mark}</i></span>
+                <span className="ct-img" data-b={charmOf(x.id).base} style={{ backgroundImage: `url(${imgOf(x.id)})`, ['--tint' as string]: x.tint }}><i className="ct-mark" aria-hidden>{x.mark}</i></span>
                 <b>{x.label}</b><small>{x.sub}</small>
               </button>
             ))}
