@@ -196,7 +196,7 @@ export function MonthPick({ ym, onPick }: { ym: string; onPick: (ym: string) => 
         {Array.from({ length: 12 }, (_, i) => { const mm = i + 1; const yy = mm < m ? y + 1 : y; const v = `${yy}-${String(mm).padStart(2, '0')}`; return <button key={v} className={`${v === ym ? 'on' : ''}${mm === m ? ' now' : ''}`} aria-pressed={v === ym} aria-label={`${yy}년 ${mm}월${mm === m ? ' (이번 달)' : ''}${v === ym ? ' · 선택됨' : ''}`} onClick={() => onPick(v)}><b>{v === ym && <span aria-hidden>✓ </span>}{mm}월</b>{mm === m && <small>이번 달</small>}</button>; })}
       </div>
       <p className="mpick-sel mt8">선택한 달: <b>{ym.slice(0, 4)}년 {Number(ym.slice(5))}월</b> · 날짜별 흐름과 좋은 날을 풀어 드려요.</p>
-      <p className="faint" style={{ margin: '2px 0 0' }}>금색 채움 ✓ = 내가 고른 달 · 금색 테두리 ● = 이번 달(오늘이 속한 달)</p>
+      <p className="faint" style={{ margin: '2px 0 0', wordBreak: 'keep-all' }}>금색 채움 ✓ = 내가 고른 달 · 금색 테두리 ● = 이번 달</p>
     </section>
   );
 }
