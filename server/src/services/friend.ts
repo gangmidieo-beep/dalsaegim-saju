@@ -43,7 +43,7 @@ export function sajuBrief(p: ProfileRow, dim: Dim, now = new Date()) {
 
 export async function friendReply(o: {
   profile: ProfileRow; history: ChatMsg[]; text: string; topicHint?: string | null; memories: { happenedOn: string; category: string; title: string; feedback: string | null }[];
-  persona?: string | null; http?: typeof fetch; now?: Date; tier?: 'free' | 'pass';
+  persona?: string | null; http?: typeof fetch; now?: Date; tier?: 'free' | 'pass'; noAI?: boolean;
 }) {
   const now = o.now ?? new Date();
   const pe = personaOf(o.persona);
@@ -58,7 +58,7 @@ export async function friendReply(o: {
     summary: `${topic.label} 고민을 달빛 상담사와 나눔.${fmt.noTiming || topic.id === 'pet' ? '' : ` 사주 흐름상 ${b.good}에 기운이 살아나고, ${b.careful}에는 쉬어 가면 좋은 시기.`}`,
     sajuNote: `${topic.label} · 좋은 시기 ${b.good} / 신중한 시기 ${b.careful}`,
   };
-  if (!friendLive()) {
+  if (!friendLive() || o.noAI) {
     // 무엇을 묻는지 알 수 없으면(첫마디가 짧고 주제가 없을 때) 짧게 되묻는다
     if (!det.topic && (o.history.length === 0 || det.negated.size > 0) && o.text.replace(/\s/g, '').length < 25) {
       return { reply: `${pick(pe.empathy, `${o.text}:e`)} ${CLARIFY}`, draft: { ...draft, category: 'etc', summary: '상담 주제를 묻는 중' }, topic: 'etc', tokensIn: 0, tokensOut: 0, costKrw: 0, ai: false };

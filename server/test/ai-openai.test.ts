@@ -117,3 +117,16 @@ describe('AI 실패 처리', () => {
     expect(c.text).toBe('{"ok":1}'); expect(n).toBe(2);
   }, 20_000);
 });
+
+describe('AI 실패 시 손님은 계산 풀이를 받는다', () => {
+  it('credit_balance_exhausted 면 한 번만 부르고 계산 풀이 + 관리자 기록', async () => {
+    process.env.OPENAI_API_KEY = 'sk-test'; process.env.READING_AI = 'live';
+    let n = 0;
+    const http = (async () => { n++; return new Response(JSON.stringify({ error: { code: 'credit_balance_exhausted' } }), { status: 429 }); }) as unknown as typeof fetch;
+    const r = await generateReading({ id: 'love_flow', title: '연애' }, [person], { http, now: new Date('2026-10-23T03:00:00Z') });
+    expect(n).toBe(1);
+    expect(r.content.chapters.length).toBeGreaterThan(3);
+    expect(r.content.generatedBy).not.toBe('ai');
+    expect(r.issues[0]).toMatch(/AI 실패 → 계산 풀이.*credit_balance_exhausted/);
+  });
+});

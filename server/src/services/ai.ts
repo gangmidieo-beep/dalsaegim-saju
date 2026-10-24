@@ -59,15 +59,18 @@ async function failOf(r: Response) {
   const wait = Number(r.headers.get('retry-after')) || 0;
   return Object.assign(new Error(`AI 호출 실패 ${r.status}${code ? ` ${code}` : ''}`), { status: r.status, code, wait });
 }
-/** 잠깐 막힌 것(분당 한도·과부하)만 기다렸다 다시. 잔액 부족(insufficient_quota)·키 오류는 바로 실패 */
+/** 기다려도 안 풀리는 실패 — 키 오류·잔액 부족(OpenAI insufficient_quota·credit_balance_exhausted, Claude 크레딧 부족 등) */
+export const aiFatal = (e: unknown) => { const x = e as { status?: number; code?: string; message?: string }; return x?.status === 401 || x?.status === 403 || /quota|credit|billing|invalid_api_key|authentication|permission/i.test(`${x?.code ?? ''} ${x?.message ?? ''}`); };
+/** 잠깐 막힌 것(분당 한도·과부하)만 기다렸다 다시. 잔액 부족·키 오류는 바로 실패 */
 async function withRetry(go: () => Promise<Response>): Promise<Response> {
   for (let i = 0; ; i++) {
     const r = await go();
     if (r.ok) return r;
     const e = await failOf(r);
-    const temporary = (r.status === 429 && e.code !== 'insufficient_quota') || r.status === 529 || r.status === 503 || r.status === 500;
+    const temporary = !aiFatal(e) && (r.status === 429 || r.status === 529 || r.status === 503 || r.status === 500);
     if (!temporary || i >= 3) throw e;
-    await new Promise((s) => setTimeout(s, Math.min(30_000, (e.wait || 2 ** i * 4) * 1000 + Math.random() * 1000)));
+    const unit = Number(process.env.AI_RETRY_MS ?? 1000); // 테스트는 0
+    await new Promise((s) => setTimeout(s, Math.min(30_000, (e.wait || 2 ** i * 4) * unit + Math.random() * unit)));
   }
 }
 export async function aiCall(o: {

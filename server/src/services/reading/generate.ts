@@ -10,7 +10,7 @@ import {
 } from '@dalsaegim/content';
 import R from '../../../../packages/content/data/reading.json' with { type: 'json' };
 import { generateLong, longOn } from './long.ts';
-import { aiCall, aiCapReached, aiCostKrw, aiModel, aiProvider, type AiKind } from '../ai.ts';
+import { aiCall, aiCapReached, aiCostKrw, aiFatal, aiModel, aiProvider, type AiKind } from '../ai.ts';
 import { schema as S, type Db } from '../../db/index.ts';
 
 export type Chapter = { id: string; title: string; say: string; body: string; highlight: string; points?: string[]; basis?: Basis[]; part?: number; partTitle?: string };
@@ -374,7 +374,10 @@ export async function generateReading(product: { id: string; title: string }, pe
     const note = k === 0 ? '\n이번에는 intro 와 위 장들만 쓰고 closing 은 {"title":"","body":"","tips":[]}.' : '\n이번에는 위 장들과 closing 만 쓰고 intro 는 빈 문자열.';
     let res;
     for (let attempt = 0; ; attempt++) {
-      try { const c = await callClaude(system, [{ role: 'user', content: user + note }], opts.http ?? fetch); res = { json: parseJson(c.text), ...c }; break; } catch (e) { if (attempt >= 2) throw e; }
+      try { const c = await callClaude(system, [{ role: 'user', content: user + note }], opts.http ?? fetch); res = { json: parseJson(c.text), ...c }; break; } catch (e) {
+        // AI 가 끝내 안 되면(잔액 부족·키 오류·장애) 손님은 계산 풀이를 바로 받고, 관리자 기록에 이유를 남긴다
+        if (attempt >= 2 || aiFatal(e)) { const content = engineContent(product, ps, facts); return { content: { ...content, who: ps.map((p) => p.name), facts: facts.lines }, tokensIn, tokensOut, costKrw, issues: [`AI 실패 → 계산 풀이로 대신 · ${(e as Error).message}`] }; }
+      }
     }
     tokensIn += res.tokensIn; tokensOut += res.tokensOut; costKrw += res.costKrw;
     if (k === 0) intro = res.json.intro ?? ''; else if (res.json.closing?.body) closing = { title: res.json.closing.title || closing.title, body: res.json.closing.body, tips: res.json.closing.tips ?? [] };

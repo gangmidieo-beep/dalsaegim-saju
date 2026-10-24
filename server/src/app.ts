@@ -19,7 +19,7 @@ import { latestMarket, liveAI } from './services/reading/generate.ts';
 import { friendReply, friendLive, type ChatMsg } from './services/friend.ts';
 import { readingPdf, pdfReady } from './services/reading/pdf.ts';
 import { previewOf } from './services/reading/preview.ts';
-import { aiCapReached, aiProvider } from './services/ai.ts';
+import { aiCapReached, aiFatal, aiProvider } from './services/ai.ts';
 import { synthesize, ttsLive, ttsProvider, ttsUsage, tcVoices, tcVoiceOf, TC_PERSONA, TTS_MAX_CHARS } from './services/tts.ts';
 import { personaOf, defaultTodayLetter, LETTER_FEELINGS, LETTER_TOPICS, LETTER_KAKAO, CHARMS } from '@dalsaegim/content';
 import { writeLetter } from './services/letter.ts';
@@ -453,12 +453,15 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     const [u] = await db.select({ memoryAI: S.users.memoryAI }).from(S.users).where(eq(S.users.id, userId));
     const mems = u?.memoryAI ? await db.select({ happenedOn: S.memories.happenedOn, category: S.memories.category, title: S.memories.title, feedback: S.memories.feedback })
       .from(S.memories).where(and(eq(S.memories.userId, userId), ne(S.memories.visibility, 'private'))).orderBy(desc(S.memories.happenedOn)).limit(5) : [];
-    let r;
+    let r, fellBack = false;
     try {
       r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: chat?.topic ?? b.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http, tier: useCredit ? 'pass' : 'free' });
     } catch (e: any) {
       req.log.warn(`[friend] ${e.message}`);
-      return rep.code(502).send({ error: '달새김이 잠시 생각에 잠겼어요. 조금 뒤에 다시 말을 걸어 주세요.' });
+      if (!aiFatal(e)) return rep.code(502).send({ error: '달새김이 잠시 생각에 잠겼어요. 조금 뒤에 다시 말을 걸어 주세요.' });
+      // 잔액 부족·키 오류 — 계산 기반 기본 답변으로 이어 가고, 이용권 질문은 차감하지 않는다(아래 fellBack)
+      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: chat?.topic ?? b.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http, tier: useCredit ? 'pass' : 'free', noAI: true });
+      fellBack = true;
     }
     const at = new Date().toISOString();
     const messages: ChatMsg[] = [...(chat?.messages ?? []), { role: 'user', text, at }, { role: 'friend', text: r.reply, at }];
@@ -467,7 +470,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     if (chat) await db.update(S.chats).set(v).where(eq(S.chats.id, chat.id));
     else { id = newId('c_'); await db.insert(S.chats).values({ id, userId, profileId: profile.id, source: b.source ?? null, persona: personaOf(b.persona).id, ...v }); }
     let credits = sub?.credits ?? null;
-    if (useCredit && sub && sub.credits != null) {
+    if (useCredit && !fellBack && sub && sub.credits != null) {
       const [u2] = await db.update(S.subscriptions).set({ credits: sql`${S.subscriptions.credits} - 1` }).where(and(eq(S.subscriptions.id, sub.id), gt(S.subscriptions.credits, 0))).returning({ credits: S.subscriptions.credits }); // 동시에 두 번 보내도 0 아래로 내려가지 않게
       credits = u2?.credits ?? 0;
     }
