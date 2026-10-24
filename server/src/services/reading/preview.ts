@@ -59,7 +59,7 @@ export function previewOf(p: { id: string; title: string; kind: string; adult?: 
     const c = engineContent({ id: p.id, title: p.title }, ps, facts);
     const adult = !!p.adult;
     out = {
-      productId: p.id, title: p.title, who: ps.map((x) => x.name).join('·') + '(예시)', intro: c.intro, amount: `${c.chapters.length}가지 핵심 분석`,
+      productId: p.id, title: p.title, who: ps.map((x) => x.name).join('·') + '(예시)', intro: c.intro, amount: p.id === 'money_pack' ? '풀이 4개(재물·사업·투자·부동산) · 22가지 분석' : `${c.chapters.length}가지 핵심 분석`,
       summary: c.summary ? { headline: c.summary.headline, lead: c.summary.lead } : null,
       toc: c.chapters.map((x) => ({ title: x.title })),
       excerpt: adult ? [] : c.chapters.slice(0, 2).map((x, i) => ({ no: i + 1, title: x.title, say: x.say, body: i === 0 ? cut(x.body, 900) : cut(x.body, 100), locked: i > 0 })),
