@@ -18,6 +18,9 @@
 	@assets path /assets/* /fonts/* /img/*
 	header @assets Cache-Control "public, max-age=31536000, immutable"
 	header /index.html Cache-Control "no-cache"
+	# 화면(HTML) 주소는 항상 새로 확인 — 배포 뒤 휴대폰·앱 안 브라우저가 예전 화면을 붙잡지 않게
+	@page not path /assets/* /fonts/* /img/* *.webp *.png *.jpg *.svg *.ico *.woff2 *.mp3 *.mp4 *.json *.xml *.txt
+	header @page Cache-Control "no-cache"
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin

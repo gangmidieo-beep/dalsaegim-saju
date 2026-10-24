@@ -99,7 +99,7 @@ export default function Home() {
           <div className="nh-sec"><h2 id="daily-t">매일의 운세</h2><span className="free-tag">무료</span></div>
           <p className="nh-sub">오늘 하루와 이번 달의 흐름을 먼저 살펴보세요</p>
           <Link to={isSample ? '/profile/new' : '/today'} className="nh-today">
-            {isSample ? <span className="sc"><I.sunmoon size={28} /></span> : <span className="sc"><b>{t.total}</b><small>점</small></span>}
+            {isSample ? <span className="sc"><I.sunmoon size={28} /></span> : <span className="sc score" style={{ ['--p' as string]: t.total }} aria-label={`오늘 ${t.total}점`}><small>오늘</small><b>{t.total}<i>점</i></b></span>}
             <span className="grow">
               <small className="k">DAILY FORTUNE</small>
               <h2>{isSample ? '오늘의 운세' : `${profile.name} 님의 오늘`}<em>무료</em></h2>

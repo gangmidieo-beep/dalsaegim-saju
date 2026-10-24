@@ -1334,3 +1334,11 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 /* 풀이 미리보기 버튼 — 왼쪽에 치우쳐 어색하던 것 → 가운데, 글자에 맞춘 폭 */
 .pv-btn { width: fit-content; min-width: 210px; margin: 14px auto 0; padding: 0 22px; justify-content: center; text-align: center; border-radius: 999px; }
 .pv-btn .pv-chev { margin-left: 2px; }
+
+/* 홈 오늘의 운세 점수 — 숫자와 '점'이 떨어져 어색하던 것 → 점수만큼 채워지는 금색 고리 + '오늘 71점' 한 덩어리 */
+.nh-today .sc.score { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; background: conic-gradient(#d6aa55 calc(var(--p) * 1%), #efe4cc 0); }
+.nh-today .sc.score::before { content: ''; position: absolute; inset: 5px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #fffaf0, #f7ecd6); }
+.nh-today .sc.score > * { position: relative; }
+.nh-today .sc.score small { font-size: 10px; font-weight: 700; color: #8a6d2b; line-height: 1; }
+.nh-today .sc.score b { font-size: 21px; line-height: 1; letter-spacing: -0.02em; color: #4a3519; }
+.nh-today .sc.score b i { font-style: normal; font-size: 11px; font-weight: 700; margin-left: 1px; }
