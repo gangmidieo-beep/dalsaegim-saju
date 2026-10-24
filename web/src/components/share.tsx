@@ -63,7 +63,9 @@ export function ShareProvider({ children }: { children: ReactNode }) {
       switch (ch) {
         case 'kakao': {
           if (__KAKAO_JS_KEY__) { await kakaoShare({ title: o.title, text: o.text, url }); break; }
-          if (navigator.share) { await navigator.share({ title: o.title, text: o.text, url }); break; }
+          // 카카오 키가 없을 때: 휴대폰은 공유창(카카오톡 앱이 목록에 뜸), PC 는 공유창에 카카오톡이 없으므로 링크 복사
+          const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+          if (mobile && navigator.share) { await navigator.share({ title: o.title, text: o.text, url }); break; }
           await copy(msg); toast('링크를 복사했어요. 카카오톡 대화창에 붙여 넣어 주세요'); break;
         }
         case 'line': open_(`https://social-plugins.line.me/lineit/share?url=${enc(url)}&text=${enc(o.text)}`); break;
