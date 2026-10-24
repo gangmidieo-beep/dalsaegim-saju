@@ -355,6 +355,13 @@ export async function generateReading(product: { id: string; title: string }, pe
   // 정통사주 A4 40장 — AI 가 켜져 있으면 26장 장편(long.ts), 꺼져 있으면 아래 9장 계산 풀이
   if (product.id === 'lifetime' && liveAI() && longOn()) {
     const g = await generateLong(product, ps, { http: opts.http, now: opts.now, onProgress: opts.onProgress });
+    // AI 가 절반도 못 쓴 경우(잔액 부족·키 오류·장시간 장애) — 짧은 초안 26장 대신 완결된 9장 계산 풀이를 주고 관리자 기록에 남긴다
+    const fell = g.issues.filter((x) => x.endsWith('계산 초안으로 대체')).length;
+    if (fell > g.content.chapters.length / 2) {
+      const why = g.issues.find((x) => /실패/.test(x)) ?? '';
+      const content = engineContent(product, ps, facts);
+      return { content: { ...content, who: ps.map((p) => p.name), facts: facts.lines }, tokensIn: g.usage.in + g.usage.cacheWrite + g.usage.cacheRead, tokensOut: g.usage.out, costKrw: g.costKrw, issues: [`AI 장편 실패(${fell}/${g.content.chapters.length}장) → 9장 계산 풀이로 대신 · ${why}`, ...g.issues] };
+    }
     return { content: { ...g.content, ...(facts.summary ? { summary: facts.summary } : {}) } as ReadingContent, tokensIn: g.usage.in + g.usage.cacheWrite + g.usage.cacheRead, tokensOut: g.usage.out, costKrw: g.costKrw, issues: g.issues };
   }
   if (!liveAI() || product.id === 'tarot_some') { const content = engineContent(product, ps, facts); return { content: { ...content, who: ps.map((p) => p.name), facts: facts.lines }, tokensIn: 0, tokensOut: 0, costKrw: 0, issues: [] as string[] }; }

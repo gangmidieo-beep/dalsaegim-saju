@@ -95,3 +95,25 @@ describe('하루 AI 한도(AI_DAILY_CAP_KRW)', () => {
     expect(liveAI()).toBe(true);
   });
 });
+
+describe('AI 실패 처리', () => {
+  it('잔액 부족(insufficient_quota)은 다시 부르지 않고 코드와 함께 실패, 정통사주는 9장 계산 풀이로', async () => {
+    process.env.OPENAI_API_KEY = 'sk-test'; process.env.READING_AI = 'live';
+    let n = 0;
+    const http = (async () => { n++; return new Response(JSON.stringify({ error: { code: 'insufficient_quota', type: 'insufficient_quota' } }), { status: 429 }); }) as unknown as typeof fetch;
+    await expect(aiCall({ system: 'x', messages: [{ role: 'user', content: '안녕' }], kind: 'reading', http })).rejects.toThrow('AI 호출 실패 429 insufficient_quota');
+    expect(n).toBe(1);
+    const g = await generateReading({ id: 'lifetime', title: '정통' }, [person], { http, now: new Date('2026-10-23T03:00:00Z') });
+    expect(g.content.chapters).toHaveLength(9);
+    expect(g.issues[0]).toMatch(/AI 장편 실패.*9장.*insufficient_quota/);
+  });
+  it('분당 한도(rate_limit)는 기다렸다 다시', async () => {
+    process.env.OPENAI_API_KEY = 'sk-test';
+    let n = 0;
+    const http = (async () => (++n < 2
+      ? new Response(JSON.stringify({ error: { code: 'rate_limit_exceeded' } }), { status: 429, headers: { 'retry-after': '0' } })
+      : new Response(JSON.stringify({ choices: [{ message: { content: '{"ok":1}' } }], usage: { prompt_tokens: 1, completion_tokens: 1 } })))) as unknown as typeof fetch;
+    const c = await aiCall({ system: 'x', messages: [{ role: 'user', content: '안녕' }], kind: 'reading', http });
+    expect(c.text).toBe('{"ok":1}'); expect(n).toBe(2);
+  }, 20_000);
+});

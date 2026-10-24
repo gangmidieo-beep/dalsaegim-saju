@@ -8,6 +8,8 @@ import { moneyFlow } from './money';
 import { lifetimeReport, LIFE_THEME, lifeScore } from './lifetime';
 import OUT from '../data/lifetime-long.json' with { type: 'json' };
 import L from '../data/lifetime.json' with { type: 'json' };
+/** 마지막 글자 받침 여부(한글) — 이에요/예요, 은/는 */
+const jb = (w: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c <= 11171 && c % 28 !== 0; };
 
 export type LongChapter = { id: string; part: number; partTitle: string; title: string; brief: string; len: number; facts: string[]; draft: number | null };
 export const LONG_OUTLINE: LongChapter[] = OUT.parts.flatMap((p, pi) => p.chapters.map((c) => ({ ...c, part: pi, partTitle: p.title })));
@@ -102,7 +104,7 @@ export function lifetimeDeep(saju: SajuResult, name: string, profileId: string, 
     const t = (k: string) => F[k] ?? '';
     // 계산 자료를 문장으로 풀어 쓴 간단한 대체 본문
     switch (c.id) {
-      case 'L01': return [`${name} 님의 사주는 네 기둥, 여덟 글자로 이루어져 있어요. 연주는 뿌리, 월주는 사회, 일주는 나와 배우자, 시주는 자녀와 인생 후반을 보여 줘요.`, ...cells.map((x) => `${x.label}는 ${x.stem.han}${x.branch.han}이에요. 천간 ${x.stem.han}은 ${x.stem.yy}의 ${x.stem.el} 기운(${x.stem.sip}), 지지 ${x.branch.han}은 ${x.branch.yy}의 ${x.branch.el} 기운(${x.branch.sip})이에요.`)];
+      case 'L01': return [`${name} 님의 사주는 네 기둥, 여덟 글자로 이루어져 있어요. 연주는 뿌리, 월주는 사회, 일주는 나와 배우자, 시주는 자녀와 인생 후반을 보여 줘요.`, ...cells.map((x) => `${x.label}는 ${x.stem.kor}${x.branch.kor}(${x.stem.han}${x.branch.han})${jb(x.branch.kor) ? '이에요' : '예요'}. 천간 ${x.stem.kor}(${x.stem.han})${jb(x.stem.kor) ? '은' : '는'} ${x.stem.yy}의 ${x.stem.el} 기운(${x.stem.sip}), 지지 ${x.branch.kor}(${x.branch.han})${jb(x.branch.kor) ? '은' : '는'} ${x.branch.yy}의 ${x.branch.el} 기운(${x.branch.sip})이에요.`)];
       case 'L22': return seun.map((s) => `${s.y}년(${s.gz})은 '${s.theme}'의 결이 들어오는 해예요. 종합 지수는 ${s.score}점이고, 연애 ${s.love}·일 ${s.work}·재물 ${s.wealth}점이에요.`);
       case 'L23': return wolun.map((w) => `${w.y}년 ${w.m}월은 연애 ${w.love}·일 ${w.work}·재물 ${w.wealth}점이에요. ${[['연애', w.love], ['일', w.work], ['재물', w.wealth]].sort((a, b) => (b[1] as number) - (a[1] as number))[0][0]} 쪽 기운이 가장 밝아요.`);
       default: return [t(c.facts[0]).split('\n').join(' ')];

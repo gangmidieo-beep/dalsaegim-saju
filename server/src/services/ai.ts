@@ -52,6 +52,24 @@ const kstDay = () => new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 
 export function aiSpentToday() { if (spent.day !== kstDay()) { spent.day = kstDay(); spent.krw = 0; } return spent.krw; }
 export const aiDailyCap = () => { const v = Number(process.env.AI_DAILY_CAP_KRW); return Number.isFinite(v) && v > 0 ? v : null; };
 export const aiCapReached = () => { const c = aiDailyCap(); return c != null && aiSpentToday() >= c; };
+/** 실패 응답에서 업체 오류 코드(insufficient_quota·rate_limit_exceeded·overloaded_error 등)를 꺼내 메시지에 붙인다 */
+async function failOf(r: Response) {
+  let code = '';
+  try { const j = (await r.json()) as any; code = j?.error?.code || j?.error?.type || ''; } catch { /* 본문 없음 */ }
+  const wait = Number(r.headers.get('retry-after')) || 0;
+  return Object.assign(new Error(`AI 호출 실패 ${r.status}${code ? ` ${code}` : ''}`), { status: r.status, code, wait });
+}
+/** 잠깐 막힌 것(분당 한도·과부하)만 기다렸다 다시. 잔액 부족(insufficient_quota)·키 오류는 바로 실패 */
+async function withRetry(go: () => Promise<Response>): Promise<Response> {
+  for (let i = 0; ; i++) {
+    const r = await go();
+    if (r.ok) return r;
+    const e = await failOf(r);
+    const temporary = (r.status === 429 && e.code !== 'insufficient_quota') || r.status === 529 || r.status === 503 || r.status === 500;
+    if (!temporary || i >= 3) throw e;
+    await new Promise((s) => setTimeout(s, Math.min(30_000, (e.wait || 2 ** i * 4) * 1000 + Math.random() * 1000)));
+  }
+}
 export async function aiCall(o: {
   system: string | SystemPart[]; messages: { role: 'user' | 'assistant'; content: string }[]; kind: AiKind; http?: typeof fetch;
   maxTokens?: number; json?: boolean; cacheKey?: string; timeoutMs?: number; model?: string;
@@ -66,12 +84,11 @@ export async function aiCall(o: {
   const signal = AbortSignal.timeout(o.timeoutMs ?? 240_000);
   let text = '', u: AiUsage = { in: 0, out: 0, cacheWrite: 0, cacheRead: 0 };
   if (p === 'anthropic') {
-    const r = await http(process.env.ANTHROPIC_API_URL || 'https://api.anthropic.com/v1/messages', {
+    const r = await withRetry(() => http(process.env.ANTHROPIC_API_URL || 'https://api.anthropic.com/v1/messages', {
       method: 'POST', signal,
       headers: { 'content-type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY!, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({ model, max_tokens: o.maxTokens ?? 8000, system: parts.map((s) => ({ type: 'text', text: s.text, ...(s.cache ? { cache_control: { type: 'ephemeral' } } : {}) })), messages: o.messages }),
-    });
-    if (!r.ok) throw Object.assign(new Error(`AI 호출 실패 ${r.status}`), { status: r.status });
+    }));
     const j = (await r.json()) as any;
     text = (j.content ?? []).map((c: any) => c.text ?? '').join('');
     u = { in: j.usage?.input_tokens ?? 0, out: j.usage?.output_tokens ?? 0, cacheWrite: j.usage?.cache_creation_input_tokens ?? 0, cacheRead: j.usage?.cache_read_input_tokens ?? 0 };
@@ -79,7 +96,7 @@ export async function aiCall(o: {
     // GPT — Chat Completions. 추론 토큰도 출력 한도(max_completion_tokens)에 포함되므로 넉넉히 잡는다.
     // 같은 앞부분(system)은 OpenAI 가 자동으로 캐시한다(prompt_cache_key 로 같은 풀이끼리 묶음).
     const effort = process.env.AI_REASONING || 'low';
-    const r = await http(process.env.OPENAI_API_URL || 'https://api.openai.com/v1/chat/completions', {
+    const r = await withRetry(() => http(process.env.OPENAI_API_URL || 'https://api.openai.com/v1/chat/completions', {
       method: 'POST', signal,
       headers: { 'content-type': 'application/json', authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
       body: JSON.stringify({
@@ -88,8 +105,7 @@ export async function aiCall(o: {
         ...(o.json ? { response_format: { type: 'json_object' } } : {}),
         ...(o.cacheKey ? { prompt_cache_key: o.cacheKey } : {}),
       }),
-    });
-    if (!r.ok) throw Object.assign(new Error(`AI 호출 실패 ${r.status}`), { status: r.status });
+    }));
     const j = (await r.json()) as any;
     text = j.choices?.[0]?.message?.content ?? '';
     const cached = j.usage?.prompt_tokens_details?.cached_tokens ?? 0;
