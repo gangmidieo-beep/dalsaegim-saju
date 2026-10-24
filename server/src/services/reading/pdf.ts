@@ -142,15 +142,17 @@ function bars(x: Ctx, items: { label: string; v: number; color?: string; note?: 
 }
 
 function render(doc: Doc, c: Long, meta: { name: string; birth: string; date: string }, toc: Record<string, number> | null) {
-  const x: Ctx = { doc, y: TOP, page: 0, title: '정통사주 감정서', name: meta.name, marks: {} };
+  // 정통사주(장편)는 '정통사주 감정서', 그 밖의 풀이는 상품 이름을 표지로(— 앞은 제목, 뒤는 부제)
+  const [t1, t2] = (c as { long?: boolean }).long ? ['정통사주 감정서', '나의 사주지도 전체 풀이'] : (() => { const [a, ...b] = String(c.title ?? '달새김 풀이').split(' — '); return [a, b.join(' — ') || '달새김 풀이']; })();
+  const x: Ctx = { doc, y: TOP, page: 0, title: t1, name: meta.name, marks: {} };
   // 표지
   newPage(x, true);
   doc.rect(0, 0, W, H).fill(C.navy);
   doc.circle(W / 2, 250, 70).lineWidth(1).strokeColor(C.gold).stroke();
   doc.circle(W / 2 + 22, 238, 58).fill(C.navy);
   font(doc, 'b', 10, C.gold); doc.text('DALSAEGIM PERSONAL SAJU REPORT', 0, 360, { width: W, align: 'center', characterSpacing: 2 });
-  font(doc, 'sb', 30, '#F7F3EA'); doc.text('정통사주 감정서', 0, 392, { width: W, align: 'center' });
-  font(doc, 'sr', 13, '#D9D3C4'); doc.text('나의 사주지도 전체 풀이', 0, 440, { width: W, align: 'center' });
+  font(doc, 'sb', t1.length > 12 ? 24 : 30, '#F7F3EA'); doc.text(t1, 40, 392, { width: W - 80, align: 'center' });
+  font(doc, 'sr', 13, '#D9D3C4'); doc.text(t2, 40, 440, { width: W - 80, align: 'center' });
   font(doc, 'b', 16, '#F7F3EA'); doc.text(`${meta.name} 님`, 0, 520, { width: W, align: 'center' });
   font(doc, 'r', 10.5, '#D9D3C4'); doc.text(meta.birth, 0, 546, { width: W, align: 'center' });
   font(doc, 'r', 9, '#B9B4A8'); doc.text(`달새김사주 · 오늘의 운을 읽고, 나의 시간을 새기다 · ${meta.date}`, 0, H - 80, { width: W, align: 'center' });

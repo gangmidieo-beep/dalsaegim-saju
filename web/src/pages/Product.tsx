@@ -10,7 +10,6 @@ import { PAY_GROUPS, PAY_METHODS, PENDING, clearPending, isInAppBrowser, methodO
 import { Moon, Skeleton, Top, won, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
-import { saveImage } from '../lib/share';
 import { useShare } from '../components/share';
 import { DaeunTable, ElementBars, Flow36, LuckyCard, ReportSummary, SajuTableView, SeunTable, WolunTable, YearBars, type Basis, type Summary, type Visual } from '../components/report';
 import { CARDS, TarotCard } from '../components/tarot';
@@ -569,9 +568,7 @@ export function ReadingPage() {
         <button className="btn primary mt16" disabled={saved} onClick={keep}>{saved ? '✓ 타임라인에 새겼어요' : '이 풀이를 타임라인에 새기기'}</button>
         <div className="grid2 mt8">
           <Link to="/friend" className="btn line sm" style={{ width: '100%' }}><I.chat size={18} />상담사에게 묻기</Link>
-          {c.long
-            ? <button className="btn line sm" style={{ width: '100%' }} disabled={pdfBusy} onClick={savePdf}><I.download size={18} />{pdfBusy ? 'PDF 만드는 중…' : 'A4 PDF로 저장'}</button>
-            : <button className="btn line sm" style={{ width: '100%' }} onClick={() => { const el = document.querySelector('.read') as HTMLElement; if (el) void saveImage(el, `reading_${orderId}`, '#F7F3EE'); }}><I.download size={18} />이미지로 저장</button>}
+          <button className="btn line sm" style={{ width: '100%' }} disabled={pdfBusy} onClick={savePdf}><I.download size={18} />{pdfBusy ? 'PDF 만드는 중…' : 'A4 PDF로 저장'}</button>
         </div>
       </main>
     </>
