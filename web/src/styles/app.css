@@ -1342,3 +1342,8 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .nh-today .sc.score small { font-size: 10px; font-weight: 700; color: #8a6d2b; line-height: 1; }
 .nh-today .sc.score b { font-size: 21px; line-height: 1; letter-spacing: -0.02em; color: #4a3519; }
 .nh-today .sc.score b i { font-style: normal; font-size: 11px; font-weight: 700; margin-left: 1px; }
+/* 부적 9칸 — 바탕 그림마다 달 아래 장식선(날개·산·물결·월계수)의 높이가 달라 칸마다 '라인'이 달라 보이던 것
+   → 달 아래쪽을 같은 남색으로 부드럽게 덮어 장식선 차이를 숨기고, 같은 높이에 금색 가로선 하나로 통일 */
+.charm-types .ct-img[data-b]::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(to bottom, transparent 0, transparent 50%, rgba(11, 18, 38, 0.92) 64%, #0b1226 100%); pointer-events: none; }
+.charm-types .ct-img[data-b]::after { content: ''; position: absolute; left: 14%; right: 14%; top: 58%; height: 1px; background: linear-gradient(90deg, transparent, rgba(232, 201, 143, 0.75), transparent); pointer-events: none; }
+.charm-types .ct-img[data-b] .ct-mark { z-index: 1; }

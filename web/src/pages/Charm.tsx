@@ -1,4 +1,4 @@
-// 나만의 황금 달빛 부적 — 소망 유형 고르기 → 이름·소망 → 3~5초 황금빛 완성 연출(건너뛰기 가능, 효과음은 기본 꺼짐) → 고화질 배경화면 저장.
+// 나만의 황금부적 — 소망 유형 고르기 → 이름·소망 → 3~5초 황금빛 완성 연출(건너뛰기 가능, 효과음은 기본 꺼짐) → 고화질 배경화면 저장.
 // 실제 금전적 성과나 수익을 보장하지 않는다(행운을 비는 디지털 카드).
 import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -141,7 +141,7 @@ export default function CharmPage() {
 
   if (phase === 'done' && png) return (
     <>
-      <Top title="나만의 황금 달빛 부적" />
+      <Top title="나만의 황금부적" />
       <main className="screen charm-bg">
         <img className="charm-result fade-in" src={png} alt={`${name}님의 ${c.name}`} />
         <button className="btn gold-lux mt16" onClick={save}><I.download size={20} />배경화면으로 저장하기</button>
@@ -167,7 +167,7 @@ export default function CharmPage() {
 
   return (
     <>
-      <Top title="나만의 황금 달빛 부적" />
+      <Top title="나만의 황금부적" />
       <main className="screen charm-bg">
         <p className="pick-eyebrow">달새김 황금 부적</p>
         <h2 className="pick-title">이름과 소망을<br />황금빛 달에 새겨 드려요</h2>
