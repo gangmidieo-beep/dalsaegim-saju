@@ -14,7 +14,12 @@ const SITE = brand.serviceName;
 const ORIGIN = (process.env.PUBLIC_WEB_ORIGIN || '').replace(/\/$/, '');
 const paths = [];
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const shell = readFileSync(join(dist, 'index.html'), 'utf8');
+// 검색엔진용 사업자·공식 채널 정보(JSON-LD) — 구글이 '달새김사주'를 공식 카카오톡 채널·사업자와 바로 잇도록
+const biz = brand.business ?? {};
+const ld = { '@context': 'https://schema.org', '@type': 'Organization', name: SITE, alternateName: biz.name, url: ORIGIN || 'https://dalsaegim.com', logo: `${ORIGIN || 'https://dalsaegim.com'}/img/og.jpg`,
+  slogan: brand.slogan, founder: biz.ceo, email: biz.email, address: biz.address ? { '@type': 'PostalAddress', streetAddress: biz.address, addressCountry: 'KR' } : undefined,
+  sameAs: [biz.kakao].filter(Boolean), contactPoint: biz.kakao ? [{ '@type': 'ContactPoint', contactType: 'customer support', url: biz.kakao, availableLanguage: 'Korean' }] : undefined };
+const shell = readFileSync(join(dist, 'index.html'), 'utf8').replace('</head>', `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script></head>`);
 function page(path, title, desc, body) {
   const html = shell
     .replace(/<title>.*?<\/title>/, `<title>${esc(title)}</title>`)
