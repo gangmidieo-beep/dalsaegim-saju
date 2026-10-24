@@ -65,7 +65,7 @@ export const TC_PERSONA: Record<string, TcSpec> = {
   seoyeon: { gender: 'F', age: 'middle_age', tempo: 0.97, pitch: 0, voice: 'tc_6a4f2130d153a5cac8e19996', voiceName: '지선' }, // 서연 — 차분한 성숙감
   yeonhwa: { gender: 'F', age: 'elder', tempo: 0.9, pitch: 0, voice: 'tc_60ad0841061ee28740ec2e1c', voiceName: '순이' }, // 연화 할매 — 할머니 목소리, 천천히
   baksa: { gender: 'M', age: 'middle_age', tempo: 1.0, pitch: 0, voice: 'tc_6a0e85a97f7750959b970d5d', voiceName: '대진' }, // 사주박사 — 중년 남성, 명료하게
-  cheongun: { gender: 'M', age: 'elder', tempo: 0.93, pitch: 0, voice: 'tc_675a73eb789ff3ea6cc80235', voiceName: '권일' }, // 청운 선생 — 할아버지 목소리, 느긋하게
+  cheongun: { gender: 'M', age: 'elder', tempo: 0.93, pitch: 0, voice: 'tc_5ebea13564afaf00087fc2e7', voiceName: '영길' }, // 청운 선생 — 연륜 있는 고령 남성(R6 REQ-13 대표님 청취 선택 10/24, 이전 권일)
   junho: { gender: 'M', age: 'young_adult', tempo: 1.02, pitch: 0, voice: 'tc_686dc43ebd6351e06ee64d74', voiceName: '원우' }, // 준호 — 20~30대 남성, 다정하게
 };
 const TC_BASE = 'https://api.typecast.ai';

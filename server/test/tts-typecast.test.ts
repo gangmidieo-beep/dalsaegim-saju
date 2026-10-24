@@ -78,7 +78,7 @@ describe('타입캐스트 음성', () => {
     await say({ text: '할매 기본', gender: 'F', persona: 'yeonhwa' });
     expect(ttsCalls.at(-1).voice_id).toBe('tc_60ad0841061ee28740ec2e1c');
     await say({ text: '청운 기본', gender: 'M', persona: 'cheongun' });
-    expect(ttsCalls.at(-1).voice_id).toBe('tc_675a73eb789ff3ea6cc80235');
+    expect(ttsCalls.at(-1).voice_id).toBe('tc_5ebea13564afaf00087fc2e7');
     process.env.TYPECAST_AUTO_VOICE = '1';
   });
   it('Railway 변수로 상담사 목소리 고정', async () => {
