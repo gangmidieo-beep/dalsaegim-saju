@@ -332,6 +332,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     return o ?? rep.code(404).send({ error: '주문이 없어요' });
   });
   // PayApp 결제 통보 — 아이디·연동키·연동값 검증 → 금액 대조 → 확정/취소. 응답은 반드시 SUCCESS(재전송 멈춤)
+  app.get('/pay/payapp/feedback', async (_req, rep) => rep.type('text/plain').send('OK')); // 주소 확인용 접속(GET)에 404 대신 응답
   app.post('/pay/payapp/feedback', { logLevel: 'warn' }, async (req, rep) => {
     const env = payappEnv();
     const f = env ? parsePayappFeedback((req.body ?? {}) as Record<string, unknown>, env, (m) => req.log.warn(m)) : null;

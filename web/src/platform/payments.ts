@@ -2,7 +2,12 @@
 import { apiAuth, syncProfiles } from '../lib/api';
 import brandCfg from '../../../brand.config.json';
 
-export type PayResult = { status: 'paid' | 'failed' | 'redirect'; orderId: string; message?: string; code?: string };
+export type PayResult = { status: 'paid' | 'failed' | 'redirect'; orderId: string; message?: string; code?: string; payUrl?: string };
+/** 결제창으로 떠난 주문(돌아오기를 못 눌렀거나 앱 전환 뒤 돌아온 경우 이어서 확인) */
+export function pendingPay(maxMin = 120): { orderId: string; productId: string; at: number; payUrl?: string } | null {
+  try { const v = JSON.parse(localStorage.getItem(PENDING) || 'null'); return v?.orderId && Date.now() - (v.at ?? 0) < maxMin * 60_000 ? v : null; } catch { return null; }
+}
+export const clearPending = () => { try { localStorage.removeItem(PENDING); } catch { /* */ } };
 // 결제수단 — brand.config.json payMethods (PayApp 가맹 후 열린 수단만 on)
 export type PayMethod = { id: string; group: string; label: string; open: string; on: boolean; desc?: string; mark?: string; color?: string; ink?: string };
 const PM = (brandCfg as any).payMethods as { groups: [string, string][]; list: PayMethod[] };
@@ -23,9 +28,9 @@ export async function purchase(productId: string, profileIds: string[], opts: { 
     });
     if (o.status === 'paid') return { status: 'paid', orderId: o.id };
     if (!o.payUrl) return { status: 'failed', orderId: o.id, message: '결제창을 열지 못했어요' };
-    try { localStorage.setItem(PENDING, JSON.stringify({ orderId: o.id, productId, at: Date.now() })); } catch { /* */ }
+    try { localStorage.setItem(PENDING, JSON.stringify({ orderId: o.id, productId, at: Date.now(), payUrl: o.payUrl })); } catch { /* */ }
     location.assign(o.payUrl); // PayApp 결제창 → 끝나면 /pay/return?order= 으로 돌아옴
-    return { status: 'redirect', orderId: o.id };
+    return { status: 'redirect', orderId: o.id, payUrl: o.payUrl };
   } catch (e: any) {
     return { status: 'failed', orderId: '', message: e.message, code: e.code };
   }

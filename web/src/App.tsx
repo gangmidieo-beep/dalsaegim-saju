@@ -1,7 +1,9 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { Navigate, Route, Routes, useLocation, useNavigationType } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { ToastProvider, TabBar } from './components/ui';
 import { track } from './lib/track';
+import { apiAuth } from './lib/api';
+import { clearPending, pendingPay } from './platform/payments';
 import { ShareProvider } from './components/share';
 import Home from './pages/Home';
 import ProfileNew from './pages/ProfileNew';
@@ -31,6 +33,16 @@ export function App() {
   // R6 REQ-23 — 뒤로가기(POP)면 보던 위치로, 새 화면(PUSH)이면 맨 위로
   const navType = useNavigationType();
   useEffect(() => { try { history.scrollRestoration = 'manual'; } catch { /* 일부 브라우저 */ } }, []);
+  // 결제창에서 '돌아가기'를 누르지 않고 사이트로 다시 들어온 경우 — 결제가 끝났으면 풀이로 바로 안내
+  const nav = useNavigate();
+  useEffect(() => {
+    const pend = pendingPay(120);
+    if (!pend || /^\/(pay\/return|checkout|admin)/.test(loc.pathname)) return;
+    apiAuth<{ status: string }>(`/orders/${pend.orderId}`).then((o) => {
+      if (o?.status === 'paid') nav(`/pay/return?order=${pend.orderId}`, { replace: true });
+      else if (o && o.status !== 'pending') clearPending();
+    }).catch(() => {});
+  }, []);
   useEffect(() => {
     const key = `scroll:${loc.key}`;
     if (navType === 'POP') {

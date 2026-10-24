@@ -1310,3 +1310,8 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .btn.danger { background: #b3403c; color: #fff; border-color: #b3403c; }
 /* R6 REQ-23 — 예시 그래프 표시 */
 .sample-note { margin: 8px 0 0; font-size: 13px; color: #8a6d2b; background: rgba(201,169,97,.12); border-radius: 10px; padding: 6px 10px; word-break: keep-all; }
+
+/* 결제창에서 돌아온 미완료 주문 안내 */
+.pay-left { border: 1px solid var(--gold, #c9a961); background: rgba(201,169,97,.08); border-radius: 14px; padding: 14px; word-break: keep-all; }
+.pay-left b { display: block; font-size: 15px; }
+.pay-left p { margin: 4px 0 0; font-size: 14px; color: var(--muted, #6b6f80); }

@@ -6,7 +6,7 @@ import tarotData from '@dalsaegim/content/data/tarot.json';
 import reading from '@dalsaegim/content/data/reading.json';
 import { useApp, useMain } from '../store/app';
 import { API, apiAuth } from '../lib/api';
-import { PAY_GROUPS, PAY_METHODS, PENDING, isInAppBrowser, methodOf, phoneOk, purchase, savePhone, savedPhone } from '../platform/payments';
+import { PAY_GROUPS, PAY_METHODS, PENDING, clearPending, isInAppBrowser, methodOf, pendingPay, phoneOk, purchase, savePhone, savedPhone } from '../platform/payments';
 import { Moon, Skeleton, Top, won, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
@@ -255,6 +255,24 @@ export function Checkout() {
   const toast = useToast();
   const nav = useNavigate();
   useEffect(() => { if (p) track('checkout_open', { product: p.id }); }, [p?.id]);
+  // 결제창으로 넘어가는 중 · 결제창이 안 열리면 직접 누를 주소 · 결제창에서 그냥 돌아온 주문
+  const [payUrl, setPayUrl] = useState<string | null>(null);
+  const [slow, setSlow] = useState(false);
+  const [left, setLeft] = useState<{ orderId: string; payUrl?: string } | null>(null);
+  useEffect(() => {
+    const check = async () => {
+      const pend = pendingPay(60);
+      if (!pend || pend.productId !== p?.id) return;
+      const o = await apiAuth<{ status: string; kind: string }>(`/orders/${pend.orderId}`).catch(() => null);
+      if (o?.status === 'paid') { clearPending(); nav(o.kind === 'subscription' ? '/friend' : `/reading/${pend.orderId}`, { replace: true }); return; }
+      if (o?.status === 'pending') setLeft({ orderId: pend.orderId, payUrl: pend.payUrl }); else clearPending();
+    };
+    void check();
+    // 뒤로가기로 돌아오면(브라우저가 예전 화면을 그대로 보여 줄 때) 버튼을 다시 살리고 결제 여부를 확인
+    const onShow = (e: PageTransitionEvent) => { if (e.persisted) { setBusy(false); setSlow(false); void check(); } };
+    window.addEventListener('pageshow', onShow);
+    return () => window.removeEventListener('pageshow', onShow);
+  }, [p?.id]);
   if (!p) return null;
   const need = p.kind === 'pass' ? 0 : p.people;
   const toggle = (pid: string) => setPick((x) => (x.includes(pid) ? x.filter((y) => y !== pid) : need === 1 ? [pid] : [...x, pid].slice(-need)));
@@ -280,6 +298,7 @@ export function Checkout() {
     savePhone(phone);
     track('pay_start', { product: p.id, method });
     const r = await purchase(p.id, need ? pick : [], { method, phone: phone.replace(/\D/g, ''), meta });
+    if (r.status === 'redirect') { setPayUrl(r.payUrl ?? null); setTimeout(() => setSlow(true), 3500); return; } // 결제창으로 넘어가는 동안 버튼을 다시 누르지 못하게
     setBusy(false);
     if (r.status === 'paid') { track('pay_success', { product: p.id }); nav(p.kind === 'pass' ? '/friend' : `/reading/${r.orderId}`, { replace: true }); }
     else if (r.status === 'failed') { track('pay_fail', { product: p.id, code: r.code }); toast(r.message ?? '결제를 시작하지 못했어요'); }
@@ -379,7 +398,18 @@ export function Checkout() {
           </dl>
           {m?.group === 'vbank' && <p className="faint mt8">결제창에서 발급된 계좌로 입금하면 확인되는 즉시 보관함 › 구매한 운세에 열려요.</p>}
         </section>
+        {left && !busy && (
+          <div className="pay-left mt16" role="status">
+            <b>아직 결제가 끝나지 않은 주문이 있어요</b>
+            <p>결제를 마치셨다면 잠시 뒤 자동으로 확인돼요. 결제창을 닫으셨다면 이어서 결제하거나 새로 결제해 주세요.</p>
+            <div className="grid2 mt8">
+              {left.payUrl ? <a className="btn primary sm" href={left.payUrl}>결제 이어 하기</a> : <span />}
+              <Link className="btn line sm" to={`/pay/return?order=${left.orderId}`}>결제 확인하기</Link>
+            </div>
+          </div>
+        )}
         <button className="btn primary mt20" disabled={!ready || busy} onClick={pay}>{busy ? '결제창을 여는 중…' : `${won(p.price)} 결제하기`}</button>
+        {busy && slow && payUrl && <p className="center mt8"><a className="link" href={payUrl}>결제창이 열리지 않으면 여기를 눌러 주세요 ›</a></p>}
         {!ready && !busy && <p className="faint center mt8">{p.adult && !adult?.verified ? '성인 인증을 먼저 해 주세요' : need > 0 && pick.length < need ? '사주 정보를 골라 주세요' : !phoneOk(phone) ? '휴대폰 번호를 입력해 주세요' : !agree ? '안내 확인에 체크해 주세요' : ''}</p>}
         <p className="notice mt12">회원가입 없이 결제할 수 있어요. 로그인하면 다른 기기에서도 풀이를 볼 수 있어요.</p>
       </main>
@@ -398,11 +428,14 @@ export function PayReturn() {
     let n = 0;
     const tick = async () => {
       const o = await apiAuth<{ status: string; kind: string; productId: string }>(`/orders/${id}`).catch(() => null);
-      if (o?.status === 'paid') { localStorage.removeItem(PENDING); track('pay_success', { product: o.productId }); nav(o.kind === 'subscription' ? '/friend' : `/reading/${id}`, { replace: true }); return; }
+      if (o?.status === 'paid') { clearPending(); track('pay_success', { product: o.productId }); nav(o.kind === 'subscription' ? '/friend' : `/reading/${id}`, { replace: true }); return; }
       if (o && ['failed', 'cancelled'].includes(o.status)) { track('pay_cancel', { product: o.productId }); setMsg('결제가 완료되지 않았어요'); setRetry(o.productId); return; }
-      if (++n < 15) setTimeout(tick, 2000); else setMsg('결제 확인이 늦어지고 있어요. 하단 보관함 › 구매한 운세에서 확인해 주세요.');
+      if (n === 15) setMsg('결제 확인이 조금 늦어지고 있어요. 이 화면에서 계속 확인하고 있어요.');
+      if (++n < 90) timer = setTimeout(tick, 2000); else setMsg('결제 확인이 늦어지고 있어요. 결제하셨다면 하단 보관함 › 구매한 운세에서 확인되며, 안 보이면 카카오톡 채널로 알려 주세요.');
     };
+    let timer: ReturnType<typeof setTimeout> | undefined;
     void tick();
+    return () => clearTimeout(timer);
   }, []);
   return <main className="screen center" style={{ paddingTop: 120 }}><div style={{ display: 'grid', placeItems: 'center' }}><Moon size={100} /></div><p className="mt16">{msg}</p>{retry && <Link to={`/checkout/${retry}`} replace className="btn primary mt16" style={{ maxWidth: 280, margin: '16px auto 0' }}>다시 결제하기</Link>}<Link to="/box" className="link mt16" style={{ display: 'block' }}>보관함으로 가기</Link></main>;
 }
