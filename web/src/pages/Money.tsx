@@ -56,6 +56,7 @@ export function MoneyHub() {
       </section>
       <main className="screen pull-up">
         {isSample && <Link to="/profile/new?next=/money" className="btn primary">내 사주로 돈의 흐름 보기</Link>}
+        {isSample && <p className="faint mt12" style={{ margin: '12px 0 0' }}>아래 점수는 <b>예시 점수 · 사주 입력 전</b>이에요. 내 사주를 넣으면 나의 점수로 바뀌어요.</p>}
         <div className="stack mt12">{KINDS.map((x) => <HubCard key={x.k} kind={x.k} icon={x.icon} line={x.line} year={Y.year} profileId={profile.id} />)}</div>
         <Link to={`/product/money_pack`} className="card gold mt16 between" style={{ display: 'flex' }}>
           <div><b>{pack.title}</b><div className="small muted">{pack.cardCopy}</div></div>
@@ -67,13 +68,13 @@ export function MoneyHub() {
   );
 }
 function HubCard({ kind, icon, line, year }: { kind: MoneyKind; icon: IconName; line: string; year: number; profileId: string }) {
-  const { profile } = useMain();
+  const { profile, isSample } = useMain();
   const f = useMoney(profile, kind, year);
   return (
     <Link to={`/money/${kind}?y=${year}`} className="opt" style={{ alignItems: 'center' }}>
       <span className="ic" style={{ background: 'var(--gold-soft)', color: 'var(--gold-ink)' }}><Icon name={icon} /></span>
       <span style={{ flex: 1 }}><b>{MONEY_META[kind].title}</b><div className="faint">{line}</div></span>
-      <span style={{ textAlign: 'right' }}><b className="serif" style={{ fontSize: 22 }}>{f.score}</b><div className="faint" style={{ fontSize: 11 }}>{year}</div></span>
+      <span style={{ textAlign: 'right' }}><b className="serif" style={{ fontSize: 22 }}>{f.score}</b><div className="faint" style={{ fontSize: 11 }}>{isSample ? '예시' : year}</div></span>
     </Link>
   );
 }

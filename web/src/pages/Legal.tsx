@@ -2,6 +2,8 @@
 import { Children, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { Top } from '../components/ui';
 import brand from '../../../brand.config.json';
+// 받침 있으면 '이', 없으면 '가' — 괄호 앞 말(상호)에 맞춘다
+const josaIGa = (w: string) => { const c = w.replace(/[^가-힣]/g, '').slice(-1).charCodeAt(0) - 0xac00; return c >= 0 && c % 28 ? '이' : '가'; };
 import { LEGAL_DATES, PASS, PASS_REFUND, PASS_TERMS } from '../lib/policy';
 
 const B = brand.business;
@@ -31,9 +33,9 @@ function H({ children }: { children: ReactNode }) { return <h2 id={slug(String(c
 
 export const Terms = () => (
   <Doc title="이용약관">
-    <H>제1조 (목적)</H><p>이 약관은 {B.name}(이하 “회사”)가 운영하는 {svc}(이하 “서비스”)의 이용 조건과 절차, 회사와 이용자의 권리·의무를 정합니다.</p>
+    <H>제1조 (목적)</H><p>이 약관은 {B.name}(이하 “회사”){josaIGa(B.name)} 운영하는 {svc}(이하 “서비스”)의 이용 조건과 절차, 회사와 이용자의 권리·의무를 정합니다.</p>
     <H>제2조 (서비스 내용)</H><p>서비스는 이용자가 입력한 생년월일시를 바탕으로 사주·운세 정보(오늘의 운세, 사주지도, 돈의 흐름, 고민의 길, 달빛 상담(AI 상담사), 기록·타임라인, 유료 풀이 등)를 제공합니다. 서비스의 풀이는 자기 이해를 돕는 참고 정보이며 의료·법률·투자 판단을 대신하지 않습니다. 투자 관련 콘텐츠는 특정 상품·시점을 권유하지 않습니다.</p>
-    <H>제3조 (이용 계약)</H><p>이용자는 회원가입 없이 기기 계정으로 서비스를 이용할 수 있고, 카카오·네이버·구글 간편 로그인으로 회원이 될 수 있습니다. 로그인하면 기기에서 이용하던 기록이 회원 계정으로 합쳐집니다.</p>
+    <H>제3조 (이용 계약)</H><p>이용자는 회원가입 없이 기기 계정으로 서비스를 이용할 수 있고, 카카오·네이버·구글 간편 로그인은 준비 중이며, 제공되면 간편 로그인으로 회원이 될 수 있습니다. 로그인하면 기기에서 이용하던 기록이 회원 계정으로 합쳐집니다.</p>
     <H>제4조 (유료 서비스와 결제)</H><p>유료 풀이와 이용권의 가격은 상품 화면에 표시합니다. 결제는 결제대행사를 통해 이뤄지며, 결제가 확인되면 풀이가 생성되어 서비스 안에서 바로 열람할 수 있습니다. </p>
     <p>달빛 상담 이용권({PASS.title})의 이용 조건은 다음과 같습니다.<br />{PASS_TERMS.map((t) => <span key={t}>· {t}<br /></span>)}</p>
     <H>제5조 (청약철회와 환불)</H><p>환불은 별도의 <a href="/refund" className="link">환불정책</a>을 따릅니다.</p>

@@ -267,7 +267,7 @@ export function Mailbox({ box = false }: { box?: boolean }) {
       <main className="screen letter-bg">
         <section className="mailbox-head">
           <img src="/img/ui/letter-env.webp" alt="" />
-          <div><b>{isSample ? '나만의 우체통' : `${profile.name}님의 우체통`}</b><span>받은 편지와 부적이 차곡차곡 쌓여요. 나만 볼 수 있어요.</span></div>
+          <div><b>{isSample ? '나만의 우체통' : `${profile.name}님의 우체통`}</b><span>{box ? '구매한 운세·편지·부적을 모아 보는 곳이에요. 나만 볼 수 있어요.' : '받은 편지와 부적이 차곡차곡 쌓여요. 나만 볼 수 있어요.'}</span></div>
         </section>
         <div className="tabs mt12" role="tablist">{([['reading', '구매한 운세'], ['letter', '달빛 편지'], ['charm', '황금 부적']] as const).map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>)}</div>
         {tab === 'reading' ? (

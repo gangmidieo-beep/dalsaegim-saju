@@ -11,7 +11,7 @@ const FREE: [string, string, string, PicName][] = [
   ['/map', '나의 사주지도', '타고난 나와 큰 흐름', 'map'], ['/money', '돈의 흐름', '재물·사업·투자·부동산', 'money'], ['/mbti', '사주 × MBTI', '타고난 기운과 지금 성향', 'self'],
   ['/letter', '달빛 편지', '오늘 내게 온 편지 · 받은 편지함', 'moon'], ['/charm', '황금부적', '소망을 새긴 나만의 부적', 'future'],
 ];
-const SERIES: [string, string][] = [['love', '사랑 시리즈'], ['year', '올해·이번 달'], ['life', '나의 사주'], ['money', '돈의 흐름'], ['work', '일과 진로'], ['worry', '고민·성향'], ['mbti', ''], ['friend', 'AI 사주친구']];
+const SERIES: [string, string][] = [['love', '사랑 시리즈'], ['year', '올해·이번 달'], ['life', '나의 사주'], ['money', '돈의 흐름'], ['work', '일과 진로'], ['worry', '고민·성향'], ['mbti', ''], ['friend', '달빛 상담']];
 
 export default function All() {
   const vis = brand.products.filter((p) => p.visible !== false);

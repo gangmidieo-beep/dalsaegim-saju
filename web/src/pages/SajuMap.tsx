@@ -120,7 +120,7 @@ export default function SajuMap() {
 
           <section className="card mt16" aria-label="전체 풀이">
             <h3 className="h3">{life.title}</h3>
-            <p className="small muted mt4">{life.cardCopy}. 인생의 큰 흐름과 전성기까지 아홉 장으로 풀어 드려요.</p>
+            <p className="small muted mt4">{life.cardCopy}. 인생의 큰 흐름과 전성기까지 26개 장, A4 약 40쪽으로 풀어 드려요.</p>
             <Link to="/product/lifetime" className="btn primary mt12">전체 풀이 보기 · {won(life.price)}</Link>
           </section>
           <div className="grid2 mt12">

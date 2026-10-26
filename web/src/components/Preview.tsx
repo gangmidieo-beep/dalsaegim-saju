@@ -24,6 +24,7 @@ export function PreviewButton({ productId }: { productId: string }) {
 }
 
 function PreviewSheet({ productId, onClose }: { productId: string; onClose: () => void }) {
+  const isPass = productId === 'friend_pass';
   const [pv, setPv] = useState<PV | null>(null);
   const [err, setErr] = useState('');
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -53,18 +54,18 @@ function PreviewSheet({ productId, onClose }: { productId: string; onClose: () =
     <div className="pv-wrap" role="dialog" aria-modal="true" aria-labelledby="pv-t" onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
       <div className="pv-sheet">
         <header className="pv-top">
-          <b id="pv-t">풀이 미리보기</b>
+          <b id="pv-t">{isPass ? '상담 미리보기' : '풀이 미리보기'}</b>
           <button ref={closeRef} className="pv-x" aria-label="미리보기 닫기" onClick={close}>✕</button>
         </header>
         <div className="pv-body">
           {err && <p className="muted">{err}</p>}
           {!pv && !err && <p className="muted">불러오는 중…</p>}
           {pv && (<>
-            <p className="pv-tag">실제 결과물 일부 · 예시</p>
+            <p className="pv-tag">{isPass ? '상담 이용 예시' : '실제 결과물 일부 · 예시'}</p>
             {PROD_IMG.has(pv.productId) ? (
               <figure className="pv-cover-img">
-                <img src={`/img/cover/${pv.productId}.webp?v=${IMG_V}`} alt={`${pv.title} 결과지 표지 예시`} width={720} height={1019} />
-                <figcaption>결과지 표지 예시 · 실제 결과지에는 내 이름과 생년월일이 들어가요</figcaption>
+                <img src={`/img/cover/${pv.productId}.webp?v=${IMG_V}`} alt={isPass ? pv.title : `${pv.title} 결과지 표지 예시`} width={720} height={1019} />
+                <figcaption>{isPass ? '달빛 상담사 이용권 · 질문 10회를 90일 동안' : '결과지 표지 예시 · 실제 결과지에는 내 이름과 생년월일이 들어가요'}</figcaption>
               </figure>
             ) : (
               <section className="pv-cover">
@@ -94,7 +95,7 @@ function PreviewSheet({ productId, onClose }: { productId: string; onClose: () =
             <p className="pv-note">{pv.note}</p>
           </>)}
         </div>
-        <footer className="pv-foot"><button className="btn primary" onClick={buy}>이 상품 풀이 받기 ›</button></footer>
+        <footer className="pv-foot"><button className="btn primary" onClick={buy}>{isPass ? '이용권 시작하기 ›' : '이 상품 풀이 받기 ›'}</button></footer>
       </div>
     </div>
   );
