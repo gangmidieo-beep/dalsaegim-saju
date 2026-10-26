@@ -7,7 +7,7 @@ import reading from '@dalsaegim/content/data/reading.json';
 import { useApp, useMain } from '../store/app';
 import { API, apiAuth } from '../lib/api';
 import { PAY_GROUPS, PAY_METHODS, PENDING, clearPending, isInAppBrowser, methodOf, pendingPay, phoneOk, purchase, savePhone, savedPhone } from '../platform/payments';
-import { Moon, PROD_IMG, Skeleton, Top, won, useToast } from '../components/ui';
+import { IMG_V, Moon, PROD_IMG, Skeleton, Top, won, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
 import { useShare } from '../components/share';
@@ -73,7 +73,7 @@ export function ProductDetail() {
       <Top title={p.title} />
       <main className="screen pd">
         <section className={`pd-hero${PROD_IMG.has(p.id) ? ' has-scene' : ''}`}>
-          {PROD_IMG.has(p.id) ? <img className="pd-scene" src={`/img/prod/${p.id}.webp`} alt="" width={120} height={120} /> : <span className="pd-moon" aria-hidden />}
+          {PROD_IMG.has(p.id) ? <img className="pd-scene" src={`/img/prod/${p.id}.webp?v=${IMG_V}`} alt="" width={120} height={120} /> : <span className="pd-moon" aria-hidden />}
           <small className="pd-eye">{PROD_IMG.has(p.id) ? 'PREMIUM READING' : 'DALSAEGIM · PREMIUM READING'}</small>
           {p.badge && <span className="badge mt8" style={{ display: 'inline-block' }}>{p.badge}</span>}
           <h2>{p.title}</h2>

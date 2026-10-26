@@ -21,9 +21,11 @@ export const Pic = ({ n, size, className = '' }: { n: PicName; size?: 's' | 'l';
   return <span className={`pico ${tone}${size ? ` ${size}` : ''} ${className}`} aria-hidden><Ic size={size === 's' ? 19 : size === 'l' ? 30 : 25} /></span>;
 };
 /** 상품 썸네일 — 대표님 확정 표지의 핵심 장면(글자 없는 정사각 크롭, webp 240px). 없으면 선 아이콘 */
+// 상품 이미지 버전 — 이미지 파일을 바꾸면 올려서 브라우저·CDN 1년 캐시를 새로 받게(10/27 최종본 4종 교체)
+export const IMG_V = '1027';
 export const PROD_IMG = new Set(['lifetime', 'adult_gunghap', 'love_flow', 'gunghap', 'reunion', 'marriage', 'tarot_some', 'newyear_2027', 'month_detail', 'money_wealth', 'money_business', 'money_invest', 'money_estate', 'money_pack', 'career', 'path_deep', 'mbti_deep', 'friend_pass']);
 export const ProdPic = ({ id, fallback = 'moon', size }: { id: string; fallback?: PicName; size?: 's' | 'l' }) =>
-  PROD_IMG.has(id) ? <span className={`ppic${size ? ` ${size}` : ''}`} aria-hidden><img src={`/img/prod/${id}.webp`} alt="" loading="lazy" decoding="async" width={120} height={120} /></span> : <Pic n={fallback} size={size} />;
+  PROD_IMG.has(id) ? <span className={`ppic${size ? ` ${size}` : ''}`} aria-hidden><img src={`/img/prod/${id}.webp?v=${IMG_V}`} alt="" loading="lazy" decoding="async" width={120} height={120} /></span> : <Pic n={fallback} size={size} />;
 export const CAT_PIC: Record<string, PicName> = { love: 'love', work: 'work', money: 'money', family: 'family', growth: 'self', health: 'health', etc: 'moon', future: 'future', self: 'self' };
 
 export function Top({ title, dark, back = true, right }: { title?: string; dark?: boolean; back?: boolean | string; right?: ReactNode }) {

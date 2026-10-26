@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { API } from '../lib/api';
 import { track } from '../lib/track';
-import { PROD_IMG } from './ui';
+import { IMG_V, PROD_IMG } from './ui';
 
 type PV = {
   productId: string; title: string; who: string; intro: string; amount: string; summary?: { headline: string; lead: string } | null;
@@ -63,7 +63,7 @@ function PreviewSheet({ productId, onClose }: { productId: string; onClose: () =
             <p className="pv-tag">실제 결과물 일부 · 예시</p>
             {PROD_IMG.has(pv.productId) ? (
               <figure className="pv-cover-img">
-                <img src={`/img/cover/${pv.productId}.webp`} alt={`${pv.title} 결과지 표지 예시`} width={720} height={1019} />
+                <img src={`/img/cover/${pv.productId}.webp?v=${IMG_V}`} alt={`${pv.title} 결과지 표지 예시`} width={720} height={1019} />
                 <figcaption>결과지 표지 예시 · 실제 결과지에는 내 이름과 생년월일이 들어가요</figcaption>
               </figure>
             ) : (
