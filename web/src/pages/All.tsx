@@ -24,7 +24,7 @@ export default function All() {
           {FREE.map(([to, t, s, ic]) => <Link key={to} to={to} className="li"><Pic n={ic} size="s" /><div className="grow"><div className="t">{t}</div><div className="s">{s}</div></div><I.right className="chev" /></Link>)}
         </div>
         {SERIES.map(([sr, label]) => {
-          const ps = vis.filter((p) => p.series === sr);
+          const ps = vis.filter((p) => p.series === sr || (sr === 'love' && p.series === 'adult')).sort((a, b) => (a.id === 'tarot_some' ? 1 : 0) - (b.id === 'tarot_some' ? 1 : 0)); // 속궁합(19세 이상)도 사랑 시리즈에 — 썸 타로는 맨 끝
           if (!ps.length) return null;
           return (
             <section key={sr} className="mt24">

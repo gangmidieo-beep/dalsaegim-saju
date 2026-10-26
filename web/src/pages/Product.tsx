@@ -1,5 +1,5 @@
 // 상품 상세 → 결제 → 결제 후 복귀 → 풀이. 회원가입 없이 결제 가능(기기 계정), 로그인하면 기록이 합쳐진다.
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import detail from '@dalsaegim/content/data/detail.json';
 import tarotData from '@dalsaegim/content/data/tarot.json';
@@ -16,7 +16,7 @@ import { CARDS, TarotCard } from '../components/tarot';
 import { PreviewButton } from '../components/Preview';
 import longOutline from '@dalsaegim/content/data/lifetime-long.json';
 import { dailyCard } from '@dalsaegim/content';
-import { kstMonth, kstToday, kstYear } from '../lib/dates';
+import { kstMonth, kstToday, kstYear, next12 } from '../lib/dates';
 import brand from '../../../brand.config.json';
 import { PASS_REFUND, PASS_TERMS } from '../lib/policy';
 
@@ -187,12 +187,11 @@ const loadPortOne = () => (portone ??= new Promise((ok, no) => { const s = docum
 const thisYm = () => `${kstYear()}-${String(kstMonth()).padStart(2, '0')}`;
 // 월간운세 — 1~12월(지난 달은 내년 같은 달 = 앞으로 12달)
 export function MonthPick({ ym, onPick }: { ym: string; onPick: (ym: string) => void }) {
-  const y = kstYear(), m = kstMonth();
   return (
     <section className="card mt16" aria-label="운세를 볼 달 고르기">
       <h3 className="h3">궁금한 달을 골라 주세요</h3>
       <div className="mchips mt12">
-        {Array.from({ length: 12 }, (_, i) => { const mm = i + 1; const yy = mm < m ? y + 1 : y; const v = `${yy}-${String(mm).padStart(2, '0')}`; return <button key={v} className={`${v === ym ? 'on' : ''}${mm === m ? ' now' : ''}`} aria-pressed={v === ym} aria-label={`${yy}년 ${mm}월${mm === m ? ' (이번 달)' : ''}${v === ym ? ' · 선택됨' : ''}`} onClick={() => onPick(v)}>{v === ym && <span className="ck" aria-hidden>✓</span>}<b>{mm}월</b>{mm === m && <small>이번 달</small>}</button>; })}
+        {next12().map((g) => <Fragment key={g.yy}><span className="myr">{g.yy}년</span>{g.months.map(({ yy, mm, ym: v, now }) => <button key={v} className={`${v === ym ? 'on' : ''}${now ? ' now' : ''}`} aria-pressed={v === ym} aria-label={`${yy}년 ${mm}월${now ? ' (이번 달)' : ''}${v === ym ? ' · 선택됨' : ''}`} onClick={() => onPick(v)}>{v === ym && <span className="ck" aria-hidden>✓</span>}<b>{mm}월</b>{now && <small>이번 달</small>}</button>)}</Fragment>)}
       </div>
       <p className="mpick-sel mt8">선택한 달: <b>{ym.slice(0, 4)}년 {Number(ym.slice(5))}월</b> · 날짜별 흐름과 좋은 날을 풀어 드려요.</p>
       <p className="faint" style={{ margin: '2px 0 0', wordBreak: 'keep-all' }}>금색 채움 ✓ = 내가&nbsp;고른&nbsp;달 · 금색 테두리 ● = 이번&nbsp;달</p>
@@ -275,6 +274,15 @@ export function Checkout() {
   if (!p) return null;
   const need = p.kind === 'pass' ? 0 : p.people;
   const toggle = (pid: string) => setPick((x) => (x.includes(pid) ? x.filter((y) => y !== pid) : need === 1 ? [pid] : [...x, pid].slice(-need)));
+  // 무엇을 보는 풀이인지(연월·연도) — 최종 확인에 함께 보여 준다(10/26 재검수 04)
+  const target = (() => {
+    const ym = sp.get('ym');
+    if (ym) return `${ym.slice(0, 4)}년 ${Number(ym.slice(5))}월`;
+    if (p?.id === 'newyear_2027') return '2027년 한 해';
+    if (p?.series === 'money') return `${kstYear()}년 (올해)`;
+    if (p?.id === 'love_flow' || p?.id === 'reunion') { const g = next12(); const a = g[0].months[0], z = g[g.length - 1].months.slice(-1)[0]; return `앞으로 12달 (${a.yy}년 ${a.mm}월 ~ ${z.yy}년 ${z.mm}월)`; }
+    return null;
+  })();
   const meta = Object.fromEntries(['cat', 'sub', 'q', 'mbti', 'ym', 'cards'].map((k) => [k, sp.get(k) ?? (k === 'mbti' ? profiles.find((x) => x.id === pick[0])?.mbti ?? '' : '')]).filter(([, v]) => v));
   const [adult, setAdult] = useState<{ verified: boolean; mode: string; storeId?: string | null; channelKey?: string | null } | null>(null);
   useEffect(() => { if (p?.adult) apiAuth<typeof adult>('/adult/status').then(setAdult).catch(() => setAdult({ verified: false, mode: 'off' })); }, [p?.adult]);
@@ -390,6 +398,7 @@ export function Checkout() {
           {step(need > 0 ? 4 : 3, '최종 확인')}
           <dl>
             <div><dt>상품</dt><dd>{p.title}</dd></div>
+            {target && <div><dt>대상</dt><dd>{target}</dd></div>}
             {need > 0 && <div><dt>사주</dt><dd>{pick.length ? pick.map((x) => profiles.find((y) => y.id === x)?.name).join(' · ') : '선택 전'}</dd></div>}
             <div><dt>결제수단</dt><dd>{m?.label ?? '-'}</dd></div>
             {p.listPrice ? <div><dt>할인</dt><dd style={{ color: '#a83f5c' }}>-{won(p.listPrice - p.price)}</dd></div> : null}
@@ -410,7 +419,7 @@ export function Checkout() {
         <button className="btn primary mt20" disabled={!ready || busy} onClick={pay}>{busy ? '결제창을 여는 중…' : `${won(p.price)} 결제하기`}</button>
         {busy && slow && payUrl && <p className="center mt8"><a className="link" href={payUrl}>결제창이 열리지 않으면 여기를 눌러 주세요 ›</a></p>}
         {!ready && !busy && <p className="faint center mt8">{p.adult && !adult?.verified ? '성인 인증을 먼저 해 주세요' : need > 0 && pick.length < need ? '사주 정보를 골라 주세요' : !phoneOk(phone) ? '휴대폰 번호를 입력해 주세요' : !agree ? '안내 확인에 체크해 주세요' : ''}</p>}
-        <p className="notice mt12">회원가입 없이 결제할 수 있어요. 로그인하면 다른 기기에서도 풀이를 볼 수 있어요.</p>
+        <p className="notice mt12">회원가입 없이 결제할 수 있어요. 결제한 풀이는 이 기기의 보관함에서 언제든 다시 볼 수 있어요.</p>
       </main>
     </>
   );

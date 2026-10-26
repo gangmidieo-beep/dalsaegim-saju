@@ -73,10 +73,12 @@ export function GuideWidget() {
     // 좁은 화면(360px 이하)은 처음부터 사진만, 넓은 화면은 맨 위에서만 문구를 보여 준다
     // 넓은 화면도 4초 뒤에는 사진만 남겨 상품 카드를 가리지 않는다
     // 아래로 내리는 중에는 숨겨 상품 가격·버튼을 가리지 않고, 위로 올리면 다시 보인다
+    // 문구는 한 번 방문(세션)에 처음 한 번만 — 화면을 옮길 때마다 다시 펼쳐져 카드 글자를 가리지 않게(10/26 영상 점검)
     let late = false, last = scrollY;
+    try { late = sessionStorage.getItem('gd-seen') === '1'; } catch { /* */ }
     const on = () => { const y = scrollY; setMini(late || innerWidth <= 360 || y > 120); if (y <= 120) setAway(false); else if (Math.abs(y - last) > 2) setAway(y > last); if (Math.abs(y - last) > 2) last = y; };
     on();
-    const t = setTimeout(() => { late = true; on(); }, 4000);
+    const t = setTimeout(() => { late = true; on(); try { sessionStorage.setItem('gd-seen', '1'); } catch { /* */ } }, 4000);
     addEventListener('scroll', on, { passive: true });
     addEventListener('resize', on);
     return () => { clearTimeout(t); removeEventListener('scroll', on); removeEventListener('resize', on); };

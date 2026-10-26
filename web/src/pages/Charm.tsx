@@ -12,6 +12,8 @@ import { track } from '../lib/track';
 
 const W = 1080, H = 1920;
 export const imgOf = (t: CharmType) => `/img/ui/charm-${charmOf(t).base}.jpg`;
+// 소망 고르기 9칸용 — 원본(장당 300KB)을 칸 모양대로 미리 잘라 둔 작은 이미지(약 20KB). 폰에서 일부 칸이 비던 문제(10/26) 대응
+export const cardOf = (t: CharmType) => `/img/ui/charm-card-${charmOf(t).base}.webp`;
 export type Saved = { id: string; type: CharmType; name: string; wish: string; goal: string | null; status: 'start' | 'doing' | 'done'; note: string | null; progressAt: string | null; createdAt: string };
 
 // 부적 그리기(고화질 1080×1920) — 템플릿 위에 부적 이름·이름·소망·축원을 새긴다
@@ -176,7 +178,7 @@ export default function CharmPage() {
           <div className="charm-types">
             {shown.map((x) => (
               <button key={x.id} className={type === x.id ? 'on' : ''} onClick={() => setType(x.id)} aria-pressed={type === x.id}>
-                <span className="ct-img" data-b={charmOf(x.id).base} style={{ backgroundImage: `url(${imgOf(x.id)})`, ['--tint' as string]: x.tint }}><i className="ct-mark" aria-hidden>{x.mark}</i></span>
+                <span className="ct-img" data-b={charmOf(x.id).base} style={{ backgroundImage: `url(${cardOf(x.id)})`, ['--tint' as string]: x.tint }}><i className="ct-mark" aria-hidden>{x.mark}</i></span>
                 <b>{x.label}</b><small>{x.sub}</small>
               </button>
             ))}

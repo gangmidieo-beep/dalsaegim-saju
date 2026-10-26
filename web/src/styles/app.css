@@ -1363,3 +1363,10 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .pd-hero.has-scene h2, .pd-hero.has-scene > p, .pd-hero.has-scene .pd-eye { padding-right: 104px; }
 .pd-hero.has-scene .pd-eye { white-space: nowrap; }
 .pd-hero h2, .pd-hero > p { word-break: keep-all; }
+/* 10/26 재검수 — 월 선택판을 연도별로 나눠 표시(2026년 10~12월 / 2027년 1~9월) */
+.mgrid .myr, .mchips .myr { grid-column: 1 / -1; font-size: 13px; font-weight: 800; letter-spacing: .02em; margin: 6px 0 -1px; }
+.mgrid .myr { color: var(--champ); }
+.mchips .myr { color: var(--ink-2, #4a4f68); }
+.mgrid .myr:first-child, .mchips .myr:first-child { margin-top: 0; }
+/* 10/26 — 황금부적 9칸: 미리 잘라 둔 카드 이미지 사용(배율·위치 계산 없이 그대로) */
+.charm-types .ct-img[data-b] { background-size: cover; background-position: center; }

@@ -6,7 +6,7 @@ import { LUNAR_YEAR_MAX, LUNAR_YEAR_MIN, leapMonthOf } from '@dalsaegim/engine';
 import { newId, useApp, type Profile } from '../store/app';
 import { syncProfile } from '../lib/api';
 import { Moon, Top, useToast } from '../components/ui';
-import { LoginButtons } from './Me';
+import { LoginButtons, useProviders } from './Me';
 import { track } from '../lib/track';
 
 // 대표 시각: 각 시진 안의 짝수 시(자시 0시, 축시 2시 …) — 30분 경계 표기와 엔진 경계 모두에 들어간다
@@ -74,12 +74,13 @@ export default function ProfileNew() {
   // R6 REQ-07 — 같은 사람·같은 생년월일시가 이미 있으면 새로 쌓지 않고 먼저 묻는다(임의 병합은 하지 않음)
   const [dup, setDup] = useState<typeof profiles[number] | null>(null);
   const sameAs = (x: typeof profiles[number]) => x.name.trim() === f.name.trim() && x.year === y && x.month === m && x.day === d && x.calendar === f.calendar && (x.hour ?? null) === (unknown ? null : kst ? kst.hour : f.hour ?? null);
+  const prov = useProviders();
   const submit = (force = false) => {
     const twin = !editing && !force ? profiles.find(sameAs) : undefined;
     if (twin) { setDup(twin); return; }
     setDup(null);
     if (editing || !first || account) { const p = save(); toast(editing ? '사주를 고쳤어요' : `${p.name} 님의 사주를 새겼어요`); if (editing || !first) { nav(next, { replace: true }); return; } setStep(2); return; }
-    save(); setStep(1);
+    save(); setStep(prov?.length ? 1 : 2); // 간편 로그인이 아직 없으면 로그인 권유 단계는 건너뛴다
   };
   useEffect(() => {
     if (step !== 2) return;

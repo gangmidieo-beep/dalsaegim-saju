@@ -62,14 +62,16 @@ export function buildFacts(productId: string, people: Person[], sajus: SajuResul
     lines.push(`${f.series}: 지수 ${f.score} / ${f.subs.map((x) => `${x.label} ${x.score}`).join(', ')} / 좋은 달 ${toRanges(f.good)} / 신중한 달 ${toRanges(f.careful)} / 키워드 ${f.keywords.join(', ')}`);
     paras.push(`${f.series} — ${f.headline}. ${f.summary}`, `올해 ${f.title}에서 기운이 살아나는 달은 ${toRanges(f.good)}이고, 한 템포 쉬어 가면 좋은 달은 ${toRanges(f.careful)}이에요. ${f.tips[0]}`);
     if (f.invest) {
+      // 시장 노트(관리자 작성)가 없을 때 — '준비 중' 대신, 예측 없이 시장 소식을 받아들이는 나의 기준을 안내(10/26 재검수 10)
+      const noMarket = `달새김은 시장의 오르내림을 예측하지 않아요. 대신 ${p0.name} 님이 시장 소식을 만날 때 지키면 좋은 기준을 정리해 드려요. 기운이 살아나는 ${toRanges(f.good)}에는 관심 있던 분야를 공부하고 계획을 세우기 좋고, 흐름이 잠시 낮아지는 ${toRanges(f.careful)}에는 새로 시작하기보다 지금 가진 것을 점검하는 편이 마음이 편해요. 시장의 큰 흐름은 뉴스와 공식 자료로 꼭 함께 확인해 주세요.`;
       lines.push(`투자 성향: ${f.invest.style.style}(신중함 ${f.invest.style.carePct}%, 도전성 ${f.invest.style.boldPct}%) / 시장과 만나는 시기 ${f.invest.meet}${market ? '' : ' (시장 노트 없음 — 개인 흐름 기준)'}`);
       paras.push(`${p0.name} 님의 투자 성향은 ${f.invest.style.style}이에요. ${f.invest.style.text}`,
-        market ? `달새김이 보는 올해의 시장 이야기: ${market.body}` : '올해 시장 이야기는 운영팀이 정리하는 대로 이곳에 채워져요. 시장의 큰 흐름은 뉴스와 공식 자료로 꼭 함께 확인해 주세요.',
+        market ? `달새김이 보는 올해의 시장 이야기: ${market.body}` : noMarket,
         `시장과 나의 흐름이 만나는 시기는 ${f.invest.meet}예요. ${f.invest.thisMonth}`,
         '사주는 결과를 맞히는 도구가 아니라, 내 마음과 판단의 리듬을 살피는 참고예요. 무엇에 언제 투자할지는 정보와 원칙으로 정해 주세요.');
       if (productId === 'money_invest') sectionsOut = [
         [`${f.series} — ${f.headline}. ${f.summary}`, `${p0.name} 님의 투자 성향은 ${f.invest.style.style}이에요. ${f.invest.style.text}`],
-        [market ? `달새김이 보는 올해의 시장 이야기: ${market.body}` : '올해 시장 이야기는 운영팀이 정리하는 대로 이곳에 채워져요. 시장의 큰 흐름은 뉴스와 공식 자료로 꼭 함께 확인해 주세요.'],
+        [market ? `달새김이 보는 올해의 시장 이야기: ${market.body}` : noMarket],
         [`시장과 나의 흐름이 만나는 시기는 ${f.invest.meet}예요. 이때는 미리 공부해 둔 것을 원칙 안에서 작게 시도해 보기 좋아요.`, `반대로 ${toRanges(f.careful)}에는 나의 흐름이 잠시 낮아져요.`],
         [f.invest.thisMonth, f.tips[0]],
         [...f.tips.slice(1), '사주는 결과를 맞히는 도구가 아니라, 내 마음과 판단의 리듬을 살피는 참고예요. 무엇에 언제 투자할지는 정보와 원칙으로 정해 주세요.'],

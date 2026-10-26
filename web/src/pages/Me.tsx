@@ -16,9 +16,18 @@ const PROVIDERS = [
   { id: 'google', label: 'Google로 계속하기', bg: '#fff', fg: '#1E2033' },
 ];
 
+// 켜져 있는 간편 로그인(카카오·네이버·구글) — 하나도 없으면 '다른 기기에서 이어져요' 같은 안내를 하지 않는다(10/26 재검수 02)
+let provP: Promise<string[]> | null = null;
+export function useProviders(): string[] | null {
+  const [list, setList] = useState<string[] | null>(null);
+  useEffect(() => {
+    provP ??= fetch(`${API}/auth/providers`).then((r) => r.json()).then((j) => (j.providers ?? []) as string[]).catch(() => { provP = null; return []; });
+    provP.then(setList);
+  }, []);
+  return list;
+}
 export function LoginButtons({ back = '/me' }: { back?: string }) {
-  const [list, setList] = useState<string[]>([]);
-  useEffect(() => { fetch(`${API}/auth/providers`).then((r) => r.json()).then((j) => setList(j.providers)).catch(() => {}); }, []);
+  const list = useProviders() ?? [];
   return (
     <div className="stack">
       {PROVIDERS.filter((p) => list.includes(p.id)).map((p) => (
@@ -53,6 +62,7 @@ export default function Me() {
   const { profiles, mainId, setMain, removeProfile, account, setAccount, pass } = useApp();
   const [orders, setOrders] = useState<Order[]>([]);
   const [login, setLogin] = useState(false);
+  const prov = useProviders();
   const [bye, setBye] = useState(false);
   const [memAI, setMemAI] = useState(true);
   const toast = useToast();
@@ -77,8 +87,8 @@ export default function Me() {
       <Top title="마이" back={false} />
       <main className="screen">
         <section className="card between" style={{ display: 'flex' }}>
-          <div><b>{account ? `${account.name || profiles.find((p) => p.id === mainId)?.name || profiles[0]?.name || '회원'} 님` : '로그인 없이 이용 중'}</b><div className="faint">{account ? `${account.provider === 'kakao' ? '카카오' : account.provider === 'naver' ? '네이버' : account.provider === 'google' ? 'Google' : ''} 계정 연결됨` : '로그인하면 다른 기기에서도 기록·풀이가 이어져요'}</div></div>
-          {account ? <button className="btn line sm" onClick={() => { setAccount(null); toast('로그아웃했어요'); }}>로그아웃</button> : <button className="btn primary sm" onClick={() => setLogin(true)}>로그인</button>}
+          <div><b>{account ? `${account.name || profiles.find((p) => p.id === mainId)?.name || profiles[0]?.name || '회원'} 님` : '로그인 없이 이용 중'}</b><div className="faint">{account ? `${account.provider === 'kakao' ? '카카오' : account.provider === 'naver' ? '네이버' : account.provider === 'google' ? 'Google' : ''} 계정 연결됨` : (prov?.length ? '로그인하면 다른 기기에서도 기록·풀이가 이어져요' : '풀이와 기록은 이 기기의 보관함에 그대로 남아요')}</div></div>
+          {account ? <button className="btn line sm" onClick={() => { setAccount(null); toast('로그아웃했어요'); }}>로그아웃</button> : prov?.length ? <button className="btn primary sm" onClick={() => setLogin(true)}>로그인</button> : <span className="faint small" style={{ whiteSpace: 'nowrap' }}>간편 로그인 준비 중</span>}
         </section>
 
         <section className="mt20">

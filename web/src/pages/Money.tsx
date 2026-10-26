@@ -121,7 +121,7 @@ export function MoneyResult() {
             <p className="small muted mt12" style={{ margin: '12px 0 0' }}>{inv.style.text}</p>
           </section>
         )}
-        {inv && T && (
+        {inv && T && market && (
           <section className="card flat mt16" aria-label={T[1]}>
             <h3 className="h3">{T[1]}</h3>
             {market ? <><p className="small mt8" style={{ margin: '8px 0 0' }}>{market.body}</p><p className="faint mt8">{market.title} · 운영팀이 최신 정보를 바탕으로 정리해요</p></>

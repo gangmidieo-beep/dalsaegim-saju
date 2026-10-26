@@ -1,13 +1,13 @@
 // 홈 — R5(10/21) 순서: 남색 머리·분류 탭 → 달새김 대표 운세 3가지(사랑·연애 / 프리미엄 재물사주 / 2027 신년운세, 자동 넘김 없이 세로로)
 // → 매일의 운세(오늘·월간, 무료) → (지난 소망·고민 돌아보기) → 분야별 상품 → 서월·편지·부적·타임라인 → 고민 길잡이(떠 있는 창).
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMain } from '../store/app';
 import { useToday } from '../lib/fortune';
 import { apiAuth, apiGet } from '../lib/api';
 import { Foot, CAT_LABEL, ProdPic, useToast, won, type PicName } from '../components/ui';
 import { GuideWidget } from '../components/Guide';
-import { kstMonth, kstYear } from '../lib/dates';
+import { kstMonth, next12 } from '../lib/dates';
 import brand from '../../../brand.config.json';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
@@ -32,8 +32,6 @@ const REP: { id: string; eye: string; name: string; copy: string; cta: string; p
   { id: 'newyear_2027', eye: SEASON ? '시즌 추천' : '달새김 추천', name: '2027 신년운세', copy: '다가올 한 해의 재물·연애·일', cta: '신년운세 자세히 보기', img: '/img/ui/hero-newyear.webp' },
 ];
 const TABS: [string, string][] = [['/', '홈'], ['/all', '운세'], ['/love', '사랑·인연'], ['/money', '재물·사업'], ['/map', '정통사주'], ['/friend', '달빛 상담']];
-// 월간운세 — 1~12월 버튼, 지난 달은 내년 같은 달(=앞으로 12달)
-const MONTHS = (() => { const y = kstYear(), m = kstMonth(); return Array.from({ length: 12 }, (_, i) => { const mm = i + 1; const yy = mm < m ? y + 1 : y; return { mm, yy, now: mm === m, ym: `${yy}-${String(mm).padStart(2, '0')}` }; }); })();
 
 export default function Home() {
   const { profile, isSample } = useMain();
@@ -113,7 +111,7 @@ export default function Home() {
               <div><small>MONTHLY FORTUNE</small><h2 id="nh-month-t">월간운세</h2><p>원하는 달을 골라 상세운세를 볼 수 있어요.</p></div>
             </div>
             <div className="mgrid">
-              {MONTHS.map((m) => <Link key={m.ym} to={`/product/month_detail?ym=${m.ym}`} className={m.now ? 'now' : ''} aria-label={`${m.yy}년 ${m.mm}월 운세${m.now ? ' (이번 달)' : ''}`}><b>{m.mm}월</b>{m.now && <i>이번 달</i>}</Link>)}
+              {next12().map((g) => <Fragment key={g.yy}><span className="myr">{g.yy}년</span>{g.months.map((m) => <Link key={m.ym} to={`/product/month_detail?ym=${m.ym}`} className={m.now ? 'now' : ''} aria-label={`${m.yy}년 ${m.mm}월 운세${m.now ? ' (이번 달)' : ''}`}><b>{m.mm}월</b>{m.now && <i>이번 달</i>}</Link>)}</Fragment>)}
             </div>
           </div>
         </section>
