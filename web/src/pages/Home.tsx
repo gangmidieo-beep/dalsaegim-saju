@@ -33,6 +33,9 @@ const REP: { id: string; eye: string; name: string; copy: string; cta: string; p
 ];
 const TABS: [string, string][] = [['/', '홈'], ['/all', '운세'], ['/love', '사랑·인연'], ['/money', '재물·사업'], ['/map', '정통사주'], ['/friend', '달빛 상담']];
 
+// 목표를 'ㅌ'처럼 자모 한두 글자로만 적었으면(시험 입력 등) 소망 문장을 대신 보여 준다(10/27 대표님 화면)
+const okText = (t: string | null) => !!t && t.trim().length >= 2 && /[가-힣A-Za-z0-9]/.test(t);
+
 export default function Home() {
   const { profile, isSample } = useMain();
   const t = useToday(profile);
@@ -124,7 +127,7 @@ export default function Home() {
               <div className="grow">
                 <small>{charmOf(wish.type).name}</small>
                 <h2 className="h3">소망의 현재 상태</h2>
-                <p className="small wish-q" style={{ margin: '4px 0 0' }}>“{wish.goal ?? wish.wish}”</p>
+                <p className="small wish-q" style={{ margin: '4px 0 0' }}>“{okText(wish.goal) ? wish.goal : wish.wish}”</p>
                 <div className="ask-btns mt12">
                   {([['doing', '진행 중'], ['done', '이루었어요'], ['later', '나중에']] as const).map(([k, l]) => <button key={k} className="btn line sm" onClick={() => wishStep(k)}>{l}</button>)}
                 </div>
