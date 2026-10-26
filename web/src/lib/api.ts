@@ -22,7 +22,7 @@ export async function userToken(): Promise<string> {
   return guestP;
 }
 export class ApiError extends Error { code?: string; status?: number; }
-export async function apiAuth<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
+export async function apiAuth<T>(path: string, init: RequestInit & { json?: unknown } = {}, retried = false): Promise<T> {
   const token = await userToken();
   const r = await fetch(`${API}${path}`, {
     ...init,
@@ -31,6 +31,12 @@ export async function apiAuth<T>(path: string, init: RequestInit & { json?: unkn
   });
   const j = await r.json().catch(() => ({}));
   if (r.status === 401 && j.code === 'deleted') { useApp.getState().setAccount(null); clearGuest(); }
+  // 토큰이 만료·무효(서버 서명키 교체 등)면 — 저장된 토큰만 지우고 같은 기기 id 로 다시 받아 한 번 더 시도
+  else if (r.status === 401 && !retried) {
+    if (useApp.getState().account?.token === token) useApp.getState().setAccount(null);
+    else clearGuest();
+    return apiAuth<T>(path, init, true);
+  }
   if (!r.ok) throw Object.assign(new ApiError(j.error ?? '잠시 후 다시 시도해 주세요'), { code: j.code, status: r.status });
   return j as T;
 }
