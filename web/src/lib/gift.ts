@@ -55,9 +55,15 @@ export async function drawLetterCard(o: { to: string; from: string; body: string
   g.fillText(`To. ${o.to}`, 130, 340);
   g.strokeStyle = 'rgba(184, 146, 95, 0.55)'; g.lineWidth = 2; g.beginPath(); g.moveTo(130, 390); g.lineTo(W - 130, 390); g.stroke();
   // 본문
-  g.font = `400 44px ${serif}`; g.fillStyle = '#2f3352';
-  const lines = wrap(g, o.body.trim(), W - 260).slice(0, 11);
-  lines.forEach((l, i) => g.fillText(l, 130, 470 + i * 70));
+  // 짧은 편지는 글자를 키우고 가운데로 — 빈 종이처럼 보이지 않게
+  g.fillStyle = '#2f3352';
+  g.font = `400 44px ${serif}`;
+  let lines = wrap(g, o.body.trim(), W - 260).slice(0, 11);
+  let lh = 70;
+  if (lines.length <= 5) { g.font = `400 52px ${serif}`; lines = wrap(g, o.body.trim(), W - 260).slice(0, 8); lh = 86; }
+  const top0 = 440, bottom0 = 1110, blockH = lines.length * lh;
+  const y0 = top0 + Math.max(0, (bottom0 - top0 - blockH) / 2) + lh / 2;
+  lines.forEach((l, i) => g.fillText(l, 130, y0 + i * lh));
   // From.
   g.textAlign = 'right'; g.fillStyle = '#1d2440'; g.font = `600 50px ${serif}`;
   g.fillText(`From. ${o.from}`, W - 130, 1185);
