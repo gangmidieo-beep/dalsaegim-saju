@@ -50,6 +50,13 @@
       "when": 1792571928403,
       "tag": "0006_r5_names",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793244499593,
+      "tag": "0007_gifts",
+      "breakpoints": true
     }
   ]
 }

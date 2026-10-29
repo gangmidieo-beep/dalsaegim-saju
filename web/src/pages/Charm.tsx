@@ -6,6 +6,7 @@ import { ALL_CHARMS, CHARMS, CHARM_GOAL_HINT, CHARM_LINK, CHARM_STATUS, charmOf,
 import { useShare } from '../components/share';
 import { useMain } from '../store/app';
 import { apiAuth } from '../lib/api';
+import { kakaoShare, shareLink } from '../lib/share';
 import { Top, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
@@ -84,6 +85,7 @@ function useSound() {
 export default function CharmPage() {
   const [sp] = useSearchParams();
   const { profile, isSample } = useMain();
+  const toast = useToast();
   // 링크로 들어온 부적(숨김 부적인 안택부 포함)을 그대로 고른다 — 다른 부적으로 바뀌지 않게(R5 N8)
   const [type, setType] = useState<CharmType>((ALL_CHARMS.find((c) => c.id === sp.get('type'))?.id ?? 'wealth') as CharmType);
   const shown = CHARMS.some((x) => x.id === type) ? CHARMS : [charmOf(type), ...CHARMS];
@@ -114,6 +116,24 @@ export default function CharmPage() {
   };
   const skip = async () => { timers.current.forEach(clearTimeout); snd.stop(); if (!png) setPng(await drawCharm(type, name.trim(), wish.trim())); setPhase('done'); };
   const save = () => { if (!png) return; track('charm_save', { type }); const a = document.createElement('a'); a.href = png; a.download = `달새김_${c.name}_${name.trim()}.png`; a.click(); };
+  // 부적 보내기 — 부적 그림을 서버에 올려 받는 사람이 링크에서 그 부적을 그대로 보게 한다(사이트 소개 링크가 아니라 부적 자체)
+  const [gift, setGift] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const sendGift = async () => {
+    if (!png || sending) return;
+    if (isSample) { toast('사주를 입력하면 부적을 보낼 수 있어요'); return; }
+    setSending(true); track('charm_gift', { type });
+    try {
+      const img = await new Promise<HTMLImageElement>((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = png; });
+      const cv = document.createElement('canvas'); cv.width = 900; cv.height = Math.round(900 * img.height / img.width);
+      cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height);
+      const r = await apiAuth<{ url: string }>('/gifts', { method: 'POST', json: { kind: 'charm', title: c.name, fromName: name.trim(), image: cv.toDataURL('image/jpeg', 0.86) } });
+      setGift(r.url);
+      const o = { title: `${name.trim()}님이 보낸 ${c.name}`, text: `${name.trim()}님이 황금빛 달에 새긴 ${c.name}를 보냈어요 🌕`, url: r.url };
+      const res = __KAKAO_JS_KEY__ ? await kakaoShare({ ...o, imageUrl: `${r.url}/charm.jpg` }) : await shareLink(o, /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
+      if (res === 'copied') toast('부적 링크를 복사했어요. 카카오톡 대화방에 붙여 넣으면 부적 그림이 함께 보여요');
+    } catch (e) { toast((e as Error).message || '잠시 후 다시 보내 주세요'); } finally { setSending(false); }
+  };
   // 공유 — 부적 이미지(이름·소망이 보임)를 고객이 고를 때만
   const share = () => {
     if (!png) return;
@@ -146,11 +166,14 @@ export default function CharmPage() {
       <Top title="나만의 황금부적" />
       <main className="screen charm-bg">
         <img className="charm-result fade-in" src={png} alt={`${name}님의 ${c.name}`} />
-        <button className="btn gold-lux mt16" onClick={save}><I.download size={20} />배경화면으로 저장하기</button>
-        <div className="grid2 mt8">
-          <button className="btn line sm on-dark" style={{ width: '100%' }} onClick={share}><I.share size={18} />공유하기</button>
-          <button className="btn line sm on-dark" style={{ width: '100%' }} onClick={() => { setPhase('form'); setPng(null); }}>다른 소망 새기기</button>
+        <button className="btn gold-lux charm-send mt16" onClick={sendGift} disabled={sending}><I.share size={20} />{sending ? '부적을 준비하는 중…' : '이 부적 보내기'}</button>
+        <p className="charm-send-note">받는 분은 링크를 열면 이 부적 그림을 그대로 볼 수 있어요 · 카카오톡·문자로 보내기</p>
+        {gift && <div className="gift-link" role="status"><span>{gift}</span><button className="btn line sm on-dark" onClick={() => { void navigator.clipboard?.writeText(gift).then(() => toast('부적 링크를 복사했어요')); }}>링크 복사</button></div>}
+        <div className="grid2 mt12">
+          <button className="btn line sm on-dark" style={{ width: '100%' }} onClick={save}><I.download size={18} />배경화면 저장</button>
+          <button className="btn line sm on-dark" style={{ width: '100%' }} onClick={() => { setPhase('form'); setPng(null); setGift(null); }}>다른 소망 새기기</button>
         </div>
+        <button className="link-btn mt8" onClick={share}>이미지·SNS로 공유하기</button>
         <section className="wish-record mt16">
           <p className="wr-eyebrow">나의 소망 기록</p>
           <b>{name.trim()}님의 {c.name}</b>

@@ -136,6 +136,19 @@ export const events = pgTable('events', {
   createdAt: now(),
 }, (t) => [index('events_name_created').on(t.name, t.createdAt)]);
 
+// 선물 — 고객이 만든 황금부적(이미지)을 다른 사람에게 보내는 링크(/g/:code). 받는 사람은 링크에서 부적 그림을 그대로 본다.
+export const gifts = pgTable('gifts', {
+  siteId: site(),
+  code: text().primaryKey(),
+  kind: text().notNull(), // charm
+  title: text().notNull(), // 예) 황금 건강수호부
+  fromName: text(), // 보낸 사람이 적은 이름(부적에 새긴 이름)
+  image: text().notNull(), // JPEG base64(약 150~300KB)
+  userId: text(),
+  opens: integer().default(0).notNull(),
+  createdAt: now(),
+}, (t) => [index('gifts_user_created').on(t.userId, t.createdAt)]);
+
 export const shareLinks = pgTable('share_links', {
   siteId: site(),
   code: text().primaryKey(),

@@ -744,6 +744,50 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
 <meta property="og:url" content="${API()}/s/${l.code}"><meta property="og:site_name" content="달새김사주"><meta name="twitter:card" content="summary_large_image">
 <meta http-equiv="refresh" content="0;url=${e(target)}"></head><body><a href="${e(target)}">달새김사주에서 보기</a></body></html>`;
   });
+  /* ---------- 부적 보내기 /g/:code — 받는 사람이 부적 그림을 그대로 본다(10/29 대표님 요청) ---------- */
+  app.post('/gifts', { config: { rateLimit: { max: 20, timeWindow: '1 hour' } } }, async (req, rep) => {
+    const userId = await needUser(req, rep);
+    if (!userId) return;
+    const b = (req.body ?? {}) as { kind?: string; title?: string; fromName?: string; image?: string };
+    const m = /^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/.exec(String(b.image ?? ''));
+    if (b.kind !== 'charm' || !m || m[1].length > 1_200_000) return rep.code(400).send({ error: '부적 이미지를 다시 만들어 주세요' });
+    const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(S.gifts).where(and(eq(S.gifts.userId, userId), sql`${S.gifts.createdAt} > now() - interval '1 day'`));
+    if (n >= 30) return rep.code(429).send({ error: '오늘은 부적을 충분히 보냈어요. 내일 다시 보내 주세요' });
+    const code = newId();
+    await db.insert(S.gifts).values({ code, kind: 'charm', title: String(b.title ?? '황금부적').slice(0, 40), fromName: b.fromName ? String(b.fromName).slice(0, 20) : null, image: m[1], userId });
+    return { code, url: `${API()}/g/${code}` };
+  });
+  app.get('/g/:code', async (req, rep) => {
+    const code = String((req.params as any).code).replace(/[^A-Za-z0-9_-]/g, '');
+    const [g] = await db.select({ code: S.gifts.code, title: S.gifts.title, fromName: S.gifts.fromName }).from(S.gifts).where(eq(S.gifts.code, code));
+    if (!g) return rep.redirect(`${WEB()}/charm`);
+    await db.update(S.gifts).set({ opens: sql`${S.gifts.opens} + 1` }).where(eq(S.gifts.code, code));
+    await db.insert(S.events).values({ name: 'gift_open', props: { code, kind: 'charm' } });
+    const e = (x: string) => x.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    const who = g.fromName ? `${e(g.fromName)}님이 보낸 ` : '';
+    const title = `${who}${e(g.title)}`;
+    const img = `${API()}/g/${code}/charm.jpg`;
+    const go = `${WEB()}/charm?utm_source=gift&utm_content=charm`;
+    rep.type('text/html; charset=utf-8').header('cache-control', 'no-cache');
+    return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} | 달새김사주</title>
+<meta name="robots" content="noindex"><meta property="og:type" content="website"><meta property="og:title" content="${title}"><meta property="og:description" content="황금빛 달에 새긴 소망을 보내 드려요 · 달새김사주">
+<meta property="og:image" content="${img}"><meta property="og:image:width" content="1080"><meta property="og:image:height" content="1920"><meta property="og:url" content="${API()}/g/${code}"><meta property="og:site_name" content="달새김사주"><meta name="twitter:card" content="summary_large_image">
+<style>body{margin:0;background:radial-gradient(120% 60% at 50% 0%,#1f1b2e,#0b0a10 70%);color:#f3ece0;font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;text-align:center}
+main{max-width:480px;margin:0 auto;padding:22px 16px 40px}h1{font-size:19px;color:#e8cf98;margin:6px 0 4px;word-break:keep-all}p{color:#c9bfab;font-size:14px;line-height:1.6;margin:6px 0;word-break:keep-all}
+img{display:block;width:100%;border-radius:18px;margin:16px 0;box-shadow:0 18px 50px rgba(0,0,0,.6),0 0 0 1px rgba(217,184,116,.35)}
+a.b{display:block;padding:16px;border-radius:999px;background:linear-gradient(180deg,#e9c987,#c99a4b);color:#1d1a2c;font-weight:800;text-decoration:none;font-size:16px;margin-top:8px}
+a.s{display:block;margin-top:12px;color:#a99f8c;font-size:13px}small{display:block;color:#7f7768;font-size:11.5px;margin-top:18px;line-height:1.5}</style></head>
+<body><main><p>🌕 달새김사주</p><h1>${title}가 도착했어요</h1><p>이름과 소망을 황금빛 달에 새긴 부적이에요.<br>길게 눌러 저장해 두고 마음이 흔들릴 때 꺼내 보세요.</p>
+<img src="${img}" alt="${title}"><a class="b" href="${e(go)}">나도 나만의 황금부적 받기 · 무료</a><a class="s" href="${e(WEB())}">달새김사주 둘러보기</a>
+<small>이 부적은 행운을 비는 마음을 담은 디지털 카드이며, 금전적 성공·투자 수익·건강을 보장하지 않아요.</small></main></body></html>`;
+  });
+  app.get('/g/:code/charm.jpg', async (req, rep) => {
+    const code = String((req.params as any).code).replace(/[^A-Za-z0-9_-]/g, '');
+    const [g] = await db.select({ image: S.gifts.image }).from(S.gifts).where(eq(S.gifts.code, code));
+    if (!g) return rep.code(404).send();
+    rep.type('image/jpeg').header('cache-control', 'public, max-age=31536000, immutable');
+    return Buffer.from(g.image, 'base64');
+  });
   app.get('/s/:code/card.png', async (req, rep) => {
     const [l] = await db.select().from(S.shareLinks).where(eq(S.shareLinks.code, (req.params as any).code));
     if (!l) return rep.code(404).send();
