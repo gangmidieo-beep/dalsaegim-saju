@@ -6,7 +6,7 @@ import { ALL_CHARMS, CHARMS, CHARM_GOAL_HINT, CHARM_LINK, CHARM_STATUS, charmOf,
 import { useShare } from '../components/share';
 import { useMain } from '../store/app';
 import { apiAuth } from '../lib/api';
-import { downloadData, fileOf, sendImage } from '../lib/gift';
+import { downloadData, fileOf, sendImage, wrapText } from '../lib/gift';
 import { Top, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
@@ -52,10 +52,8 @@ export async function drawCharm(type: CharmType, name: string, wish: string, gif
   // 소망 문장 — 한 줄 15자 안팎으로 나눠 가운데 정렬
   g.font = `400 46px ${serif}`; g.fillStyle = '#efe3c8';
   const quote = `“${wish.replace(/[.。]$/, '')}${/기를$/.test(wish) ? ' 기원합니다.' : '.'}”`;
-  const lines: string[] = []; let cur = '';
-  for (const w of quote.split(' ')) { if ((cur + ' ' + w).trim().length > 15) { lines.push(cur.trim()); cur = w; } else cur += ' ' + w; }
-  if (cur.trim()) lines.push(cur.trim());
   const max = gift ? 4 : 5;
+  const lines = wrapText(g, quote, 760, max); // 줄 길이를 고르게(한 낱말만 남는 줄 없이)
   lines.slice(0, max).forEach((l, i) => g.fillText(l, W / 2, 1110 + i * 74));
   g.font = `400 36px ${serif}`; g.fillStyle = '#d9b874';
   const by = 1110 + Math.min(lines.length, max) * 74 + 70;

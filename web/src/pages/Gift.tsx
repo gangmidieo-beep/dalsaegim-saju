@@ -10,6 +10,8 @@ import { LETTER_THEMES, canShareFile, downloadData, drawLetterCard, fileOf, inKa
 import { track } from '../lib/track';
 
 type Kind = 'charm' | 'letter';
+/** 호칭 — '진순숙 사장님'처럼 이미 '님'으로 끝나면 다시 붙이지 않는다 */
+const nim = (n: string) => { const t = n.trim(); return /님$/.test(t) ? t : `${t}님`; };
 
 export default function GiftPage() {
   const [sp] = useSearchParams();
@@ -43,7 +45,7 @@ export default function GiftPage() {
       setTimeout(() => document.getElementById('gift-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
     } catch { toast('이미지를 만들지 못했어요. 다시 시도해 주세요'); } finally { setBusy(false); }
   };
-  const info = () => ({ kind, title: kind === 'charm' ? c.name : `마음 편지 · ${th.label}`, fromName: from.trim(), toName: to.trim() });
+  const info = () => ({ kind, title: kind === 'charm' ? c.name : `${th.label} 편지`, fromName: from.trim(), toName: to.trim() });
   const send = async () => {
     if (!img || !file || busy) return;
     setBusy(true); track('gift_send', { kind, how: canShareFile(file) ? 'share' : inKakao() ? 'kakao' : 'save' });
@@ -58,7 +60,7 @@ export default function GiftPage() {
     setBusy(true);
     try {
       const r = await uploadGift(img, info());
-      const text = `${to.trim()}님께, ${from.trim()}님이 보낸 ${kind === 'charm' ? c.name : '마음 편지'}`;
+      const text = `${nim(to)}께, ${nim(from)}이 보낸 ${kind === 'charm' ? c.name : `${th.label} 편지`}`;
       if (navigator.share && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)) { try { await navigator.share({ title: text, text, url: r.url }); return; } catch { /* 취소 */ } }
       await navigator.clipboard?.writeText(`${text}\n${r.url}`); toast('링크를 복사했어요. 대화창에 붙여 넣으면 이미지가 함께 보여요');
     } catch (e) { toast((e as Error).message || '잠시 후 다시 시도해 주세요'); } finally { setBusy(false); }
@@ -118,8 +120,8 @@ export default function GiftPage() {
 
         {img && (
           <section id="gift-preview" className="gift-preview mt20" aria-label="보낼 이미지">
-            <p className="gp-head"><b>{to.trim()}</b>님께 보낼 {kind === 'charm' ? '부적' : '편지'}이에요</p>
-            <img src={img} alt={`${to.trim()}님께 보내는 ${kind === 'charm' ? c.name : '마음 편지'}`} />
+            <p className="gp-head"><b>{nim(to)}</b>께 보낼 {kind === 'charm' ? '부적' : '편지'}이에요</p>
+            <img src={img} alt={`${nim(to)}께 보내는 ${kind === 'charm' ? c.name : '편지'}`} />
             <button className="btn gold-lux gift-send mt12" onClick={send} disabled={busy}>{busy ? '준비하는 중…' : '이미지로 보내기'}<small>카카오톡 · 라인 · 인스타 · 문자</small></button>
             {inKakao() && !canShareFile(file) && <p className="faint mt8" style={{ fontSize: 13, textAlign: 'center' }}>카카오톡 안에서는 사진 보내기 창이 열리지 않아, 버튼을 누르면 휴대폰 브라우저로 옮겨서 보내요.</p>}
             <div className="grid2 mt8">

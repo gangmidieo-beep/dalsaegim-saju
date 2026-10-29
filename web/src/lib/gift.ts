@@ -17,21 +17,35 @@ export type LetterTheme = (typeof LETTER_THEMES)[number]['id'];
 
 const loadImg = (src: string) => new Promise<HTMLImageElement>((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src; });
 
-/** 글자 단위로 폭에 맞춰 줄 나누기(한글은 띄어쓰기 기준, 너무 긴 낱말은 글자 단위) */
-function wrap(g: CanvasRenderingContext2D, text: string, width: number) {
-  const out: string[] = [];
-  for (const para of text.split(/\n+/)) {
-    let cur = '';
-    for (const word of para.split(' ')) {
-      const t = cur ? `${cur} ${word}` : word;
-      if (g.measureText(t).width <= width) { cur = t; continue; }
-      if (cur) out.push(cur);
-      cur = '';
-      for (const ch of word) { if (g.measureText(cur + ch).width > width) { out.push(cur); cur = ch; } else cur += ch; }
-    }
-    out.push(cur);
+/** 한 줄 채우기(띄어쓰기 기준, 너무 긴 낱말만 글자 단위) */
+function greedy(g: CanvasRenderingContext2D, text: string, width: number) {
+  const out: string[] = []; let cur = '';
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const t = cur ? `${cur} ${word}` : word;
+    if (g.measureText(t).width <= width) { cur = t; continue; }
+    if (cur) out.push(cur);
+    cur = '';
+    if (g.measureText(word).width <= width) { cur = word; continue; }
+    for (const ch of word) { if (g.measureText(cur + ch).width > width) { out.push(cur); cur = ch; } else cur += ch; }
   }
-  return out.filter((l, i, a) => l || (i > 0 && i < a.length - 1));
+  if (cur) out.push(cur);
+  return out;
+}
+/** 줄 길이를 고르게 — 마지막 줄에 '하세요'처럼 한 낱말만 남지 않게 같은 줄 수 안에서 폭을 줄여 맞춘다 */
+function balanced(g: CanvasRenderingContext2D, text: string, width: number) {
+  const n = greedy(g, text, width).length;
+  if (n <= 1) return greedy(g, text, width);
+  let lo = width * 0.45, hi = width;
+  for (let k = 0; k < 14; k++) { const mid = (lo + hi) / 2; if (greedy(g, text, mid).length <= n) hi = mid; else lo = mid; }
+  return greedy(g, text, hi);
+}
+/** 줄바꿈 정리(10/29 대표님 요청) — 문장마다 새 줄에서 시작하고, 문장 안은 고르게 나눈다. 넘치면 문단 단위로 다시 */
+export function wrapText(g: CanvasRenderingContext2D, text: string, width: number, maxLines: number) {
+  const paras = text.trim().split(/\n+/).map((p) => p.trim()).filter(Boolean);
+  const bySentence = paras.flatMap((p) => p.split(/(?<=[.!?…~])\s+/).flatMap((x) => balanced(g, x, width)));
+  if (bySentence.length <= maxLines) return bySentence;
+  const byPara = paras.flatMap((p) => balanced(g, p, width));
+  return byPara.slice(0, maxLines);
 }
 
 /** 마음 편지 카드(1080×1350, 인스타·카톡에 알맞은 4:5) */
@@ -58,9 +72,9 @@ export async function drawLetterCard(o: { to: string; from: string; body: string
   // 짧은 편지는 글자를 키우고 가운데로 — 빈 종이처럼 보이지 않게
   g.fillStyle = '#2f3352';
   g.font = `400 44px ${serif}`;
-  let lines = wrap(g, o.body.trim(), W - 260).slice(0, 11);
+  let lines = wrapText(g, o.body, W - 260, 10);
   let lh = 70;
-  if (lines.length <= 5) { g.font = `400 52px ${serif}`; lines = wrap(g, o.body.trim(), W - 260).slice(0, 8); lh = 86; }
+  if (lines.length <= 5) { g.font = `400 52px ${serif}`; const big = wrapText(g, o.body, W - 260, 7); if (big.length <= 7) { lines = big; lh = 86; } else g.font = `400 44px ${serif}`; }
   const top0 = 440, bottom0 = 1110, blockH = lines.length * lh;
   const y0 = top0 + Math.max(0, (bottom0 - top0 - blockH) / 2) + lh / 2;
   lines.forEach((l, i) => g.fillText(l, 130, y0 + i * lh));

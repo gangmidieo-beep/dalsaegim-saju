@@ -771,7 +771,9 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     }
     const e = (x: string) => x.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
     const what = e(g.title);
-    const head = g.toName && g.fromName ? `${e(g.toName)}님께, ${e(g.fromName)}님이 보낸 ${what}` : g.fromName ? `${e(g.fromName)}님이 보낸 ${what}` : what;
+    const nim = (n: string) => (/님$/.test(n.trim()) ? e(n.trim()) : `${e(n.trim())}님`); // '사장님님' 방지
+    const what2 = what.replace(/^마음 편지 · (.+)$/, '$1 편지'); // 첫 배포 때 이름 호환
+    const head = g.toName && g.fromName ? `${nim(g.toName)}께, ${nim(g.fromName)}이 보낸 ${what2}` : g.fromName ? `${nim(g.fromName)}이 보낸 ${what2}` : what2;
     const img = `${API()}/g/${code}/img.jpg`;
     const go = `${WEB()}/gift?utm_source=gift&utm_content=${g.kind}`;
     const isLetter = g.kind === 'letter';
@@ -785,7 +787,7 @@ img{display:block;width:100%;border-radius:16px;margin:14px 0;box-shadow:0 14px 
 .b{display:block;width:100%;box-sizing:border-box;border:0;padding:16px;border-radius:14px;background:linear-gradient(180deg,#e9c987,#c99a4b);color:#1d1a2c;font-weight:800;text-decoration:none;font-size:16.5px;margin-top:8px;font-family:inherit}
 .s{display:block;margin-top:12px;font-size:13.5px;color:inherit;opacity:.75}small{display:block;font-size:11.5px;margin-top:18px;line-height:1.5;opacity:.6}#msg{min-height:20px;font-size:13.5px;font-weight:700}</style></head>
 <body><main><p>🌕 달새김사주</p>${send
-  ? `<h1>${head}</h1><p>아래 버튼을 누르고 카카오톡·문자·인스타그램 등 보낼 곳을 고르면<br><b>이 이미지가 그대로</b> 전달돼요.</p>
+  ? `<h1>${head}</h1><p>아래 버튼을 누르고 보낼 곳(카카오톡·문자·인스타그램)을 고르면 <b>이 이미지가 그대로</b> 전달돼요.</p>
 <img id="gi" src="${img}" alt="${head}"><button class="b" id="share">이미지로 보내기</button><p id="msg"></p>
 <p>버튼이 안 되면 이미지를 <b>길게 눌러 저장</b>한 뒤, 카카오톡 대화방에서 사진으로 보내 주세요.</p>
 <script>document.getElementById('share').onclick=async function(){var m=document.getElementById('msg');try{var r=await fetch('${img}');var b=await r.blob();var f=new File([b],'dalsaegim_${g.kind}.jpg',{type:'image/jpeg'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});m.textContent='보냈어요';}else{var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=f.name;document.body.appendChild(a);a.click();a.remove();m.textContent='이미지를 저장했어요. 카카오톡에서 사진으로 보내 주세요';}}catch(e){if(e&&e.name!=='AbortError')m.textContent='이미지를 길게 눌러 저장해 주세요';}};</script>`
