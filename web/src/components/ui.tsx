@@ -175,6 +175,8 @@ export function Foot() {
         <Link to="/terms">이용약관</Link><Link to="/privacy"><b>개인정보처리방침</b></Link><Link to="/refund">환불정책</Link>
       </div>
       {b.kakao && <a className="kakao" href={b.kakao} target="_blank" rel="noopener noreferrer">카카오톡 채널로 문의하기</a>}<br />
+      {/* 공식 SNS(대표님 확정 주소, 10/30) */}
+      {b.sns?.length ? <div className="foot-sns">{b.sns.map(([l, u]) => <a key={u} href={u} target="_blank" rel="noopener noreferrer">{l}</a>)}</div> : null}
       상호 {b.name} · 대표 {b.ceo}{b.regNo && ` · 사업자등록번호 ${b.regNo}`}{b.mailOrderNo && ` · 통신판매업 ${b.mailOrderNo}`}<br />
       {b.address && <>{b.address}<br /></>}
       {b.phone && <>고객센터 {b.phone} · </>}{b.email && <>이메일 {b.email}</>}<br />

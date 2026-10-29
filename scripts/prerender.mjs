@@ -18,7 +18,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 const biz = brand.business ?? {};
 const ld = { '@context': 'https://schema.org', '@type': 'Organization', name: SITE, alternateName: biz.name, url: ORIGIN || 'https://dalsaegim.com', logo: `${ORIGIN || 'https://dalsaegim.com'}/img/og.jpg`,
   slogan: brand.slogan, founder: biz.ceo, email: biz.email, telephone: biz.phone || undefined, address: biz.address ? { '@type': 'PostalAddress', streetAddress: biz.address, addressCountry: 'KR' } : undefined,
-  sameAs: [biz.kakao].filter(Boolean), contactPoint: biz.kakao ? [{ '@type': 'ContactPoint', contactType: 'customer support', url: biz.kakao, availableLanguage: 'Korean' }] : undefined };
+  sameAs: [biz.kakao, ...(biz.sns ?? []).map((x) => x[1])].filter(Boolean), contactPoint: biz.kakao ? [{ '@type': 'ContactPoint', contactType: 'customer support', url: biz.kakao, availableLanguage: 'Korean' }] : undefined };
 const shell = readFileSync(join(dist, 'index.html'), 'utf8').replace('</head>', `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script></head>`);
 // 사업자 정보 — 화면 하단과 같은 내용을 HTML 원문에도(자바스크립트를 실행하지 않는 결제사·검색엔진 검수기가 읽도록)
 const bizHtml = `<footer><p>상호 ${esc(biz.name ?? '')} · 대표 ${esc(biz.ceo ?? '')} · 사업자등록번호 ${esc(biz.regNo ?? '')} · 통신판매업 ${esc(biz.mailOrderNo ?? '')}</p><p>주소 ${esc(biz.address ?? '')}</p><p>고객센터 ${esc(biz.phone ?? '')} · 이메일 ${esc(biz.email ?? '')}${biz.kakao ? ` · 카카오톡 채널 ${esc(biz.kakao)}` : ''}</p><p><a href="/terms">이용약관</a> · <a href="/privacy">개인정보처리방침</a> · <a href="/refund">환불정책</a></p></footer>`;

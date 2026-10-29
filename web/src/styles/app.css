@@ -1435,3 +1435,5 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .gift-cta { display: block; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(217, 184, 116, 0.5); background: rgba(217, 184, 116, 0.1); color: #f1d9a6; font-size: 14.5px; font-weight: 800; text-align: center; }
 .gift-cta.light { background: #fff6e6; color: #7a5a22; border-color: #ead9b6; }
 .for-me { font-size: 14px; color: var(--ink-2); }
+.foot-sns { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; }
+.foot-sns a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--paper); font-size: 13.5px; font-weight: 700; color: var(--ink); }
