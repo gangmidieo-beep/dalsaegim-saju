@@ -24,12 +24,28 @@ const cut = (s: string, n: number) => {
 
 export type Preview = {
   productId: string; title: string; who: string; intro: string; amount: string;
+  basis?: string; // 예시의 기준일·분석 대상 기간(10/28 검수 12)
+  tocNote?: string; // 목차 위 안내(예: 4종 묶음은 재물사주 발췌)
   summary?: { headline: string; lead: string } | null;
   toc: { part?: string; title: string }[];
   excerpt: { no: number; title: string; say: string; body: string; locked: boolean }[];
   note: string;
 };
 const cache = new Map<string, Preview>();
+const MONTH_SAMPLE = '2026-11';
+const ymOf = (y: number, m: number) => `${y}년 ${m}월`;
+function basisOf(id: string, now: Date) {
+  const k = new Date(now.getTime() + 9 * 3600e3);
+  const y = k.getUTCFullYear(), m = k.getUTCMonth() + 1;
+  const date = `${y}.${String(m).padStart(2, '0')}.${String(k.getUTCDate()).padStart(2, '0')}`;
+  const ahead = (n: number) => { const t = m - 1 + n - 1; return `${ymOf(y, m)} ~ ${ymOf(y + Math.floor(t / 12), (t % 12) + 1)}`; };
+  const span = id.startsWith('money_') && id !== 'money_wealth' ? `분석 대상 ${y}년`
+    : id === 'path_deep' ? `분석 기간 앞으로 6개월(${ahead(6)})`
+      : ['love_flow', 'reunion', 'gunghap', 'adult_gunghap', 'marriage', 'career'].includes(id) ? `분석 기간 앞으로 12달(${ahead(12)})`
+        : id === 'month_detail' ? `예시 달 ${ymOf(2026, 11)} · 구매할 때는 원하는 달을 골라요`
+          : id === 'newyear_2027' ? '분석 대상 2027년' : '';
+  return `예시 기준일 ${date}${span ? ` · ${span}` : ''}`;
+}
 
 export function previewOf(p: { id: string; title: string; kind: string; adult?: boolean }, now = new Date()): Preview | null {
   const long = p.id === 'lifetime' && liveAI() && longOn();
@@ -55,12 +71,15 @@ export function previewOf(p: { id: string; title: string; kind: string; adult?: 
     };
   } else {
     const ps = PAIR.has(p.id) ? [ME, YOU] : [ME];
-    const facts = buildFacts(p.id, ps, ps.map(sajuOf), (META[p.id] as never) ?? (p.id === 'month_detail' ? { ym: now.toISOString().slice(0, 7) } : null), null, now);
+    // 월간운세 예시는 표지 이미지(2026년 11월)와 같은 달로 고정 — 실제 구매는 고객이 고른 달(10/28 검수 14)
+    const facts = buildFacts(p.id, ps, ps.map(sajuOf), (META[p.id] as never) ?? (p.id === 'month_detail' ? { ym: MONTH_SAMPLE } : null), null, now);
     const c = engineContent({ id: p.id, title: p.title }, ps, facts);
     const adult = !!p.adult;
     out = {
       productId: p.id, title: p.title, who: ps.map((x) => x.name).join('·') + '(예시)', intro: c.intro, amount: p.id === 'money_pack' ? '풀이 4개(재물·사업·투자·부동산) · 22가지 분석' : `${c.chapters.length}가지 핵심 분석`,
-      summary: c.summary ? { headline: c.summary.headline, lead: c.summary.lead } : null,
+      summary: c.summary && !adult ? { headline: c.summary.headline, lead: c.summary.lead } : null, // 19세 상품은 목차만(10/28 검수 15)
+      basis: basisOf(p.id, now),
+      tocNote: p.id === 'money_pack' ? '4종 중 「프리미엄 재물사주」 발췌 예시 · 전체는 재물 7 + 사업 5 + 투자 5 + 부동산 5 = 22가지 분석' : undefined,
       toc: c.chapters.map((x) => ({ title: x.title })),
       excerpt: adult ? [] : c.chapters.slice(0, 2).map((x, i) => ({ no: i + 1, title: x.title, say: x.say, body: i === 0 ? cut(x.body, 900) : cut(x.body, 100), locked: i > 0 })),
       note: adult ? '19세 이상 상품이라 미리보기는 구성(목차)만 보여 드려요.' : '예시 인물의 실제 결과 일부예요. 실제 풀이는 내 사주로 새로 계산돼요(개인마다 내용이 달라요).',

@@ -1,6 +1,6 @@
 // 공통 화면 조각 — 헤더·하단 탭·점수 링·흐름 그래프·시트·토스트·달·기록 저장 시트
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { I } from './icons';
 import brand from '../../../brand.config.json';
 
@@ -28,12 +28,14 @@ export const ProdPic = ({ id, fallback = 'moon', size }: { id: string; fallback?
   PROD_IMG.has(id) ? <span className={`ppic${size ? ` ${size}` : ''}`} aria-hidden><img src={`/img/prod/${id}.webp?v=${IMG_V}`} alt="" loading="lazy" decoding="async" width={120} height={120} /></span> : <Pic n={fallback} size={size} />;
 export const CAT_PIC: Record<string, PicName> = { love: 'love', work: 'work', money: 'money', family: 'family', growth: 'self', health: 'health', etc: 'moon', future: 'future', self: 'self' };
 
-export function Top({ title, dark, back = true, right }: { title?: string; dark?: boolean; back?: boolean | string; right?: ReactNode }) {
+export function Top({ title, dark, back = true, right, backLabel }: { title?: string; dark?: boolean; back?: boolean | string; right?: ReactNode; backLabel?: boolean }) {
   const nav = useNavigate();
+  // 새 탭·외부 링크로 바로 들어온 첫 화면이면(이전 사이트 기록뿐) 뒤로 대신 홈으로 — 빈 화면으로 나가던 문제(10/28 검수 23)
+  const first = useLocation().key === 'default';
   return (
     <header className={`top${dark ? ' dark' : ''}`}>
       {back ? (
-        <button className="icon-btn" aria-label="뒤로" onClick={() => (typeof back === 'string' ? nav(back) : history.length > 1 ? nav(-1) : nav('/'))}><I.back /></button>
+        <button className={`icon-btn${backLabel ? ' back-l' : ''}`} aria-label={first ? '홈으로' : '뒤로가기'} onClick={() => (typeof back === 'string' ? nav(back) : first ? nav('/') : nav(-1))}><I.back />{backLabel && <span>{first ? '홈' : '뒤로'}</span>}</button>
       ) : <span style={{ width: 40 }} />}
       <h1 style={right ? { paddingRight: 0 } : undefined}>{title}</h1>
       {right}

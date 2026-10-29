@@ -2,7 +2,7 @@
 // 원국표(십성·십이운성·신살·귀인) → 9장(장 제목에 맞는 내용) → 오행 막대·평생 대운표·10년 연도 흐름·행운.
 // 모두 엔진 계산값 + 문구 DB(data/lifetime.json). AI 호출 없음. 단정·보장 금지(결혼·건강·돈을 확정하지 않는다).
 import { sipsinOfStem, twelveStage, yearPillarOf, branchRelations, kstParts, type Pillar } from '@dalsaegim/engine';
-import { rawDims, toScore, type SajuResult } from './core';
+import { rawDims, toScore, pct100, type SajuResult } from './core';
 import { sajuMap } from './map';
 import { nextMonths } from './path';
 import { moneyFlow } from './money';
@@ -63,7 +63,7 @@ export function lifetimeReport(saju: SajuResult, name: string, profileId: string
   const st = ST[map.dayMaster.char] ?? ST['기'];
   const counts = saju.tenGods.counts as Record<string, number>;
   const c = (...k: string[]) => k.reduce((s, x) => s + (counts[x] ?? 0), 0);
-  const ratio = saju.elementRatio.ratio as Record<string, number>;
+  const ratio = pct100(saju.elementRatio.ratio as Record<string, number>);
   const strongest = saju.elementRatio.strongest as string, weakest = saju.elementRatio.weakest as string;
   const missing = (saju.elementRatio.missing as string[]) ?? [];
   const need = map.need;

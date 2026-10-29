@@ -1,7 +1,7 @@
 // 달빛 편지 & 나의 달빛 우체통 — ① 오늘의 달빛 편지(누구나) ② AI 맞춤 편지(상담사·감정·고민 → 봉투가 열리며 편지 → 상담사 목소리로 듣기)
 // ③ 우체통(본인만, 다시 읽기·듣기·삭제) ④ 카카오톡 도착 안내 수신 동의(따로 신청한 고객만, 언제든 철회).
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { LETTER_FEELINGS, LETTER_TOPICS, PERSONAS, personaOf } from '@dalsaegim/content';
 import { useApp, useMain } from '../store/app';
 import { apiAuth, apiGet, syncProfile } from '../lib/api';
@@ -236,7 +236,8 @@ export function Mailbox({ box = false }: { box?: boolean }) {
   const { id } = useParams();
   const nav = useNavigate();
   const toast = useToast();
-  const [tab, setTab] = useState<'reading' | 'letter' | 'charm'>(box ? 'reading' : 'letter');
+  const [qs] = useSearchParams();
+  const [tab, setTab] = useState<'reading' | 'letter' | 'charm'>((['reading', 'letter', 'charm'] as const).find((t) => t === qs.get('tab')) ?? (box ? 'reading' : 'letter'));
   const [orders, setOrders] = useState<{ id: string; productId: string; title: string; amount: number; status: string; createdAt: string }[] | null>(null);
   useEffect(() => { if (tab === 'reading' && orders === null) apiAuth<any[]>('/me/orders').then(setOrders).catch(() => setOrders([])); }, [tab]);
   const [list, setList] = useState<Letter[] | null>(null);
@@ -283,7 +284,7 @@ export function Mailbox({ box = false }: { box?: boolean }) {
             {orders?.map((o) => (
               <Link key={o.id} to={o.productId === 'friend_pass' ? '/friend' : `/reading/${o.id}`} className="mail-row">
                 <span className="box-ic" aria-hidden><I.book size={20} /></span>
-                <span className="grow"><small>{dot(o.createdAt)}{o.status === 'refunded' ? ' · 환불됨' : ''}</small><b>{o.title}</b><span>{o.productId === 'friend_pass' ? '달빛 상담사 서월 이용권' : '다시 읽기 · 공유하기'}</span></span>
+                <span className="grow"><small>{dot(o.createdAt)}{o.status === 'refunded' ? ' · 환불됨' : ''}</small><b>{o.title}</b><span>{o.productId === 'friend_pass' ? '달빛 상담 이용권' : '다시 읽기 · 공유하기'}</span></span>
                 <I.right className="chev" />
               </Link>
             ))}

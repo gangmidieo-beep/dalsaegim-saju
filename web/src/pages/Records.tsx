@@ -9,7 +9,8 @@ import { kstToday, dotDate } from '../lib/dates';
 import { track } from '../lib/track';
 
 export type Memory = { id: string; kind: string; category: string; title: string; summary: string | null; happenedOn: string; sajuNote: string | null; feedback: string | null; createdAt: string; visibility?: string; photo?: string | null };
-const VIS: [string, string, string][] = [['private', '비공개', '기록함에만 두고 타임라인·AI 모두 안 봐요'], ['self', '나만보기', '나의 타임라인에 보여요'], ['ai', 'AI 참고용', '달빛 상담사가 상담할 때 참고해요']];
+// 실제 권한 그대로 안내(10/28 검수 18): 비공개 = 기록함에만 / 나만보기·AI 참고용 = 타임라인에 보이고, 마이의 '내 기록 참고하기'가 켜져 있으면 상담사가 최근 5개를 참고
+const VIS: [string, string, string][] = [['private', '비공개', '기록함에만 둬요. 타임라인에도, 달빛 상담사에게도 보이지 않아요'], ['self', '나만보기', '나의 타임라인에 보여요. 마이 › 「달빛 상담사가 내 기록 참고하기」가 켜져 있으면 상담에도 참고돼요'], ['ai', 'AI 참고용', '타임라인에 보이고, 상담사가 참고할 기록으로 표시해요. 실제 참고는 마이 › 「내 기록 참고하기」가 켜져 있을 때만'] ];
 const KIND: Record<string, string> = { consult: '달빛 상담', path: '운명의 갈림길', event: '실제 있었던 일', reading: '풀이', choice: '갈림길', report: '보고서' };
 const FB: Record<string, string> = { good: '잘 풀렸어요', same: '비슷해요', changed: '달라졌어요' };
 

@@ -1,6 +1,6 @@
 // 나의 사주지도 — 일간 성향 · 오행 균형 · 5영역 요약 · 중요 시기(대운). 모든 기능의 공통 기준 데이터.
 import { sipsinOfStem, kstParts, type SajuResult } from '@dalsaegim/engine';
-import { pick, needElement, ELEMENT_KO } from './core';
+import { pick, needElement, ELEMENT_KO, pct100 } from './core';
 import D from '../data/map.json' with { type: 'json' };
 
 type Level = 'strong' | 'normal' | 'soft';
@@ -23,7 +23,7 @@ export function sajuMap(saju: SajuResult, profileId: string, now = new Date()) {
   const A = D.areas as Record<Area, { label: string; lines: Record<Level, string[]> }>;
   const areas = AREAS.map((a) => ({ id: a, label: A[a].label, level: level[a], line: pick(A[a].lines[level[a]], `${profileId}:map:${a}`) }));
   const dm = (D.dayMaster as Record<string, { image: string; title: string; line: string; keywords: string[]; love: string; work: string }>)[saju.dayMaster.char];
-  const ratio = saju.elementRatio.ratio as Record<string, number>;
+  const ratio = pct100(saju.elementRatio.ratio as Record<string, number>);
   const need = needElement(saju);
   // 중요 시기 — 지금 대운과 다음 대운
   const age = kstParts(now).year - saju.solarDate.year + 1;

@@ -291,7 +291,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
       const mine = await db.select({ id: S.profiles.id }).from(S.profiles).where(and(inArray(S.profiles.id, pids), eq(S.profiles.userId, userId)));
       if (mine.length !== new Set(pids).size) return rep.code(400).send({ error: '사주 정보를 다시 저장해 주세요', code: 'profile' });
     }
-    const meta = b.meta ? Object.fromEntries(Object.entries(b.meta).filter(([k]) => ['cat', 'sub', 'q', 'mbti', 'ym', 'cards'].includes(k)).map(([k, v]) => [k, String(v).slice(0, 80)])) : null;
+    const meta = b.meta ? Object.fromEntries(Object.entries(b.meta).filter(([k]) => ['cat', 'sub', 'q', 'mbti', 'ym', 'cards', 'y'].includes(k)).map(([k, v]) => [k, String(v).slice(0, 80)])) : null;
     if (meta?.ym && !/^20\d\d-(0[1-9]|1[0-2])$/.test(meta.ym)) delete meta.ym;
     if (meta?.cards && !/^(\d{1,2}r?,){2}\d{1,2}r?$/.test(meta.cards)) return rep.code(400).send({ error: '카드를 다시 골라 주세요', code: 'cards' });
     if (p.id === 'tarot_some' && !meta?.cards) return rep.code(400).send({ error: '카드 3장을 먼저 골라 주세요', code: 'cards' });

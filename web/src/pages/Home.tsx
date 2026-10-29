@@ -5,14 +5,14 @@ import { Link } from 'react-router-dom';
 import { useMain } from '../store/app';
 import { useToday } from '../lib/fortune';
 import { apiAuth, apiGet } from '../lib/api';
-import { Foot, CAT_LABEL, ProdPic, useToast, won, type PicName } from '../components/ui';
+import { Foot, ProdPic, won, type PicName } from '../components/ui';
 import { GuideWidget } from '../components/Guide';
 import { kstMonth, next12 } from '../lib/dates';
 import brand from '../../../brand.config.json';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
 import { charmOf } from '@dalsaegim/content';
-import { imgOf, type Saved } from './Charm';
+import { type Saved } from './Charm';
 
 type Mem = { id: string; title: string; category: string; happenedOn: string };
 type P = { id: string; title: string; cardCopy: string; price: number; listPrice?: number | null; badge?: string | null; visible?: boolean; adult?: boolean };
@@ -33,8 +33,17 @@ const REP: { id: string; eye: string; name: string; copy: string; cta: string; p
 ];
 const TABS: [string, string][] = [['/', '홈'], ['/all', '운세'], ['/love', '사랑·인연'], ['/money', '재물·사업'], ['/map', '정통사주'], ['/friend', '달빛 상담']];
 
-// 목표를 'ㅌ'처럼 자모 한두 글자로만 적었으면(시험 입력 등) 소망 문장을 대신 보여 준다(10/27 대표님 화면)
-const okText = (t: string | null) => !!t && t.trim().length >= 2 && /[가-힣A-Za-z0-9]/.test(t);
+// 가격 표시(10/28 검수 19·20·부록 8) — 단품은 판매가만(판매 이력 없는 정가 취소선 금지), 묶음은 '개별 구매 합계'와 절약액
+export function PriceLine({ id, price, listPrice }: { id: string; price: number; listPrice?: number | null }) {
+  const pack = id === 'money_pack' && listPrice && listPrice > price;
+  return (
+    <span className="price-line">
+      {pack && <small className="pl-sum">개별 구매 합계 <s>{won(listPrice!)}</s></small>}
+      <b className="pl-price">{won(price)}</b>
+      {pack && <small className="pl-save">개별 구매 대비 {won(listPrice! - price)} 절약</small>}
+    </span>
+  );
+}
 
 export default function Home() {
   const { profile, isSample } = useMain();
@@ -43,7 +52,6 @@ export default function Home() {
   const [count, setCount] = useState(0);
   const [letter, setLetter] = useState<{ title: string; body: string } | null>(null);
   const [wish, setWish] = useState<Saved | null>(null); // 지난번 새긴 소망 — 7일이 지나면 진행 상황을 묻는다
-  const toast = useToast();
   useEffect(() => { apiGet<{ title: string; body: string }>('/letters/today').then(setLetter).catch(() => {}); }, []);
   useEffect(() => {
     if (isSample) return;
@@ -51,19 +59,6 @@ export default function Home() {
     const WEEK = 7 * 86400000;
     apiAuth<Saved[]>('/charms').then((l) => setWish(l.find((c) => c.status !== 'done' && Date.now() - +new Date(c.progressAt ?? c.createdAt) > WEEK) ?? null)).catch(() => {});
   }, [isSample]);
-  const wishStep = async (st: 'doing' | 'done' | 'later') => {
-    if (!wish) return;
-    await apiAuth(`/charms/${wish.id}`, { method: 'PATCH', json: st === 'later' ? { snooze: true } : { status: st } }).catch(() => {});
-    setWish(null);
-    toast(st === 'done' ? '축하해요! 이룬 소망을 타임라인에 새겼어요' : st === 'doing' ? '응원할게요. 우체통에서 진행 상황을 더 적을 수 있어요' : '다음에 다시 여쭤볼게요');
-  };
-  const feedback = async (id: string, fb: 'good' | 'same' | 'changed') => {
-    await apiAuth(`/memories/${id}`, { method: 'PATCH', json: { feedback: fb } }).catch(() => {});
-    track('memory_feedback', { fb });
-    setDue((d) => d.filter((x) => x.id !== id));
-    toast('알려 줘서 고마워요. 타임라인에 새겼어요');
-  };
-
   return (
     <>
       <header className="nh-top">
@@ -82,14 +77,16 @@ export default function Home() {
               const p = pOf(r.id);
               if (!p) return null;
               return (
-                <Link key={r.id} to={`/product/${r.id}`} className="rep-card" onClick={() => track('content_view', { content: 'home_rep', product: r.id })}>
-                  <ProdPic id={r.id} fallback={r.pic ?? 'moon'} size="l" />
-                  <span className="rep-body">
-                    <small className="rep-eye">{r.eye}</small>
-                    <b>{r.name}</b>
-                    <span className="rep-copy">{r.copy}</span>
-                    <span className="rep-foot"><span className="rep-cta">{r.cta} ›</span><span className="rep-price">{p.listPrice ? <s>{won(p.listPrice)}</s> : null}{won(p.price)}</span></span>
+                <Link key={r.id} to={`/product/${r.id}`} className="rep-card v2" onClick={() => track('content_view', { content: 'home_rep', product: r.id })}>
+                  <span className="rep-top">
+                    <ProdPic id={r.id} fallback={r.pic ?? 'moon'} size="l" />
+                    <span className="rep-body">
+                      <b>{r.name}</b>
+                      <span className="rep-copy">{r.copy}</span>
+                      <PriceLine id={r.id} price={p.price} listPrice={p.listPrice} />
+                    </span>
                   </span>
+                  <span className="rep-cta">자세히 보기 ›</span>
                 </Link>
               );
             })}
@@ -97,7 +94,7 @@ export default function Home() {
         </section>
 
         <section className="mt28" aria-labelledby="daily-t">
-          <div className="nh-sec"><h2 id="daily-t">매일의 운세</h2><span className="free-tag">무료</span></div>
+          <div className="nh-sec"><h2 id="daily-t">매일의 운세</h2></div>
           <p className="nh-sub">오늘 하루와 이번 달의 흐름을 먼저 살펴보세요</p>
           <Link to={isSample ? '/profile/new' : '/today'} className="nh-today">
             {isSample ? <span className="sc"><I.sunmoon size={28} /></span> : <span className="sc score" style={{ ['--p' as string]: t.total }} aria-label={`오늘 ${t.total}점`}><small>오늘</small><b>{t.total}<i>점</i></b></span>}
@@ -111,7 +108,7 @@ export default function Home() {
           <div className="nh-month" role="group" aria-labelledby="nh-month-t">
             <div className="mh">
               <span className="art" aria-hidden />
-              <div><small>MONTHLY FORTUNE</small><h2 id="nh-month-t">월간운세</h2><p>원하는 달을 골라 상세운세를 볼 수 있어요.</p></div>
+              <div><small>MONTHLY FORTUNE</small><h2 id="nh-month-t">월간운세 <em className="paid-tag">월별 {won(pOf('month_detail')?.price ?? 4900)}</em></h2><p>원하는 달을 골라 상세운세를 볼 수 있어요 · 월별 단건 구매, 정기결제 없음</p></div>
             </div>
             <div className="mgrid">
               {next12().map((g) => <Fragment key={g.yy}><span className="myr">{g.yy}년</span>{g.months.map((m) => <Link key={m.ym} to={`/product/month_detail?ym=${m.ym}`} className={m.now ? 'now' : ''} aria-label={`${m.yy}년 ${m.mm}월 운세${m.now ? ' (이번 달)' : ''}`}><b>{m.mm}월</b>{m.now && <i>이번 달</i>}</Link>)}</Fragment>)}
@@ -119,31 +116,13 @@ export default function Home() {
           </div>
         </section>
 
-      {(due.length > 0 || count >= 3 || wish) && (
-        <div className="stack mt16">
-          {wish && (
-            <section className="card wish-ask" aria-label="지난번 새긴 소망">
-              <span className="ct-thumb" style={{ backgroundImage: `url(${imgOf(wish.type)})` }} />
-              <div className="grow">
-                <small>{charmOf(wish.type).name}</small>
-                <h2 className="h3">소망의 현재 상태</h2>
-                <p className="small wish-q" style={{ margin: '4px 0 0' }}>“{okText(wish.goal) ? wish.goal : wish.wish}”</p>
-                <div className="ask-btns mt12">
-                  {([['doing', '진행 중'], ['done', '이루었어요'], ['later', '나중에']] as const).map(([k, l]) => <button key={k} className="btn line sm" onClick={() => wishStep(k)}>{l}</button>)}
-                </div>
-              </div>
-            </section>
-          )}
-          {due.length > 0 && (
-            <section className="card lav" aria-label="지난 고민 돌아보기">
-              <h2 className="h3">지난 고민은 어떻게 됐나요?</h2>
-              <p className="small mt4" style={{ margin: '4px 0 0' }}>{due[0].happenedOn.replace(/-/g, '.')} · {CAT_LABEL[due[0].category]} · {due[0].title}</p>
-              <div className="ask-btns mt12">
-                {([['good', '잘 풀렸어요'], ['same', '비슷해요'], ['changed', '달라졌어요']] as const).map(([k, l]) => <button key={k} className="btn line sm" onClick={() => feedback(due[0].id, k)}>{l}</button>)}
-              </div>
-            </section>
-          )}
-        </div>
+      {(due.length > 0 || wish) && (
+        // 소망·고민 질문을 홈에서 연달아 묻지 않고, 차분한 안내 카드 하나로(10/28 검수 25) — 답은 기록 화면에서
+        <section className="card recall mt16" aria-label="내 기록 돌아보기">
+          <h2 className="h3">내 기록 돌아보기</h2>
+          <p className="small muted mt4" style={{ margin: '4px 0 0' }}>{due.length > 0 && wish ? '남겨 둔 소망과 고민을 천천히 돌아보세요.' : due.length > 0 ? `${due[0].happenedOn.replace(/-/g, '.')}에 남긴 고민, 지금은 어떤가요?` : `${charmOf(wish!.type).name}에 새긴 소망, 지금은 어떤가요?`}</p>
+          <Link to={due.length > 0 ? '/records' : '/box?tab=charm'} className="btn soft mt12">내 기록 확인하기 ›</Link>
+        </section>
       )}
 
         {SECTIONS.map((sec) => {
@@ -158,7 +137,7 @@ export default function Home() {
                   <Link key={p.id} to={`/product/${p.id}`} className="prow">
                     <ProdPic id={p.id} fallback={pic} />
                     <span className="grow">{p.adult ? <em className="pbadge adult">19세 이상</em> : p.badge ? <em className="pbadge">{p.badge}</em> : null}<b>{p.title}</b><small>{p.cardCopy}</small></span>
-                    <span className="pp">{p.listPrice ? <s>{won(p.listPrice)}</s> : null}{won(p.price)}</span>
+                    <span className="pp">{p.id === 'money_pack' && p.listPrice ? <s>{won(p.listPrice)}</s> : null}{won(p.price)}</span>
                   </Link>
                 ))}
               </div>

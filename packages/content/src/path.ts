@@ -36,7 +36,8 @@ export function pathResult(saju: SajuResult, catId: string, subId: string, q: st
   const sub = cat.sub.find((s) => s.id === subId)!;
   const dim = (sub.dim ?? cat.dim) as Dim;
   const flow = nextMonths(saju, dim, profileId, now);
-  const sorted = [...flow].sort((a, b) => b.score - a.score);
+  // 좋은·신중한 시기는 안내한 기간(기본 6개월) 안에서만 고른다 — '앞으로 6개월'에 9달 뒤가 섞이던 문제(10/28 검수 02)
+  const sorted = flow.slice(0, horizon).sort((a, b) => b.score - a.score);
   const label2 = (xs: typeof flow) => {
     const y0 = flow[0].year;
     const byYear = [...new Set(xs.map((x) => x.year))].sort();
@@ -65,7 +66,7 @@ export function pathResult(saju: SajuResult, catId: string, subId: string, q: st
     cat: { id: cat.id, label: cat.label }, sub: { id: sub.id, label: sub.label }, q,
     dim, label, flow, avg, band,
     mood: (P.mood as Record<string, string>)[band],
-    headline: `앞으로 6개월, ${label}의 흐름은 ${(P.mood as Record<string, string>)[band]}이에요.`,
+    headline: `앞으로 ${horizon}개월, ${label}의 흐름은 ${(P.mood as Record<string, string>)[band]}이에요.`,
     good: goodL, careful: carefulL,
     goodIdx: sorted.slice(0, 3).map((x) => flow.indexOf(x) + 1), carefulIdx: sorted.slice(-2).map((x) => flow.indexOf(x) + 1),
     reason: area.line,

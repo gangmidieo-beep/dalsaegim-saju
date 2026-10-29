@@ -171,6 +171,15 @@ function ForkArt() {
   );
 }
 
+// 분야별 입력 예시 — 연애 고민에 이직 예시가 보이던 문제(10/28 검수 07). 입력값은 그대로 두고 예시만 바뀐다
+const EX: Record<string, [string, string, string]> = {
+  love: ['먼저 연락할지 고민돼요', '먼저 연락하기', '조금 더 기다리기'],
+  work: ['이직할까, 지금 직장을 유지할까?', '이직하기', '지금 직장 유지'],
+  money: ['모은 돈을 넣을까, 더 모을까?', '지금 시작하기', '조금 더 모으기'],
+  family: ['가족에게 먼저 말을 꺼낼까?', '먼저 이야기하기', '때를 기다리기'],
+  future: ['새로운 공부를 시작할까?', '지금 시작하기', '내년에 시작하기'],
+  self: ['쉬어 갈까, 계속 달릴까?', '잠시 쉬어 가기', '지금 속도 유지'],
+};
 function ChoiceForm({ isSample, defaultCat }: { isSample: boolean; defaultCat: string }) {
   const nav = useNavigate();
   const [cat, setCat] = useState(defaultCat);
@@ -189,10 +198,10 @@ function ChoiceForm({ isSample, defaultCat }: { isSample: boolean; defaultCat: s
       <div className="field"><span>어떤 분야의 고민인가요?</span>
         <div className="qchips">{PATHS.map((c) => <button key={c.id} className={cat === c.id ? 'on' : ''} aria-pressed={cat === c.id} onClick={() => setCat(c.id)}>{c.label}</button>)}</div>
       </div>
-      <label className="field"><span>고민하는 상황</span><input className="input" maxLength={60} value={s} onChange={(e) => setS(e.target.value)} placeholder="예) 이직할까, 지금 직장을 유지할까?" /></label>
+      <label className="field"><span>고민하는 상황</span><input className="input" maxLength={60} value={s} onChange={(e) => setS(e.target.value)} placeholder={`예) ${(EX[cat] ?? EX.work)[0]}`} /></label>
       <div className="grid2">
-        <label className="field ab-a"><span>선택 A</span><input className="input" maxLength={30} value={a} onChange={(e) => setA(e.target.value)} placeholder="예) 이직하기" /></label>
-        <label className="field ab-b"><span>선택 B</span><input className="input" maxLength={30} value={b} onChange={(e) => setB(e.target.value)} placeholder="예) 지금 직장 유지" /></label>
+        <label className="field ab-a"><span>선택 A</span><input className="input" maxLength={30} value={a} onChange={(e) => setA(e.target.value)} placeholder={`예) ${(EX[cat] ?? EX.work)[1]}`} /></label>
+        <label className="field ab-b"><span>선택 B</span><input className="input" maxLength={30} value={b} onChange={(e) => setB(e.target.value)} placeholder={`예) ${(EX[cat] ?? EX.work)[2]}`} /></label>
       </div>
       <div className="field"><span>새로운 변화에 더 가까운 쪽은?</span>
         <div className="qchips">{([['a', 'A 쪽'], ['b', 'B 쪽'], ['none', '비슷해요']] as const).map(([k, l]) => <button key={k} className={chg === k ? 'on' : ''} aria-pressed={chg === k} onClick={() => setChg(k)}>{l}</button>)}</div>

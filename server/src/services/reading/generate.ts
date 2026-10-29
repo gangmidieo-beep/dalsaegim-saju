@@ -6,7 +6,7 @@ import { and, desc, eq, inArray, lt } from 'drizzle-orm';
 import { calcSaju, branchRelations, kstParts, type SajuResult } from '@dalsaegim/engine';
 import {
   moneyFlow, newYearPreview, sajuMap, sajuMbti, pathResult, nextMonths, monthFortune, todayFortune, toRanges, MONEY_KINDS, type MoneyKind,
-  wealthReport, marriageReport, careerReport, tarotReading, parseCards, monthsLabel, lifetimeReport, type Basis, type SajuTable,
+  wealthReport, marriageReport, careerReport, tarotReading, parseCards, monthsLabel, lifetimeReport, fixJosaDeep, type Basis, type SajuTable,
 } from '@dalsaegim/content';
 import R from '../../../../packages/content/data/reading.json' with { type: 'json' };
 import { generateLong, longOn } from './long.ts';
@@ -24,7 +24,7 @@ export type Closing = { title: string; body: string; tips: string[] };
 export type Summary = { tone: 'love' | 'money' | 'saju' | 'time'; headline: string; lead: string; metrics: { label: string; score: number; note?: string }[]; steps: { label: string; text: string }[]; action: string; cards?: { id: number; rev: boolean }[] };
 export type ReadingContent = { productId: string; title: string; intro: string; chapters: Chapter[]; closing: Closing; facts?: unknown; visual?: Visual; summary?: Summary; who?: string[]; generatedBy: 'ai' | 'engine' };
 export type Person = { name: string; gender: 'M' | 'F'; year: number; month: number; day: number; calendar: 'solar' | 'lunar'; leap?: boolean; hour?: number | null };
-export type OrderMeta = { cat?: string; sub?: string; q?: string; mbti?: string; ym?: string; cards?: string } | null;
+export type OrderMeta = { cat?: string; sub?: string; q?: string; mbti?: string; ym?: string; cards?: string; y?: string } | null;
 
 export const chaptersFor = (productId: string) => (R.chapters as Record<string, string[]>)[productId] ?? R.chapters.lifetime;
 const sajuOfP = (p: Person) => calcSaju({ year: p.year, month: p.month, day: p.day, hour: p.hour ?? null, calendar: p.calendar, leapMonth: p.leap, gender: p.gender, timeUnknown: p.hour == null });
@@ -50,7 +50,9 @@ export function buildFacts(productId: string, people: Person[], sajus: SajuResul
   const id = 'r';
   const s = sajus[0];
   const p0 = people[0];
-  const year = kstParts(now).year;
+  // 돈의 흐름: 고객이 고른 연도(올해 또는 내년)로 — 2027년을 골랐는데 2026년으로 만들어지던 문제(10/28 검수 01)
+  const thisYear = kstParts(now).year;
+  const year = Number(meta?.y) === thisYear + 1 ? thisYear + 1 : thisYear;
   const map = sajuMap(s, id, now);
   const base = [`일간 ${map.dayMaster.char}(${map.dayMaster.hanja}) — ${map.dayMaster.title}`, `오행 ${map.elements.map((e) => `${e.el} ${e.pct}%`).join(' · ')} / 가장 강한 기운 ${map.strongest}, 채우면 좋은 기운 ${map.need}`];
   const paras: string[] = [`${p0.name} 님은 ${map.dayMaster.image}의 기운을 타고났어요. ${map.dayMaster.line}`];
@@ -60,7 +62,7 @@ export function buildFacts(productId: string, people: Person[], sajus: SajuResul
   const money = (k: MoneyKind) => {
     const f = moneyFlow(s, k, year, id, { market: k === 'invest' ? market?.flow ?? null : null, now });
     lines.push(`${f.series}: 지수 ${f.score} / ${f.subs.map((x) => `${x.label} ${x.score}`).join(', ')} / 좋은 달 ${toRanges(f.good)} / 신중한 달 ${toRanges(f.careful)} / 키워드 ${f.keywords.join(', ')}`);
-    paras.push(`${f.series} — ${f.headline}. ${f.summary}`, `올해 ${f.title}에서 기운이 살아나는 달은 ${toRanges(f.good)}이고, 한 템포 쉬어 가면 좋은 달은 ${toRanges(f.careful)}이에요. ${f.tips[0]}`);
+    paras.push(`${f.series} — ${f.headline}. ${f.summary}`, `${year === thisYear ? '올해' : `${year}년`} ${f.title}에서 기운이 살아나는 달은 ${toRanges(f.good)}이고, 한 템포 쉬어 가면 좋은 달은 ${toRanges(f.careful)}이에요. ${f.tips[0]}`);
     if (f.invest) {
       // 시장 노트(관리자 작성)가 없을 때 — '준비 중' 대신, 예측 없이 시장 소식을 받아들이는 나의 기준을 안내(10/26 재검수 10)
       const noMarket = `달새김은 시장의 오르내림을 예측하지 않아요. 대신 ${p0.name} 님이 시장 소식을 만날 때 지키면 좋은 기준을 정리해 드려요. 기운이 살아나는 ${toRanges(f.good)}에는 관심 있던 분야를 공부하고 계획을 세우기 좋고, 흐름이 잠시 낮아지는 ${toRanges(f.careful)}에는 새로 시작하기보다 지금 가진 것을 점검하는 편이 마음이 편해요. 시장의 큰 흐름은 뉴스와 공식 자료로 꼭 함께 확인해 주세요.`;
@@ -191,10 +193,12 @@ export function buildFacts(productId: string, people: Person[], sajus: SajuResul
     }
     keywords = ['연애', '인연', ...keywords];
   } else if (productId === 'gunghap' || productId === 'adult_gunghap') {
-    const nm = nextMonths(s, 'love', id, now);
-    const good = [...nm].sort((a, b) => b.score - a.score).slice(0, 3).map((x) => x.month);
-    lines.push(`연애 흐름(앞으로 12달): 좋은 달 ${toRanges(good)}`);
-    paras.push(map.dayMaster.love, `앞으로 열두 달 중 마음이 닿기 쉬운 달은 ${toRanges(good)}이에요.`, map.areas.find((a) => a.id === 'love')!.line);
+    // 요약 카드와 같은 계산(연애·관계 기운 평균)으로 — 요약과 본문의 달이 달라 보이던 문제(10/28 검수 03)
+    const lv = nextMonths(s, 'love', id, now), pt = nextMonths(s, 'partner', id, now);
+    const bl = lv.map((x, i) => ({ ...x, score: Math.round((x.score + pt[i].score) / 2) }));
+    const good = monthsLabel([...bl].sort((a, b) => b.score - a.score).slice(0, 3), now);
+    lines.push(`연애 흐름(앞으로 12달): 좋은 달 ${good}`);
+    paras.push(map.dayMaster.love, `앞으로 열두 달 중 마음이 닿기 쉬운 달은 ${good}이에요.`, map.areas.find((a) => a.id === 'love')!.line);
     if (sajus[1]) {
       const m2 = sajuMap(sajus[1], id, now);
       const rel = branchRelations(s.pillars.day.branch, sajus[1].pillars.day.branch);
@@ -327,13 +331,13 @@ export function engineContent(product: { id: string; title: string }, people: Pe
     const m = facts.meta?.[i];
     return { id: `c${i + 1}`, title, say: m?.say ?? facts.keywords[i % facts.keywords.length] ?? title, body: m || body.startsWith(name) ? body : `${name} 님, ${body}`, highlight: m?.highlight ?? (chunk[0] ?? body).split(/(?<=요\.)\s/)[0], ...(m ? { points: m.points, basis: m.basis } : {}) };
   });
-  return {
+  return fixJosaDeep<ReadingContent>({
     productId: product.id, title: product.title, generatedBy: 'engine', ...(facts.visual ? { visual: facts.visual } : {}), ...(facts.summary ? { summary: facts.summary } : {}),
     intro: product.id === 'tarot_some' ? `${name} 님이 직접 고른 카드 3장의 해석에, 사주로 본 '마음이 닿기 쉬운 달'을 함께 묶었어요. 카드는 지금 이 순간의 분위기를 비추는 거울이에요.`
       : `${name} 님의 사주와 올해의 흐름을 바탕으로 '${product.title}'을 정리했어요. 숫자와 시기는 무료 요약과 같은 계산에서 나왔어요.`,
     chapters,
     closing: { title: '달새김이 남기는 말', body: `오늘 읽은 흐름을 기록해 두면, 몇 달 뒤 실제로 어땠는지 함께 돌아볼 수 있어요. ${name} 님의 시간이 차곡차곡 새겨지기를 바라요.`, tips: facts.tips.slice(0, 3) },
-  };
+  });
 }
 
 /* ---------- AI 호출(Claude 또는 GPT — services/ai.ts) ---------- */
@@ -387,7 +391,8 @@ export async function generateReading(product: { id: string; title: string }, pe
   }
   // 근거 번호·소제목·그림 자료는 계산값 그대로 붙인다(AI 가 바꾸지 못하게)
   chapters.forEach((c, i) => { const m = facts.meta?.[i]; if (m) Object.assign(c, { points: m.points, basis: m.basis }); });
-  const content: ReadingContent = { productId: product.id, title: product.title, intro, chapters, closing, who: ps.map((p) => p.name), facts: facts.lines, ...(facts.visual ? { visual: facts.visual } : {}), ...(facts.summary ? { summary: facts.summary } : {}), generatedBy: 'ai' };
+  let content: ReadingContent = { productId: product.id, title: product.title, intro, chapters, closing, who: ps.map((p) => p.name), facts: facts.lines, ...(facts.visual ? { visual: facts.visual } : {}), ...(facts.summary ? { summary: facts.summary } : {}), generatedBy: 'ai' };
+  content = fixJosaDeep(content); // 따옴표 뒤 조사 받침 맞춤
   return { content, tokensIn, tokensOut, costKrw, issues: checkQuality(content, ps.map((p) => p.name), titles) };
 }
 

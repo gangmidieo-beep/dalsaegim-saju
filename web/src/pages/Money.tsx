@@ -58,9 +58,9 @@ export function MoneyHub() {
         {isSample && <Link to="/profile/new?next=/money" className="btn primary">내 사주로 돈의 흐름 보기</Link>}
         {isSample && <p className="faint mt12" style={{ margin: '12px 0 0' }}>아래 점수는 <b>예시 점수 · 사주 입력 전</b>이에요. 내 사주를 넣으면 나의 점수로 바뀌어요.</p>}
         <div className="stack mt12">{KINDS.map((x) => <HubCard key={x.k} kind={x.k} icon={x.icon} line={x.line} year={Y.year} profileId={profile.id} />)}</div>
-        <Link to={`/product/money_pack`} className="card gold mt16 between" style={{ display: 'flex' }}>
+        <Link to={`/product/money_pack?y=${Y.year}`} className="card gold mt16 between" style={{ display: 'flex' }}>
           <div><b>{pack.title}</b><div className="small muted">{pack.cardCopy}</div></div>
-          <div style={{ textAlign: 'right' }}>{pack.listPrice && <div className="faint" style={{ textDecoration: 'line-through' }}>{won(pack.listPrice)}</div>}<b className="hl-gold">{won(pack.price)}</b></div>
+          <div style={{ textAlign: 'right' }}>{pack.listPrice && <div className="faint">개별 구매 합계 <s>{won(pack.listPrice)}</s></div>}<b className="hl-gold">{won(pack.price)}</b></div>
         </Link>
         <LuckyCard />
       </main>

@@ -70,16 +70,17 @@ export function ProductDetail() {
   const STEPS = p.kind === 'pass' ? ['상담사 선택', '내 사주 연결', '대화형 상담', '한 줄 기록'] : p.id === 'tarot_some' ? ['카드 3장', '사주 연결', '세 장 해석', '나의 기록'] : ['사주 정보', '명리 해석', '심층 결과', '나의 기록'];
   return (
     <>
-      <Top title={p.title} />
+      <Top title={p.title} backLabel />
       <main className="screen pd">
         <section className={`pd-hero${PROD_IMG.has(p.id) ? ' has-scene' : ''}`}>
           {PROD_IMG.has(p.id) ? <img className="pd-scene" src={`/img/prod/${p.id}.webp?v=${IMG_V}`} alt="" width={120} height={120} /> : <span className="pd-moon" aria-hidden />}
-          <small className="pd-eye">{PROD_IMG.has(p.id) ? 'PREMIUM READING' : 'DALSAEGIM · PREMIUM READING'}</small>
-          {p.badge && <span className="badge mt8" style={{ display: 'inline-block' }}>{p.badge}</span>}
+          {/* 상품명에 '프리미엄'이 있으면 영문 PREMIUM 두 줄을 빼서 같은 말이 세 번 반복되지 않게(10/28 검수 26) */}
+          {!p.title.includes('프리미엄') && <small className="pd-eye">{PROD_IMG.has(p.id) ? 'PREMIUM READING' : 'DALSAEGIM · PREMIUM READING'}</small>}
+          {p.badge && !(p.title.includes('프리미엄') && /premium/i.test(p.badge)) && <span className="badge mt8" style={{ display: 'inline-block' }}>{p.badge}</span>}
           <h2>{p.title}</h2>
           <p>{d?.sub ?? p.cardCopy}</p>
           <div className="pd-price">
-            {p.listPrice && <span className="was"><s>{won(p.listPrice)}</s><em>{Math.round((1 - p.price / p.listPrice) * 100)}% 할인</em></span>}
+            {p.id === 'money_pack' && p.listPrice && <span className="was">개별 구매 합계 <s>{won(p.listPrice)}</s><em>{won(p.listPrice - p.price)} 절약</em></span>}
             <b>{won(p.price)}</b>
           </div>
         </section>
@@ -150,8 +151,8 @@ export function ProductDetail() {
             <div className="paid"><small>결제 후 받는 것</small>
               {p.kind === 'pass'
                 ? <>{PASS_TERMS.slice(0, 4).map((t) => <p key={t}>· {t}</p>)}</>
-                : p.id === 'tarot_some' ? <><p>· 고른 카드 3장의 자리별 해석(정·역방향)</p><p>· 세 장이 함께 말하는 흐름</p><p>· 내 사주로 본 마음이 닿는 달</p><p>· 언제든 다시 보기(보관함)</p></>
-                : <><p>· {pack ? `${pack.length}가지 풀이 · 모두 ${packTotal}가지 핵심 분석` : p.id === 'lifetime' && longOn ? `A4 약 40쪽 정통 감정서(${longChapters}장) · PDF 저장` : `내 사주 맞춤 ${ch?.length ?? ''}가지 핵심 분석`}</p><p>· 좋은 시기·조심할 시기와 그 이유</p><p>· 바로 할 수 있는 조언</p><p>· 언제든 다시 보기(보관함)</p></>}
+                : p.id === 'tarot_some' ? <><p>· 고른 카드 3장의 자리별 해석(정·역방향)</p><p>· 세 장이 함께 말하는 흐름</p><p>· 내 사주로 본 마음이 닿는 달</p><p>· 결제한 기기·브라우저의 보관함에서 다시 보기</p></>
+                : <><p>· {pack ? `${pack.length}가지 풀이 · 모두 ${packTotal}가지 핵심 분석` : p.id === 'lifetime' && longOn ? `A4 약 40쪽 정통 감정서(${longChapters}장) · PDF 저장` : `내 사주 맞춤 ${ch?.length ?? ''}가지 핵심 분석`}</p><p>· 좋은 시기·조심할 시기와 그 이유</p><p>· 바로 할 수 있는 조언</p><p>· 결제한 기기·브라우저의 보관함에서 다시 보기</p></>}
             </div>
           </div>
         </section>
@@ -169,7 +170,8 @@ export function ProductDetail() {
             <Link to="/refund" className="link mt8" style={{ display: 'inline-block', fontSize: 14 }}>환불정책 보기</Link>
           </section>
         )}
-        <p className="notice mt12">결제 후 바로 이 사이트에서 열려요 · 회원가입 없이 결제 가능 · 보관함에서 언제든 다시 볼 수 있어요</p>
+        <div className="pd-nav mt16"><Link to="/all">전체 상품 보기 ›</Link><Link to="/">홈으로 ›</Link></div>
+        <p className="notice mt12">결제 후 바로 이 사이트에서 열려요 · 회원가입 없이 결제 가능 · 결제한 기기·브라우저의 보관함에서 다시 볼 수 있어요<br />기기를 바꾸거나 인터넷 기록을 지워 보관함이 비었다면, 카카오톡 채널로 결제 정보를 알려 주세요. 확인해 도와드려요.</p>
         <div className="pd-cta">
           <span><small>콘텐츠 이용금액</small><b>{won(p.price)}</b></span>
           {isTarot && cards.length < 3
@@ -279,11 +281,11 @@ export function Checkout() {
     const ym = sp.get('ym');
     if (ym) return `${ym.slice(0, 4)}년 ${Number(ym.slice(5))}월`;
     if (p?.id === 'newyear_2027') return '2027년 한 해';
-    if (p?.series === 'money') return `${kstYear()}년 (올해)`;
+    if (p?.series === 'money' && p.id !== 'money_wealth') { const y = Number(sp.get('y')) || kstYear(); return y === kstYear() ? `${y}년 (올해)` : `${y}년`; }
     if (p?.id === 'love_flow' || p?.id === 'reunion') { const g = next12(); const a = g[0].months[0], z = g[g.length - 1].months.slice(-1)[0]; return `앞으로 12달 (${a.yy}년 ${a.mm}월 ~ ${z.yy}년 ${z.mm}월)`; }
     return null;
   })();
-  const meta = Object.fromEntries(['cat', 'sub', 'q', 'mbti', 'ym', 'cards'].map((k) => [k, sp.get(k) ?? (k === 'mbti' ? profiles.find((x) => x.id === pick[0])?.mbti ?? '' : '')]).filter(([, v]) => v));
+  const meta = Object.fromEntries(['cat', 'sub', 'q', 'mbti', 'ym', 'cards', 'y'].map((k) => [k, sp.get(k) ?? (k === 'mbti' ? profiles.find((x) => x.id === pick[0])?.mbti ?? '' : '')]).filter(([, v]) => v));
   const [adult, setAdult] = useState<{ verified: boolean; mode: string; storeId?: string | null; channelKey?: string | null } | null>(null);
   useEffect(() => { if (p?.adult) apiAuth<typeof adult>('/adult/status').then(setAdult).catch(() => setAdult({ verified: false, mode: 'off' })); }, [p?.adult]);
   const verifyAdult = async () => {
@@ -322,7 +324,7 @@ export function Checkout() {
           <span className="chip sm lav">디지털 콘텐츠</span>
           <div className="between mt8" style={{ alignItems: 'flex-end' }}>
             <div><b className="co-title">{p.title}</b><div className="faint mt4">{p.kind === 'pass' ? `질문 ${(p as any).questions ?? 10}회 · ${(p as any).days ?? 90}일 · 결제 즉시 시작` : meta.ym ? `${meta.ym.slice(0, 4)}년 ${Number(meta.ym.slice(5))}월 · 결제 후 바로 풀이가 만들어져요` : meta.cards ? '고른 카드 3장 · 결제 후 바로 해석이 열려요' : '결제 후 바로 풀이가 만들어져요'}</div></div>
-            <div className="co-price">{p.listPrice ? <s>{won(p.listPrice)}</s> : null}<b>{won(p.price)}</b></div>
+            <div className="co-price">{p.id === 'money_pack' && p.listPrice ? <s>{won(p.listPrice)}</s> : null}<b>{won(p.price)}</b></div>
           </div>
         </section>
         {p.kind === 'pass' && (
@@ -401,7 +403,7 @@ export function Checkout() {
             {target && <div><dt>대상</dt><dd>{target}</dd></div>}
             {need > 0 && <div><dt>사주</dt><dd>{pick.length ? pick.map((x) => profiles.find((y) => y.id === x)?.name).join(' · ') : '선택 전'}</dd></div>}
             <div><dt>결제수단</dt><dd>{m?.label ?? '-'}</dd></div>
-            {p.listPrice ? <div><dt>할인</dt><dd style={{ color: '#a83f5c' }}>-{won(p.listPrice - p.price)}</dd></div> : null}
+            {p.id === 'money_pack' && p.listPrice ? <div><dt>개별 구매 대비</dt><dd style={{ color: '#2f7a4f' }}>{won(p.listPrice - p.price)} 절약</dd></div> : null}
             <div className="sum"><dt>총 결제금액</dt><dd>{won(p.price)}</dd></div>
           </dl>
           {m?.group === 'vbank' && <p className="faint mt8">결제창에서 발급된 계좌로 입금하면 확인되는 즉시 보관함 › 구매한 운세에 열려요.</p>}
@@ -419,7 +421,7 @@ export function Checkout() {
         <button className="btn primary mt20" disabled={!ready || busy} onClick={pay}>{busy ? '결제창을 여는 중…' : `${won(p.price)} 결제하기`}</button>
         {busy && slow && payUrl && <p className="center mt8"><a className="link" href={payUrl}>결제창이 열리지 않으면 여기를 눌러 주세요 ›</a></p>}
         {!ready && !busy && <p className="faint center mt8">{p.adult && !adult?.verified ? '성인 인증을 먼저 해 주세요' : need > 0 && pick.length < need ? '사주 정보를 골라 주세요' : !phoneOk(phone) ? '휴대폰 번호를 입력해 주세요' : !agree ? '안내 확인에 체크해 주세요' : ''}</p>}
-        <p className="notice mt12">회원가입 없이 결제할 수 있어요. 결제한 풀이는 이 기기의 보관함에서 언제든 다시 볼 수 있어요.</p>
+        <p className="notice mt12">회원가입 없이 결제할 수 있어요. 결제한 풀이는 결제한 기기·브라우저의 보관함에서 다시 볼 수 있어요.</p>
       </main>
     </>
   );

@@ -18,7 +18,7 @@ export type Profile = {
 export type Account = { provider: 'google' | 'kakao' | 'naver' | 'mock'; id: string; name: string; token?: string };
 
 // 입력 전 화면에 보여 주는 예시 인물
-export const SAMPLE: Profile = { id: 'sample', name: '달님', gender: 'F', year: 1996, month: 4, day: 2, calendar: 'solar', leap: false, hour: 9 };
+export const SAMPLE: Profile = { id: 'sample', name: '예시 인물', gender: 'F', year: 1996, month: 4, day: 2, calendar: 'solar', leap: false, hour: 9 };
 
 type State = {
   introSeen: boolean;

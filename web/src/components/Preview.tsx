@@ -7,7 +7,7 @@ import { track } from '../lib/track';
 import { IMG_V, PROD_IMG } from './ui';
 
 type PV = {
-  productId: string; title: string; who: string; intro: string; amount: string; summary?: { headline: string; lead: string } | null;
+  productId: string; title: string; who: string; intro: string; amount: string; basis?: string; tocNote?: string; summary?: { headline: string; lead: string } | null;
   toc: { part?: string; title: string }[]; excerpt: { no: number; title: string; say: string; body: string; locked: boolean }[]; note: string;
 };
 
@@ -16,7 +16,7 @@ export function PreviewButton({ productId }: { productId: string }) {
   return (
     <>
       <button type="button" className="pv-btn" onClick={() => { setOpen(true); track('content_view', { product: productId, what: 'preview' }); }}>
-        <span className="pv-moon" aria-hidden />풀이 미리보기<span className="pv-chev" aria-hidden>›</span>
+        <span className="pv-moon" aria-hidden />{productId === 'friend_pass' ? '상담 미리보기' : '풀이 미리보기'}<span className="pv-chev" aria-hidden>›</span>
       </button>
       {open && <PreviewSheet productId={productId} onClose={() => setOpen(false)} />}
     </>
@@ -76,10 +76,12 @@ function PreviewSheet({ productId, onClose }: { productId: string; onClose: () =
               </section>
             )}
             <p className="pv-amount"><b>구성</b> {pv.amount}</p>
+            {pv.basis && <p className="pv-basis">{pv.basis}</p>}
             {pv.summary && <section className="pv-card"><small>핵심 요약</small><h3>{pv.summary.headline}</h3><p>{pv.summary.lead}</p></section>}
             {pv.toc.length > 0 && (
               <section className="pv-card">
                 <small>목차</small>
+                {pv.tocNote && <p className="pv-tocnote">{pv.tocNote}</p>}
                 <ol className="pv-toc">{pv.toc.map((t, i) => { const head = t.part && t.part !== lastPart; lastPart = t.part ?? ''; return <li key={i}>{head && <b className="pv-part">{t.part}</b>}<span>{String(i + 1).padStart(2, '0')}</span>{t.title}</li>; })}</ol>
               </section>
             )}

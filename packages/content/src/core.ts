@@ -62,3 +62,11 @@ export const ELEMENT_NAME: Record<string, string> = { 목: '나무', 화: '불',
 // 부족한(없으면 가장 약한) 오행
 export const needElement = (saju: SajuResult) => (saju.elementRatio.missing[0] ?? saju.elementRatio.weakest) as string;
 export const LUCKY = W.lucky as Record<string, { color: string; hex: string; numbers: number[]; direction: string; item: string }>;
+/** 오행 비율(정수 %)의 합을 100으로 — 반올림 때문에 101%·99%가 되던 문제(10/28 검수 04). 차이는 큰 값부터 1씩 조정 */
+export function pct100(ratio: Record<string, number>): Record<string, number> {
+  const out = { ...ratio };
+  const keys = Object.keys(out).filter((k) => out[k] > 0).sort((a, b) => out[b] - out[a]);
+  let diff = 100 - Object.values(out).reduce((s, v) => s + v, 0);
+  for (let i = 0; diff !== 0 && keys.length && i < 20; i++) { const k = keys[i % keys.length]; const d = diff > 0 ? 1 : -1; out[k] += d; diff -= d; }
+  return out;
+}

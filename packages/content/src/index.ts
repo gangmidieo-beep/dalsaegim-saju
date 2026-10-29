@@ -13,3 +13,4 @@ export * from './life';
 export * from './tarot';
 export * from './lifetime';
 export * from './lifetime-deep';
+export * from './josa';

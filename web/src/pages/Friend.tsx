@@ -262,7 +262,7 @@ function PersonaPick({ current, onPick }: { current: string | null; onPick: (id:
         </label>
         <button className="btn primary mt16" onClick={start}>{p.name}{josa(p.name)} 상담 시작하기 →</button>
         <p className="notice mt12">상담사는 AI 캐릭터예요. 실제 사주 계산을 바탕으로 이야기하며, ‘연화 할매’도 신내림이나 점괘를 주장하지 않아요.</p>
-        <Link to="/product/friend_pass" className="link center mt8" style={{ display: 'block' }}>달빛 상담사 서월 이용권 살펴보기 →</Link>
+        <Link to="/product/friend_pass" className="link center mt8" style={{ display: 'block' }}>달빛 상담 이용권 살펴보기 →</Link>
       </main>
     </>
   );

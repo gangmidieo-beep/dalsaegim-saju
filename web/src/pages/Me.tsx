@@ -130,7 +130,7 @@ export default function Me() {
         <section className="mt20">
           <h2 className="h3">설정</h2>
           <div className="list mt12">
-            <div className="li"><div className="grow"><div className="t">달빛 상담사 서월 이용권</div><div className="s">{pass ? `이용 중 · 매일 무료 ${PASS.free}회 다음 이용권 질문 차감` : `하루 ${PASS.free}회 무료 · 이용권은 질문 ${PASS.q}회를 ${PASS.days}일 동안`}</div></div>{!pass && <Link to="/product/friend_pass" className="link">알아보기</Link>}</div>
+            <div className="li"><div className="grow"><div className="t">달빛 상담 이용권</div><div className="s">{pass ? `이용 중 · 매일 무료 ${PASS.free}회 다음 이용권 질문 차감` : `하루 ${PASS.free}회 무료 · 이용권은 질문 ${PASS.q}회를 ${PASS.days}일 동안`}</div></div>{!pass && <Link to="/product/friend_pass" className="link">알아보기</Link>}</div>
             <button className="li" style={{ width: '100%', textAlign: 'left' }} onClick={toggleMem}>
               <div className="grow"><div className="t">달빛 상담사가 내 기록 참고하기</div><div className="s">최근 기록 5개를 참고해 더 나에게 맞게 답해요</div></div>
               <span className={`chip sm${memAI ? ' on' : ''}`}>{memAI ? '켜짐' : '꺼짐'}</span>

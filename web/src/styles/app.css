@@ -1377,3 +1377,28 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .gift-link span { flex: 1; min-width: 0; font-size: 12px; color: #e8cf98; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gift-link .btn { flex: none; width: auto; padding: 0 12px; }
 .link-btn { display: block; margin-left: auto; margin-right: auto; background: none; border: 0; color: #a99f8c; font-size: 13.5px; text-decoration: underline; text-underline-offset: 3px; padding: 8px; }
+.pv-basis { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-3, #6b6f86); word-break: keep-all; }
+.pv-tocnote { margin: 4px 0 8px; font-size: 13px; font-weight: 700; color: var(--gold-ink, #8a6a2f); word-break: keep-all; }
+/* 10/28 검수 19·20·부록 8 — 대표 운세 카드: 작은 썸네일 + 제목·설명·가격 왼쪽 정렬 + 같은 위치의 넓은 버튼 */
+.rep-card.v2 { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+.rep-card.v2 .rep-top { display: flex; gap: 14px; align-items: flex-start; }
+.rep-card.v2 .ppic { flex: none; width: 64px; height: 64px; }
+.rep-card.v2 .ppic img { width: 64px; height: 64px; }
+.rep-card.v2 .rep-body b { font-size: 18px; margin-top: 0; word-break: keep-all; }
+.rep-card.v2 .rep-copy { font-size: 14.5px; color: var(--ink-2); word-break: keep-all; }
+.price-line { display: block; margin-top: 8px; }
+.price-line .pl-sum { display: block; font-size: 12.5px; color: var(--ink-3); }
+.price-line .pl-sum s { margin-left: 2px; }
+.price-line .pl-price { display: block; font-size: 22px; font-weight: 800; color: #b23a5a; letter-spacing: -0.01em; line-height: 1.25; white-space: nowrap; }
+.price-line .pl-save { display: block; font-size: 13px; font-weight: 700; color: #2f7a4f; }
+.rep-card.v2 .rep-cta { display: flex; justify-content: center; width: 100%; min-height: 46px; border-radius: 12px; font-size: 15px; font-weight: 800; }
+.paid-tag { display: inline-block; vertical-align: middle; margin-left: 6px; padding: 2px 9px; border-radius: 8px; background: #b23a5a; color: #fff; font-style: normal; font-size: 13px; font-weight: 800; letter-spacing: 0; }
+@media (min-width: 720px) { .rep-list { grid-template-columns: 1fr 1fr; } }
+/* 10/28 검수 23 — 상품 상세: 뒤로 글자 표시 · 전체 상품/홈 경로 */
+.top .icon-btn.back-l { width: auto; padding: 0 8px 0 2px; gap: 1px; display: inline-flex; align-items: center; font-size: 13.5px; font-weight: 700; }
+.top .icon-btn.back-l span { white-space: nowrap; }
+.pd-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pd-nav a { display: flex; justify-content: center; align-items: center; min-height: 44px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--paper); font-size: 14.5px; font-weight: 700; color: var(--ink); }
+/* 10/28 검수 25 — 홈 '내 기록 돌아보기' 한 장 */
+.card.recall { background: var(--paper); border: 1px solid var(--line); }
+.card.recall .btn.soft { display: flex; justify-content: center; width: 100%; min-height: 46px; border-radius: 12px; background: #f3ead8; color: var(--ink); font-weight: 800; font-size: 15px; }

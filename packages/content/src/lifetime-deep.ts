@@ -1,7 +1,7 @@
 // 정통사주 A4 40장(10/23) — 장편 목차 + 장마다 넘겨줄 계산 자료. AI 가 이 자료와 9장 계산 초안을 바탕으로 장을 쓴다.
 // 모든 숫자·간지·십성·연도는 여기서 계산한 값만 쓰게 한다(AI 가 새로 지어내지 않게).
 import { sipsinOfStem, sipsinOfBranch, twelveStage, yearPillarOf, monthlyPillar, branchRelations, kstParts, STEMS, BRANCHES, STEMS_HANJA, BRANCHES_HANJA, BRANCH_ELEMENT, ELEMENTS, type Pillar } from '@dalsaegim/engine';
-import { rawDims, toScore, type SajuResult } from './core';
+import { rawDims, toScore, pct100, type SajuResult } from './core';
 import { sajuMap } from './map';
 import { nextMonths } from './path';
 import { moneyFlow } from './money';
@@ -33,7 +33,7 @@ export function lifetimeDeep(saju: SajuResult, name: string, profileId: string, 
   const dEl = map.dayMaster.element;
   const y0 = kstParts(now).year;
   const age = y0 - saju.solarDate.year + 1;
-  const ratio = saju.elementRatio.ratio as Record<string, number>;
+  const ratio = pct100(saju.elementRatio.ratio as Record<string, number>);
   const rows = ((saju.tenGods as any).rows ?? []) as { pillar: string; stem: { char: string; sipsin: string }; branch: { char: string; sipsin: string; hidden: { role: string; stem: string; days: number; sipsin: string }[] } }[];
   const cells = base.table.filter((c) => !c.empty) as Extract<typeof base.table[number], { empty: false }>[];
   const F: Record<string, string> = {};
