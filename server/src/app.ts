@@ -835,8 +835,10 @@ ${isLetter ? '' : '<small>이 부적은 행운을 비는 마음을 담은 디지
   };
 
   app.post('/admin/api/login', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req, rep) => {
-    const { email, password } = req.body as { email: string; password: string };
-    const [a] = await db.select().from(S.admins).where(eq(S.admins.email, String(email).toLowerCase()));
+    // 복사·붙여넣기로 딸려 온 앞뒤 공백·줄바꿈은 지운다(10/30 대표님 로그인 실패)
+    const b0 = (req.body ?? {}) as { email?: string; password?: string };
+    const email = String(b0.email ?? '').trim().toLowerCase(), password = String(b0.password ?? '').trim();
+    const [a] = await db.select().from(S.admins).where(eq(S.admins.email, email));
     if (!a) return rep.code(401).send({ error: '이메일 또는 비밀번호가 맞지 않아요' });
     if (a.lockedUntil && a.lockedUntil > new Date()) return rep.code(423).send({ error: '5회 틀려서 10분간 잠겼어요' });
     if (!(await bcrypt.compare(password, a.passwordHash))) {
@@ -852,11 +854,12 @@ ${isLetter ? '' : '<small>이 부적은 행운을 비는 마음을 담은 디지
   // 0 관리자 계정 — 내 비밀번호 변경, (최고관리자) 관리자 추가·삭제
   const pwOk = (p: unknown): p is string => typeof p === 'string' && p.length >= 10 && p.length <= 100;
   app.post(`${A}/me/password`, { preHandler: guard(), config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (req: Req, rep) => {
-    const { current, next } = (req.body ?? {}) as { current?: string; next?: string };
+    const b1 = (req.body ?? {}) as { current?: string; next?: string };
+    const current = String(b1.current ?? '').trim(), next = String(b1.next ?? '').trim();
     if (!pwOk(next)) return rep.code(400).send({ error: '새 비밀번호는 10자 이상으로 정해 주세요' });
     if (next === current) return rep.code(400).send({ error: '지금과 다른 비밀번호로 정해 주세요' });
     const [a] = await db.select().from(S.admins).where(eq(S.admins.id, +req.admin!.sub));
-    if (!a || !(await bcrypt.compare(String(current ?? ''), a.passwordHash))) return rep.code(400).send({ error: '지금 비밀번호가 맞지 않아요' });
+    if (!a || !(await bcrypt.compare(current, a.passwordHash))) return rep.code(400).send({ error: '지금 비밀번호가 맞지 않아요' });
     await db.update(S.admins).set({ passwordHash: await bcrypt.hash(next, 10) }).where(eq(S.admins.id, a.id));
     await audit(req, 'admin.password', a.email);
     return { ok: true };
@@ -879,7 +882,8 @@ ${isLetter ? '' : '<small>이 부적은 행운을 비는 마음을 담은 디지
   app.get(`${A}/admins`, { preHandler: guard('super') }, async () =>
     db.select({ id: S.admins.id, email: S.admins.email, role: S.admins.role, createdAt: S.admins.createdAt }).from(S.admins).orderBy(asc(S.admins.id)));
   app.post(`${A}/admins`, { preHandler: guard('super') }, async (req: Req, rep) => {
-    const { email, password, role } = (req.body ?? {}) as { email?: string; password?: string; role?: string };
+    const { email, password: pw0, role } = (req.body ?? {}) as { email?: string; password?: string; role?: string };
+    const password = String(pw0 ?? '').trim();
     const mail = String(email ?? '').trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) return rep.code(400).send({ error: '이메일 형식을 확인해 주세요' });
     if (!pwOk(password)) return rep.code(400).send({ error: '처음 비밀번호는 10자 이상으로 정해 주세요' });

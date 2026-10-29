@@ -2,10 +2,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { openDb } from '../src/db/index.ts';
 import { buildApp } from '../src/app.ts';
+import { createAdmin } from '../src/services/seed.ts';
 
 let app: Awaited<ReturnType<typeof buildApp>>['app'];
 let close: () => Promise<void>;
-beforeAll(async () => { const o = await openDb({ dir: 'memory' }); close = o.close; ({ app } = await buildApp({ db: o.db })); }, 120_000);
+let db: any;
+beforeAll(async () => { const o = await openDb({ dir: 'memory' }); close = o.close; db = o.db; ({ app } = await buildApp({ db: o.db })); }, 120_000);
 afterAll(async () => { await app.close(); await close(); });
 
 const JPG = 'data:image/jpeg;base64,' + Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 0xff, 0xd9]).toString('base64');
@@ -30,5 +32,14 @@ describe('부적 보내기', () => {
     expect(img.headers['content-type']).toContain('image/jpeg');
     expect(img.rawPayload[0]).toBe(0xff);
     expect((await app.inject({ method: 'GET', url: '/g/nope' })).statusCode).toBe(302);
+  });
+});
+
+describe('관리자 로그인 — 복사·붙여넣기 공백', () => {
+  it('비밀번호·이메일 앞뒤에 공백·줄바꿈이 붙어도 로그인된다', async () => {
+    await createAdmin(db, 'paste@test.kr', 'Gold-SET-7402!', 'super');
+    const r = await app.inject({ method: 'POST', url: '/admin/api/login', payload: { email: ' Paste@test.kr ', password: ' Gold-SET-7402!\n' } });
+    expect(r.statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: '/admin/api/login', payload: { email: 'paste@test.kr', password: 'wrong-password' } })).statusCode).toBe(401);
   });
 });
