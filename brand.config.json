@@ -372,7 +372,7 @@
     "group": "rbank",
     "label": "실시간 계좌이체",
     "open": "rbank",
-    "on": true,
+    "on": false,
     "desc": "내 은행 계좌에서 바로 이체"
    },
    {
