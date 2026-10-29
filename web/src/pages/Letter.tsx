@@ -195,6 +195,8 @@ export function NewLetter() {
       <Top title="나만의 달빛 편지" />
       <main className="screen letter-bg" ref={top}>
         <h2 className="h2">지금 마음을 들려주면,<br />편지로 답해 드릴게요</h2>
+        <p className="for-me mt8"><b>나에게</b> 오는 편지예요 · 상담사가 내 마음에 답해 써 줘요</p>
+        <Link to="/gift?k=letter" className="gift-cta light mt8">💌 다른 사람에게 내가 쓴 편지 보내기 ›</Link>
         <section className="qblock">
           <h3>1. 편지를 써 줄 상담사</h3>
           <div className="seg" style={{ maxWidth: 240 }}>{([['F', '여성 상담사'], ['M', '남성 상담사']] as const).map(([k, l]) => <button key={k} className={g === k ? 'on' : ''} onClick={() => { setG(k); setPid(PERSONAS.find((p) => p.gender === k)!.id); }}>{l}</button>)}</div>

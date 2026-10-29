@@ -22,6 +22,7 @@ import Me, { AuthCallback } from './pages/Me';
 import { Privacy, Refund, Terms } from './pages/Legal';
 import { Mailbox, NewLetter, TodayLetter } from './pages/Letter';
 import CharmPage from './pages/Charm';
+import GiftPage from './pages/Gift';
 
 const Admin = lazy(() => import('./admin/Admin')); // 관리자는 따로 불러온다
 
@@ -92,6 +93,7 @@ export function App() {
           <Route path="/box" element={<Mailbox box />} />
           <Route path="/mailbox/:id" element={<Mailbox />} />
           <Route path="/charm" element={<CharmPage />} />
+          <Route path="/gift" element={<GiftPage />} />
           <Route path="/me" element={<Me />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/terms" element={<Terms />} />

@@ -1402,3 +1402,36 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 /* 10/28 검수 25 — 홈 '내 기록 돌아보기' 한 장 */
 .card.recall { background: var(--paper); border: 1px solid var(--line); }
 .card.recall .btn.soft { display: flex; justify-content: center; width: 100%; min-height: 46px; border-radius: 12px; background: #f3ead8; color: var(--ink); font-weight: 800; font-size: 15px; }
+/* 10/29 마음 보내기 — 보내는 사람·받는 사람·전할 내용을 단계로 분명하게 */
+.gift-intro .h2 { line-height: 1.35; }
+.gift-seg { display: grid; grid-template-columns: 1fr 1fr; max-width: none; }
+.gift-seg button { min-height: 46px; font-size: 15px; font-weight: 800; }
+.gift-box { padding: 16px; border-radius: 18px; background: var(--paper); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.gift-box .h3 { display: flex; align-items: center; gap: 8px; }
+.gstep { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--night, #1d2440); color: #f6dfb0; font-size: 14px; font-weight: 800; flex: none; }
+.gift-who { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: end; }
+.gift-who .field { margin-top: 0; }
+.gift-arrow { padding-bottom: 16px; color: var(--gold-ink, #8a6a2f); font-weight: 800; }
+.gift-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.gift-types button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px 8px; border-radius: 14px; border: 1.5px solid var(--line-2); background: #fff; }
+.gift-types button.on { border-color: var(--champ, #d8b895); box-shadow: 0 0 0 2px rgba(217, 184, 116, 0.35); background: #fbf3e2; }
+.gift-types .gt-img { position: relative; display: block; width: 100%; aspect-ratio: 9 / 8; border-radius: 10px; background: #0b1226 center / cover no-repeat; }
+.gift-types .gt-img i { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); font-style: normal; font-size: 20px; font-weight: 800; text-shadow: 0 0 8px rgba(0, 0, 0, 0.6); }
+.gift-types b { font-size: 13.5px; color: var(--ink); }
+.gift-ex { display: grid; gap: 6px; }
+.gift-ex button { text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line-2); background: #fff; font-size: 14px; color: var(--ink-2); word-break: keep-all; }
+.gift-ex button.on { border-color: var(--champ, #d8b895); background: #fbf3e2; color: var(--ink); font-weight: 700; }
+.gift-preview { padding: 14px; border-radius: 18px; background: #fbf6ec; border: 1px solid #ead9b6; }
+.gift-preview .gp-head { margin: 0 0 10px; text-align: center; font-size: 15px; }
+.gift-preview img { display: block; width: 100%; border-radius: 14px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18); }
+.gift-send { flex-direction: column; min-height: 64px; font-size: 18px; }
+.gift-send small { display: block; font-size: 12.5px; font-weight: 600; opacity: 0.8; }
+.gift-save { position: fixed; inset: 0; z-index: 80; display: flex; align-items: flex-end; justify-content: center; background: rgba(8, 14, 30, 0.55); }
+.gift-save .gs-box { width: 100%; max-width: 480px; max-height: 92dvh; overflow-y: auto; padding: 18px 16px calc(18px + var(--safe-b, 0px)); border-radius: 22px 22px 0 0; background: var(--ivory, #f7f3ee); }
+.gift-save .gs-box b { display: block; font-size: 16px; }
+.gift-save .gs-box p { margin: 8px 0 10px; font-size: 14px; color: var(--ink-2); word-break: keep-all; }
+.gift-save .gs-box img { display: block; width: 72%; margin: 0 auto; border-radius: 12px; }
+.gift-save .gs-box .btn { width: 100%; }
+.gift-cta { display: block; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(217, 184, 116, 0.5); background: rgba(217, 184, 116, 0.1); color: #f1d9a6; font-size: 14.5px; font-weight: 800; text-align: center; }
+.gift-cta.light { background: #fff6e6; color: #7a5a22; border-color: #ead9b6; }
+.for-me { font-size: 14px; color: var(--ink-2); }

@@ -152,6 +152,7 @@ export default function Home() {
             <Link to="/friend"><span className="si"><I.chat /></span><b>달빛 상담사 서월</b><small>내 사주를 아는 상담사 · 하루 3번 무료</small></Link>
             <Link to="/letter" onClick={() => track('letter_today_open')}><span className="si"><I.mail /></span><b>달빛편지</b><small>{letter ? `오늘의 편지 · ${letter.title}` : '지금의 마음을 편지로 남기기'}</small></Link>
             <Link to="/charm"><span className="si"><I.charm /></span><b>나만의 황금부적</b><small>소망을 담아 완성하고 보관해요</small></Link>
+            <Link to="/gift"><span className="si"><I.share /></span><b>마음 보내기</b><small>부적·편지를 소중한 사람에게 이미지로</small></Link>
             <Link to="/timeline"><span className="si"><I.timeline /></span><b>내 인생의 타임라인</b><small>{count >= 1 ? `새겨진 순간 ${count}개` : '중요한 순간과 선택을 기록'}</small></Link>
           </div>
         </section>

@@ -140,9 +140,10 @@ export const events = pgTable('events', {
 export const gifts = pgTable('gifts', {
   siteId: site(),
   code: text().primaryKey(),
-  kind: text().notNull(), // charm
+  kind: text().notNull(), // charm | letter
   title: text().notNull(), // 예) 황금 건강수호부
   fromName: text(), // 보낸 사람이 적은 이름(부적에 새긴 이름)
+  toName: text(), // 받는 사람 이름(마음 보내기)
   image: text().notNull(), // JPEG base64(약 150~300KB)
   userId: text(),
   opens: integer().default(0).notNull(),

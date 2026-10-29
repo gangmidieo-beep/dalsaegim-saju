@@ -6,7 +6,7 @@ import { ALL_CHARMS, CHARMS, CHARM_GOAL_HINT, CHARM_LINK, CHARM_STATUS, charmOf,
 import { useShare } from '../components/share';
 import { useMain } from '../store/app';
 import { apiAuth } from '../lib/api';
-import { kakaoShare, shareLink } from '../lib/share';
+import { downloadData, fileOf, sendImage } from '../lib/gift';
 import { Top, useToast } from '../components/ui';
 import { I } from '../components/icons';
 import { track } from '../lib/track';
@@ -18,7 +18,7 @@ export const cardOf = (t: CharmType) => `/img/ui/charm-card-${charmOf(t).base}.w
 export type Saved = { id: string; type: CharmType; name: string; wish: string; goal: string | null; status: 'start' | 'doing' | 'done'; note: string | null; progressAt: string | null; createdAt: string };
 
 // 부적 그리기(고화질 1080×1920) — 템플릿 위에 부적 이름·이름·소망·축원을 새긴다
-export async function drawCharm(type: CharmType, name: string, wish: string): Promise<string> {
+export async function drawCharm(type: CharmType, name: string, wish: string, gift?: { to: string; from: string }): Promise<string> {
   const c = charmOf(type);
   const img = await new Promise<HTMLImageElement>((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = imgOf(type); });
   await Promise.all(['600 72px "Noto Serif KR"', '400 44px "Noto Serif KR"', `600 96px "Noto Serif KR"`].map((f, i) => document.fonts?.load(f, i === 2 ? c.mark : undefined).catch(() => null)));
@@ -48,16 +48,19 @@ export async function drawCharm(type: CharmType, name: string, wish: string): Pr
   g.strokeStyle = 'rgba(217, 184, 116, 0.6)'; g.lineWidth = 2;
   g.beginPath(); g.moveTo(W / 2 - 160, 900); g.lineTo(W / 2 + 160, 900); g.stroke();
   g.fillStyle = '#f6ecd6'; g.font = `600 52px ${serif}`;
-  g.fillText(`${name}님의 소망`, W / 2, 990);
+  g.fillText(gift ? `To. ${gift.to}` : `${name}님의 소망`, W / 2, 990); // 보내는 부적은 받는 사람 이름
   // 소망 문장 — 한 줄 15자 안팎으로 나눠 가운데 정렬
   g.font = `400 46px ${serif}`; g.fillStyle = '#efe3c8';
   const quote = `“${wish.replace(/[.。]$/, '')}${/기를$/.test(wish) ? ' 기원합니다.' : '.'}”`;
   const lines: string[] = []; let cur = '';
   for (const w of quote.split(' ')) { if ((cur + ' ' + w).trim().length > 15) { lines.push(cur.trim()); cur = w; } else cur += ' ' + w; }
   if (cur.trim()) lines.push(cur.trim());
-  lines.slice(0, 5).forEach((l, i) => g.fillText(l, W / 2, 1110 + i * 74));
+  const max = gift ? 4 : 5;
+  lines.slice(0, max).forEach((l, i) => g.fillText(l, W / 2, 1110 + i * 74));
   g.font = `400 36px ${serif}`; g.fillStyle = '#d9b874';
-  g.fillText(c.bless, W / 2, 1110 + Math.min(lines.length, 5) * 74 + 70);
+  const by = 1110 + Math.min(lines.length, max) * 74 + 70;
+  g.fillText(c.bless, W / 2, by);
+  if (gift) { g.font = `600 44px ${serif}`; g.fillStyle = '#f6ecd6'; g.fillText(`From. ${gift.from}`, W / 2, by + 70); }
   g.font = `600 40px ${serif}`; g.fillStyle = '#e8cf98';
   g.fillText('달새김사주', W / 2, 1590);
   g.font = `400 26px ${serif}`; g.fillStyle = 'rgba(239, 227, 200, 0.7)';
@@ -116,22 +119,15 @@ export default function CharmPage() {
   };
   const skip = async () => { timers.current.forEach(clearTimeout); snd.stop(); if (!png) setPng(await drawCharm(type, name.trim(), wish.trim())); setPhase('done'); };
   const save = () => { if (!png) return; track('charm_save', { type }); const a = document.createElement('a'); a.href = png; a.download = `달새김_${c.name}_${name.trim()}.png`; a.click(); };
-  // 부적 보내기 — 부적 그림을 서버에 올려 받는 사람이 링크에서 그 부적을 그대로 보게 한다(사이트 소개 링크가 아니라 부적 자체)
-  const [gift, setGift] = useState<string | null>(null);
+  // 이 부적 보내기 — 부적 '이미지 그 자체'를 공유창(카카오톡·라인·인스타·문자)으로. 공유창이 없으면 휴대폰 브라우저로 넘기거나 저장 안내
   const [sending, setSending] = useState(false);
   const sendGift = async () => {
     if (!png || sending) return;
-    if (isSample) { toast('사주를 입력하면 부적을 보낼 수 있어요'); return; }
     setSending(true); track('charm_gift', { type });
     try {
-      const img = await new Promise<HTMLImageElement>((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = png; });
-      const cv = document.createElement('canvas'); cv.width = 900; cv.height = Math.round(900 * img.height / img.width);
-      cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height);
-      const r = await apiAuth<{ url: string }>('/gifts', { method: 'POST', json: { kind: 'charm', title: c.name, fromName: name.trim(), image: cv.toDataURL('image/jpeg', 0.86) } });
-      setGift(r.url);
-      const o = { title: `${name.trim()}님이 보낸 ${c.name}`, text: `${name.trim()}님이 황금빛 달에 새긴 ${c.name}를 보냈어요 🌕`, url: r.url };
-      const res = __KAKAO_JS_KEY__ ? await kakaoShare({ ...o, imageUrl: `${r.url}/charm.jpg` }) : await shareLink(o, /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
-      if (res === 'copied') toast('부적 링크를 복사했어요. 카카오톡 대화방에 붙여 넣으면 부적 그림이 함께 보여요');
+      const r = await sendImage(fileOf(png, `달새김_${c.name}.png`), png, { kind: 'charm', title: c.name, fromName: name.trim() });
+      if (r.mode === 'save') { downloadData(png, `달새김_${c.name}.png`); toast('이미지를 저장했어요. 카카오톡 대화방에서 사진으로 보내 주세요'); }
+      if (r.mode === 'external') toast('휴대폰 브라우저에서 [이미지로 보내기]를 눌러 주세요');
     } catch (e) { toast((e as Error).message || '잠시 후 다시 보내 주세요'); } finally { setSending(false); }
   };
   // 공유 — 부적 이미지(이름·소망이 보임)를 고객이 고를 때만
@@ -166,12 +162,12 @@ export default function CharmPage() {
       <Top title="나만의 황금부적" />
       <main className="screen charm-bg">
         <img className="charm-result fade-in" src={png} alt={`${name}님의 ${c.name}`} />
-        <button className="btn gold-lux charm-send mt16" onClick={sendGift} disabled={sending}><I.share size={20} />{sending ? '부적을 준비하는 중…' : '이 부적 보내기'}</button>
-        <p className="charm-send-note">받는 분은 링크를 열면 이 부적 그림을 그대로 볼 수 있어요 · 카카오톡·문자로 보내기</p>
-        {gift && <div className="gift-link" role="status"><span>{gift}</span><button className="btn line sm on-dark" onClick={() => { void navigator.clipboard?.writeText(gift).then(() => toast('부적 링크를 복사했어요')); }}>링크 복사</button></div>}
+        <button className="btn gold-lux charm-send mt16" onClick={sendGift} disabled={sending}><I.share size={20} />{sending ? '준비하는 중…' : '이 부적 이미지 보내기'}</button>
+        <p className="charm-send-note">부적 이미지가 그대로 가요 · 카카오톡·라인·인스타·문자</p>
+        <Link to={`/gift?type=${type}`} className="gift-cta mt12">💌 다른 사람 이름으로 부적 만들어 보내기 ›</Link>
         <div className="grid2 mt12">
           <button className="btn line sm on-dark" style={{ width: '100%' }} onClick={save}><I.download size={18} />배경화면 저장</button>
-          <button className="btn line sm on-dark" style={{ width: '100%' }} onClick={() => { setPhase('form'); setPng(null); setGift(null); }}>다른 소망 새기기</button>
+          <button className="btn line sm on-dark" style={{ width: '100%' }} onClick={() => { setPhase('form'); setPng(null); }}>다른 소망 새기기</button>
         </div>
         <button className="link-btn mt8" onClick={share}>이미지·SNS로 공유하기</button>
         <section className="wish-record mt16">
@@ -196,6 +192,7 @@ export default function CharmPage() {
       <main className="screen charm-bg">
         <p className="pick-eyebrow">달새김 황금 부적</p>
         <h2 className="pick-title">이름과 소망을<br />황금빛 달에 새겨 드려요</h2>
+        <Link to={`/gift?type=${type}`} className="gift-cta mt8">💌 다른 사람에게 부적 보내기 ›</Link>
         <section className="qblock">
           <h3 className="gold-h">1. 어떤 소망인가요?</h3>
           <div className="charm-types">

@@ -1,0 +1,1 @@
+ALTER TABLE "gifts" ADD COLUMN "to_name" text;

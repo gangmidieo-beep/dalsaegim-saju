@@ -22,9 +22,11 @@ describe('부적 보내기', () => {
     const page = await app.inject({ method: 'GET', url: `/g/${code}` });
     expect(page.statusCode).toBe(200);
     expect(page.body).toContain('송광민님이 보낸 황금 건강수호부');
-    expect(page.body).toContain(`/g/${code}/charm.jpg`);
+    const sendPage = await app.inject({ method: 'GET', url: `/g/${code}?send=1` });
+    expect(sendPage.body).toContain('이미지로 보내기');
+    expect(page.body).toContain(`/g/${code}/img.jpg`);
     expect(page.body).toContain('og:image');
-    const img = await app.inject({ method: 'GET', url: `/g/${code}/charm.jpg` });
+    const img = await app.inject({ method: 'GET', url: `/g/${code}/img.jpg` });
     expect(img.headers['content-type']).toContain('image/jpeg');
     expect(img.rawPayload[0]).toBe(0xff);
     expect((await app.inject({ method: 'GET', url: '/g/nope' })).statusCode).toBe(302);
