@@ -81,11 +81,11 @@ export default function GiftPage() {
         </div>
 
         <section className="gift-box mt16" aria-labelledby="g1">
-          <h3 className="h3" id="g1"><span className="gstep">1</span>누구에게, 누가 보내나요?</h3>
+          <h3 className="h3" id="g1"><span className="gstep">1</span>누가, 누구에게 보내나요?</h3>
           <div className="gift-who mt12">
-            <label className="field"><span>받는 사람</span><input className="input" maxLength={12} value={to} onChange={(e) => setTo(e.target.value)} placeholder="예) 엄마, 민지" /></label>
-            <span className="gift-arrow" aria-hidden>←</span>
             <label className="field"><span>보내는 사람 (나)</span><input className="input" maxLength={12} value={from} onChange={(e) => setFrom(e.target.value)} placeholder="예) 큰딸, 지훈" /></label>
+            <span className="gift-arrow" aria-hidden>→</span>
+            <label className="field"><span>받는 사람</span><input className="input" maxLength={12} value={to} onChange={(e) => setTo(e.target.value)} placeholder="예) 엄마, 민지" /></label>
           </div>
         </section>
 
