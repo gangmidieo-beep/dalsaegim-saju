@@ -15,6 +15,8 @@ export async function adminApi<T>(path: string, init: RequestInit & { json?: unk
     body: init.json !== undefined ? JSON.stringify(init.json) : init.body,
     headers: { ...(init.json !== undefined ? { 'content-type': 'application/json' } : {}), ...(s ? { authorization: `Bearer ${s.token}` } : {}), ...init.headers },
   });
+  // 로그인 시도 자체의 401(비밀번호 틀림)은 화면을 새로 고치지 말고 안내를 보여 준다 — 그동안 아무 말 없이 새로 고쳐져 '안 된다'로 보였음(10/30)
+  if (res.status === 401 && path === '/login') { const j = await res.json().catch(() => ({})); throw new Error(`${j.error ?? '이메일 또는 비밀번호가 맞지 않아요'} · 5번 틀리면 10분간 잠겨요`); }
   if (res.status === 401) { saveSession(null); location.assign('/admin/login'); throw new Error('로그인이 필요해요'); }
   const body = res.headers.get('content-type')?.includes('json') ? await res.json() : await res.text();
   if (!res.ok) throw new Error((body as any)?.error ?? `${res.status}`);
