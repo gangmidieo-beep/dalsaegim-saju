@@ -12,7 +12,8 @@ import { onVoiceChange, speak as voiceSpeak, stopVoice, voiceFailText } from '..
 import brand from '../../../brand.config.json';
 import { PASS } from '../lib/policy';
 
-type Msg = { role: 'user' | 'friend'; text: string; at?: string };
+type Msg = { role: 'user' | 'friend'; text: string; at?: string; products?: Rec[] };
+type Rec = { id: string; title: string; price: number; line: string }; // 상담사가 권한 달새김 상품(서버 상품표 기준)
 type Draft = { category: string; title: string; summary: string; sajuNote?: string };
 const josa = (w: string) => ((w.charCodeAt(w.length - 1) - 0xac00) % 28 ? '과' : '와');
 const iga = (w: string) => ((w.charCodeAt(w.length - 1) - 0xac00) % 28 ? '이' : '가');
@@ -76,15 +77,15 @@ export default function Friend() {
     try {
       await syncProfile(profile, true);
       const signal = typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(45_000) : undefined;
-      const r = await apiAuth<{ chatId: string; reply: string; draft: Draft; remaining: number | null; pass: boolean; free: number; credits: number | null }>('/friend/chat', { method: 'POST', signal, json: { chatId, profileId: profile.id, text: t, topic: opt.topic ?? topic, persona: opt.persona ?? pe.id, source: sp.get('q') ? 'path' : 'home' } });
+      const r = await apiAuth<{ chatId: string; reply: string; draft: Draft | null; products?: Rec[]; remaining: number | null; pass: boolean; free: number; credits: number | null }>('/friend/chat', { method: 'POST', signal, json: { chatId, profileId: profile.id, text: t, topic: opt.topic ?? topic, persona: opt.persona ?? pe.id, source: sp.get('q') ? 'path' : 'home' } });
       // 상담사를 고르자마자 첫 질문을 보내는 경우, 이 시점의 pe 는 이전 상담사라 고른 id 를 쓴다
       const used = personaOf(opt.persona ?? pe.id);
       setChatId(r.chatId); setFriendChat(r.chatId); setChatPersona(used.id);
-      setMsgs((m) => [...m, { role: 'friend', text: r.reply }]);
+      setMsgs((m) => [...m, { role: 'friend', text: r.reply, products: r.products }]);
       setRemaining(r.remaining); setPass(r.pass); setLeft({ free: r.free, credits: r.credits });
-      setDraft({ d: r.draft, state: 'open' });
+      setDraft(r.draft ? { d: r.draft, state: 'open' } : null); // 상품만 물은 말은 기록 초안을 만들지 않는다
       if (read || viaVoice) speak(r.reply, used);
-      track('friend_send', { topic: r.draft.category, persona: used.id, voice: viaVoice });
+      track('friend_send', { topic: r.draft?.category ?? 'product', persona: used.id, voice: viaVoice, products: r.products?.length ?? 0 });
     } catch (e: any) {
       if (e.code === 'friend_limit') { setMsgs((m) => m.slice(0, -1)); setText(t); setLimit(true); }
       else if (e.code === 'profile') { setMsgs((m) => m.slice(0, -1)); setText(t); setNeedSaju(t); }
@@ -200,6 +201,16 @@ export default function Friend() {
           <div key={i} className={`msg ${m.role}`}>
             {m.role === 'friend' && <img className="p-avatar s" src={pe.img} alt="" />}
             <div className={`bubble ${m.role === 'user' ? 'me' : 'friend'}`}>{m.text}</div>
+            {m.role === 'friend' && !!m.products?.length && (
+              <div className="rec-products" aria-label="상담사가 권한 풀이">
+                {m.products.map((p) => (
+                  <Link key={p.id} to={`/product/${p.id}`} className="rec-card" onClick={() => track('content_view', { content: 'friend_rec', product: p.id })}>
+                    <span className="grow"><b>{p.title}</b>{p.line && <small>{p.line}</small>}</span>
+                    <span className="rec-price">{won(p.price)}<I.right size={14} /></span>
+                  </Link>
+                ))}
+              </div>
+            )}
             {m.role === 'friend' && i === msgs.length - 1 && !busy && (playing
               ? <button className="relisten" onClick={() => stopVoice()}><span aria-hidden>■</span> 멈추기</button>
               : <button className="relisten" onClick={() => speak(m.text)}><I.speaker size={15} />다시 듣기</button>)}

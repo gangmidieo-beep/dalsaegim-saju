@@ -17,6 +17,10 @@ const TOPICS: (Topic & { re: RegExp })[] = [
   { id: 'growth', cat: 'growth', dim: 'growth', label: '나 자신', field: 'health', re: /지쳐|힘들|우울|불안|번아웃|자존감|진로|방향|습관|건강|잠|무기력/ },
 ];
 const byId = (id: string) => TOPICS.find((t) => t.id === id);
+
+/** "상품 뭐 있어?", "가격이 얼마예요?", "나한테 맞는 풀이 추천해 줘" — 달새김 상품·가격·추천을 묻는 말 */
+export const PRODUCT_ASK = /상품|가격|얼마(예요|에요|야|인가|죠|니)|요금|유료|무료로|이용권|결제|구매|살\s?수|판매|풀이\s?(종류|목록|뭐|가\s?있|는\s?뭐)|어떤\s?(풀이|서비스|운세)|서비스\s?(종류|목록|뭐)|메뉴|(풀이|운세).{0,8}추천|추천.{0,8}(풀이|상품|운세)/;
+export const isProductAsk = (text: string) => PRODUCT_ASK.test(text);
 const pub = (t: Topic & { re?: RegExp }): Topic => ({ id: t.id, cat: t.cat, dim: t.dim, label: t.label, field: t.field });
 
 /** "직장 상담이 아니라", "직장 말고", "일 얘기는 빼고" → 그 부분을 지운 문장과, 지운 낱말 */

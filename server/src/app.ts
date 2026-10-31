@@ -454,19 +454,22 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     const [u] = await db.select({ memoryAI: S.users.memoryAI }).from(S.users).where(eq(S.users.id, userId));
     const mems = u?.memoryAI ? await db.select({ happenedOn: S.memories.happenedOn, category: S.memories.category, title: S.memories.title, feedback: S.memories.feedback })
       .from(S.memories).where(and(eq(S.memories.userId, userId), ne(S.memories.visibility, 'private'))).orderBy(desc(S.memories.happenedOn)).limit(5) : [];
+    // 상담사가 권할 수 있는 상품 — 지금 판매 중인 것만(성인 상품 제외), 가격은 상품표 그대로
+    const catalog = (await db.select({ id: S.products.id, title: S.products.title, price: S.products.price, series: S.products.series, cardCopy: S.products.cardCopy, adult: S.products.adult })
+      .from(S.products).where(and(eq(S.products.siteId, SITE()), eq(S.products.visible, true), eq(S.products.kind, 'reading'))).orderBy(asc(S.products.sort))).filter((p) => !p.adult);
     let r, fellBack = false;
     try {
-      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: chat?.topic ?? b.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http, tier: useCredit ? 'pass' : 'free' });
+      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: chat?.topic ?? b.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http, tier: useCredit ? 'pass' : 'free', catalog });
     } catch (e: any) {
       req.log.warn(`[friend] ${e.message}`);
       if (!aiFatal(e)) return rep.code(502).send({ error: '달새김이 잠시 생각에 잠겼어요. 조금 뒤에 다시 말을 걸어 주세요.' });
       // 잔액 부족·키 오류 — 계산 기반 기본 답변으로 이어 가고, 이용권 질문은 차감하지 않는다(아래 fellBack)
-      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: chat?.topic ?? b.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http, tier: useCredit ? 'pass' : 'free', noAI: true });
+      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: chat?.topic ?? b.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http, tier: useCredit ? 'pass' : 'free', noAI: true, catalog });
       fellBack = true;
     }
     const at = new Date().toISOString();
-    const messages: ChatMsg[] = [...(chat?.messages ?? []), { role: 'user', text, at }, { role: 'friend', text: r.reply, at }];
-    const v = { messages, topic: r.topic === 'etc' ? chat?.topic ?? r.topic : r.topic, turns: (chat?.turns ?? 0) + 1, tokensIn: (chat?.tokensIn ?? 0) + r.tokensIn, tokensOut: (chat?.tokensOut ?? 0) + r.tokensOut, costKrw: (chat?.costKrw ?? 0) + r.costKrw, updatedAt: new Date() };
+    const messages: ChatMsg[] = [...(chat?.messages ?? []), { role: 'user', text, at }, { role: 'friend', text: r.reply, at, ...(r.products.length ? { products: r.products } : {}) }];
+    const v = { messages, topic: r.topic === 'etc' || r.topic === 'product' ? chat?.topic ?? 'etc' : r.topic, turns: (chat?.turns ?? 0) + 1, tokensIn: (chat?.tokensIn ?? 0) + r.tokensIn, tokensOut: (chat?.tokensOut ?? 0) + r.tokensOut, costKrw: (chat?.costKrw ?? 0) + r.costKrw, updatedAt: new Date() };
     let id = chat?.id;
     if (chat) await db.update(S.chats).set(v).where(eq(S.chats.id, chat.id));
     else { id = newId('c_'); await db.insert(S.chats).values({ id, userId, profileId: profile.id, source: b.source ?? null, persona: personaOf(b.persona).id, ...v }); }
@@ -477,7 +480,7 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     }
     const free = Math.max(0, FREE_PER_DAY - (await turnsToday(userId)));
     const pass = !!sub && (credits == null || credits > 0);
-    return { chatId: id, reply: r.reply, draft: r.draft, topic: r.topic, remaining: sub ? (credits == null ? null : free + credits) : free, free, credits, pass, ai: r.ai };
+    return { chatId: id, reply: r.reply, draft: r.draft, products: r.products, topic: r.topic, remaining: sub ? (credits == null ? null : free + credits) : free, free, credits, pass, ai: r.ai };
   });
   app.get('/friend/chats', async (req, rep) => {
     const userId = await needUser(req, rep);

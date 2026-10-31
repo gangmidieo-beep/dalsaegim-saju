@@ -104,24 +104,46 @@ describe('AI 사주친구(키 없음 → 계산 답변)', () => {
     expect(s1.topic).toBe('study');
     expect(s1.reply).toMatch(/①[^]*②[^]*③/);
     expect(s1.reply).not.toMatch(/④|직장|조직/);
-    expect(s1.draft.summary).toContain('시험·학업');
+    expect(s1.draft!.summary).toContain('시험·학업');
     const s2 = await say('직장 상담 아니에요. 점수랑 시기 없이 공부 행동 세 가지만 짧게요');
     expect(s2.topic).toBe('study');
     expect(s2.reply).not.toMatch(/점이에요|\d+월|직장/);
     expect(s2.reply.split('\n').filter((x: string) => /^[①②③]/.test(x))).toHaveLength(3);
     const pet = await say('이번엔 반려견 이야기요. 우리 강아지랑 오늘 뭐 하면 좋을까요');
     expect(pet.topic).toBe('pet');
-    expect(pet.draft.category).toBe('family');
+    expect(pet.draft!.category).toBe('family');
     expect(pet.reply).not.toMatch(/수명|죽|병에 걸/);
     const q = await friendReply({ profile: P, history: [], text: '음', memories: [], now: NOW });
     expect(q.reply).toContain('어떤 쪽 고민인지');
+  });
+  it('상품·가격·추천을 물으면 실제 상품표에서 고민에 맞는 상품을 권하고(모른다고 하지 않음), 기록 초안은 만들지 않는다', async () => {
+    const catalog = [
+      { id: 'love_flow', title: '올해 나의 연애운', price: 14900, series: 'love', cardCopy: '인연이 들어오는 달' },
+      { id: 'reunion', title: '재회운 — 다시 닿을 수 있을까', price: 14900, series: 'love', cardCopy: '다시 닿는 시기' },
+      { id: 'money_wealth', title: '프리미엄 재물사주', price: 14900, series: 'money', cardCopy: '돈의 흐름' },
+      { id: 'adult_gunghap', title: '두 사람의 속궁합', price: 19900, series: 'adult', cardCopy: '', adult: true },
+    ];
+    const P2 = { id: 'p2', name: '송미선', gender: 'F' as const, birthYear: 1988, birthMonth: 7, birthDay: 3, calendar: 'solar', leap: false, birthHour: 14 };
+    const a = await friendReply({ profile: P2, history: [], text: '근데 사주 상품 뭐 있어?', memories: [], now: NOW, catalog });
+    expect(a.topic).toBe('product');
+    expect(a.draft).toBeNull();
+    expect(a.reply).not.toMatch(/확인할 수 없|모르/);
+    expect(a.reply).toContain('14,900원');
+    expect(a.products.length).toBeGreaterThan(0);
+    expect(a.products.map((p) => p.id)).not.toContain('adult_gunghap');
+    const b = await friendReply({ profile: P2, history: [], text: '헤어진 사람이랑 재회할 수 있을지 보는 상품 추천해 줘', memories: [], now: NOW, catalog });
+    expect(b.products[0].id).toBe('reunion');
+    expect(b.reply).toContain('재회운');
+    // 상품표가 없으면(시연) 예전처럼 상담으로
+    const c = await friendReply({ profile: P2, history: [], text: '상품 뭐 있어?', memories: [], now: NOW });
+    expect(c.products).toEqual([]);
   });
   it('답변·기록 초안·비용 0', async () => {
     const r = await friendReply({ profile: { id: 'p1', name: '김서윤', gender: 'F', birthYear: 1996, birthMonth: 4, birthDay: 2, calendar: 'solar', leap: false, birthHour: 9 }, history: [], text: '남자친구와 계속 만나도 될까요', memories: [], now: NOW });
     expect(r.ai).toBe(false);
     expect(r.reply).toContain('김서윤 님');
-    expect(r.draft.summary).toContain('연애·관계 고민');
-    expect(r.draft.category).toBe('love');
+    expect(r.draft!.summary).toContain('연애·관계 고민');
+    expect(r.draft!.category).toBe('love');
     expect(r.costKrw).toBe(0);
   });
 });

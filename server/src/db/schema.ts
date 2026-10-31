@@ -207,7 +207,7 @@ export const chats = pgTable('chats', {
   topic: text(), // love | work | money | family | growth | etc
   source: text(), // path(고민의 길) | home | reading
   persona: text(), // 고른 상담사(달하·월화·사주박사·사주선비·사주도령)
-  messages: jsonb().$type<{ role: 'user' | 'friend'; text: string; at: string }[]>().notNull(),
+  messages: jsonb().$type<{ role: 'user' | 'friend'; text: string; at: string; products?: { id: string; title: string; price: number; line: string }[] }[]>().notNull(),
   turns: integer().default(0).notNull(),
   tokensIn: integer().default(0).notNull(),
   tokensOut: integer().default(0).notNull(),

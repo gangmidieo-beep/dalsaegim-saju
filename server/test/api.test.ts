@@ -98,6 +98,20 @@ describe('공개 API', () => {
     const bad = (await app.inject({ method: 'POST', url: '/friend/chat', headers: auth(g), payload: { profileId: prof.id, text: '안녕', persona: 'nobody' } })).json();
     expect((await app.inject({ url: `/friend/chats/${bad.chatId}`, headers: auth(g) })).json().persona).toBe('harin');
   });
+  it('달빛 상담에서 상품을 물으면 상품표(공개·성인 제외)에서 권하고 상품 카드가 대화에 남는다', async () => {
+    const g = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-product-ask' } })).json().token;
+    const prof = { id: 'p_prod', ...profile('미선'), main: true };
+    await app.inject({ method: 'POST', url: '/profiles', headers: auth(g), payload: prof });
+    const r = (await app.inject({ method: 'POST', url: '/friend/chat', headers: auth(g), payload: { profileId: prof.id, text: '근데 사주 상품 뭐 있어? 가격은?' } })).json();
+    expect(r.draft).toBeNull();
+    expect(r.products.length).toBeGreaterThan(0);
+    const ids = ((await app.inject({ url: '/products' })).json() as any[]).map((p) => p.id);
+    for (const p of r.products) { expect(ids).toContain(p.id); expect(p.price).toBeGreaterThan(0); expect(r.reply).toContain(p.title); }
+    expect(r.products.map((p: any) => p.id)).not.toContain('adult_gunghap');
+    const c = (await app.inject({ url: `/friend/chats/${r.chatId}`, headers: auth(g) })).json();
+    expect(c.messages.at(-1).products.length).toBe(r.products.length);
+    expect(c.topic).toBe('etc'); // 상품 질문은 상담 주제로 남지 않음
+  });
   it('이용권: 하루 무료를 다 쓴 뒤 질문 10회에서 하나씩 차감', async () => {
     await app.inject({ method: 'POST', url: '/orders', headers: auth(token), payload: { productId: 'friend_pass' } });
     const st = (await app.inject({ url: '/friend/status', headers: auth(token) })).json();

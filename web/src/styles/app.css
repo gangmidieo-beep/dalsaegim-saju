@@ -1437,3 +1437,10 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .for-me { font-size: 14px; color: var(--ink-2); }
 .foot-sns { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; }
 .foot-sns a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--paper); font-size: 13.5px; font-weight: 700; color: var(--ink); }
+/* 달빛 상담 — 상담사가 권한 풀이 카드(상품표 기준 이름·가격) */
+.rec-products { flex-basis: 100%; display: grid; gap: 6px; margin: 2px 0 4px 40px; max-width: 84%; }
+.rec-card { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 14px; background: #fff; border: 1px solid rgba(201, 169, 106, 0.45); box-shadow: var(--shadow); }
+.rec-card .grow { min-width: 0; }
+.rec-card b { display: block; font-size: 15px; color: var(--navy); }
+.rec-card small { display: block; font-size: 12.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rec-price { display: inline-flex; align-items: center; gap: 2px; flex: none; font-weight: 800; font-size: 14px; color: #9a7a3a; }
