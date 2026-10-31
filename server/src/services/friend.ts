@@ -135,7 +135,7 @@ export async function friendReply(o: {
 가장 최근 질문의 의도를 가장 먼저 따른다: 이전 주제에 고정하지 말고, \"아니다·말고\" 같은 부정 표현과 \"세 가지·짧게·점수 없이\" 같은 형식 요청을 그대로 지킨다. 무엇을 묻는지 모호하면 짧게 되묻는다. 시험·합격·승진은 결과를 보장하지 않는다. 반려동물의 수명·질병은 단정하지 않고 동물병원 상담을 권한다.\n아래 사주 정보의 숫자·시기와 어긋나지 않게 말하되, 질문과 관계없는 점수·시기는 꺼내지 않는다. 마지막에 대화를 이어 갈 질문을 하나 한다.
 달새김 상품: 아래 [달새김 상품] 목록이 지금 판매 중인 전부다. 상품·가격·추천을 물으면 "모른다"고 하지 말고 이 목록에서 고객 상황에 맞는 1~3개를 이름·가격·이유와 함께 권한다. 목록에 없는 상품·가격은 지어내지 않는다. 묻지 않았는데 상품을 들이밀지 않되, 고민과 꼭 맞는 풀이가 있으면 답 끝에 한 줄로 가볍게 권할 수 있다. 투자 풀이는 종목 권유가 아니라 흐름 참고 자료라고 말한다.
 출력은 JSON 하나만: {"reply": string, "memory": {"category": "love|work|money|family|growth|health|etc", "title": string(25자 이내, 고민 한 줄), "summary": string(60자 이내, 상담 요약)} | null, "products": string[](권한 상품의 id 0~3개, 상품 이야기를 했을 때만)}
-상품만 묻고 고민이 없는 말이면 memory 는 null 로 둔다.`;
+상품만 묻고 고민이 없는 말이면 memory 는 null 로 둔다. reply 에 **굵게** 같은 마크다운 기호는 쓰지 않는다(말풍선에 기호가 그대로 보인다).`;
   const ctx = `[사주 정보]\n${b.lines.join('\n')}${catalog.length ? `\n[달새김 상품] id · 이름 · 가격 · 한 줄\n${catalog.map((p) => `- ${p.id} · ${p.title} · ${won(p.price)} · ${p.cardCopy ?? ''}`).join('\n')}` : ''}${o.memories.length ? `\n[최근 기록]\n${o.memories.map((m) => `- ${m.happenedOn} ${m.category} ${m.title}${m.feedback ? ` (결과: ${m.feedback})` : ''}`).join('\n')}` : ''}`;
   const msgs: { role: 'user' | 'assistant'; content: string }[] = [{ role: 'user', content: ctx }, { role: 'assistant', content: '{"reply":"알겠어요. 사주 정보를 참고해서 이야기할게요.","memory":null}' }];
   for (const m of o.history.slice(-12)) msgs.push({ role: m.role === 'user' ? 'user' : 'assistant', content: m.role === 'user' ? m.text : JSON.stringify({ reply: m.text }) });
@@ -147,7 +147,7 @@ export async function friendReply(o: {
   let memoryNull = false;
   try {
     const j = parseJson(c.text);
-    reply = String(j.reply ?? reply);
+    reply = String(j.reply ?? reply).replace(/\*\*(.+?)\*\*/g, '$1').replace(/(^|\s)\*(\S[^*]*?)\*(?=\s|$|[.,!?])/g, '$1$2'); // 마크다운 굵게·기울임 기호 제거
     if (j.memory?.title) Object.assign(draft, { category: String(j.memory.category ?? draft.category), title: String(j.memory.title).slice(0, 40), summary: String(j.memory.summary ?? j.memory.title).slice(0, 120) });
     else if (j.memory === null && productAsk) memoryNull = true;
     if (Array.isArray(j.products)) products = (j.products as unknown[]).map((id) => catalog.find((p) => p.id === String(id))).filter((p): p is CatalogItem => !!p).slice(0, 3).map(lite);
