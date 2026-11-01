@@ -457,14 +457,15 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     // 상담사가 권할 수 있는 상품 — 지금 판매 중인 것만(성인 상품 제외), 가격은 상품표 그대로
     const catalog = (await db.select({ id: S.products.id, title: S.products.title, price: S.products.price, series: S.products.series, cardCopy: S.products.cardCopy, adult: S.products.adult })
       .from(S.products).where(and(eq(S.products.siteId, SITE()), eq(S.products.visible, true), eq(S.products.kind, 'reading'))).orderBy(asc(S.products.sort))).filter((p) => !p.adult);
+    const others = await db.select().from(S.profiles).where(eq(S.profiles.userId, userId)); // 저장해 둔 다른 사람 사주(질문에 이름이 나오면 그 사람으로)
     let r, fellBack = false;
     try {
-      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: chat?.topic ?? b.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http, tier: useCredit ? 'pass' : 'free', catalog });
+      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: chat?.topic ?? b.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http, tier: useCredit ? 'pass' : 'free', catalog, others });
     } catch (e: any) {
       req.log.warn(`[friend] ${e.message}`);
       if (!aiFatal(e)) return rep.code(502).send({ error: '달새김이 잠시 생각에 잠겼어요. 조금 뒤에 다시 말을 걸어 주세요.' });
       // 잔액 부족·키 오류 — 계산 기반 기본 답변으로 이어 가고, 이용권 질문은 차감하지 않는다(아래 fellBack)
-      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: chat?.topic ?? b.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http, tier: useCredit ? 'pass' : 'free', noAI: true, catalog });
+      r = await friendReply({ profile: profile as any, history: chat?.messages ?? [], text, topicHint: chat?.topic ?? b.topic ?? null, memories: mems, persona: chat?.persona ?? b.persona ?? null, http, tier: useCredit ? 'pass' : 'free', noAI: true, catalog, others });
       fellBack = true;
     }
     const at = new Date().toISOString();

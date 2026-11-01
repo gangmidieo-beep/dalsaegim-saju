@@ -1444,3 +1444,26 @@ html.inapp-naver .pd-cta, html.inapp-naver .sticky-cta { padding-right: 64px; }
 .rec-card b { display: block; font-size: 15px; color: var(--navy); }
 .rec-card small { display: block; font-size: 12.5px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rec-price { display: inline-flex; align-items: center; gap: 2px; flex: none; font-weight: 800; font-size: 14px; color: #9a7a3a; }
+
+/* 11/1 대표님 요청 — 상품 목록 글자 크게 + 카드 전체 클릭 + 공유 아이콘 1개 */
+.nh-sec h2 { font-size: 21px; }
+.prow2 { display: flex; align-items: stretch; border-radius: 16px; background: var(--paper); border: 1px solid var(--line); overflow: hidden; }
+.prow2.card { padding: 0; }
+.prow2-link { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 13px 4px 13px 14px; color: inherit; }
+.prow2-link .grow { flex: 1; min-width: 0; }
+.prow2 .pbadge { font-size: 12px; padding: 2px 8px; }
+.prow2 .pt { display: block; font-size: 17px; font-weight: 800; line-height: 1.35; color: var(--ink); letter-spacing: -0.01em; }
+.prow2 small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 3px; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); word-break: keep-all; }
+.prow2 .pp { flex: none; min-width: 72px; text-align: right; white-space: nowrap; font-size: 17px; font-weight: 800; color: var(--gold-ink); }
+.prow2 .pp s { display: block; font-size: 12px; font-weight: 500; color: var(--ink-3); }
+.prow2 .psh { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 52px; min-height: 44px; padding: 0 4px; border: 0; background: none; color: var(--ink-2); font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer; }
+.prow2 .psh:active { background: #f3efe6; }
+.prow2 .psh svg { color: var(--navy, #1b1f3b); }
+@media (max-width: 380px) { .prow2-link { gap: 10px; padding-left: 12px; } .prow2 .pt { font-size: 16px; } .prow2 .pp { font-size: 16px; min-width: 64px; } .prow2 .psh { width: 46px; } }
+
+/* 11/1 대표님 요청 — '달새김만의 특별한 경험' 아이콘을 제목 옆으로 */
+.nh-sig a { grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; row-gap: 6px; align-items: center; min-height: 0; }
+.nh-sig .si { grid-row: 1; width: 34px; height: 34px; border-radius: 10px; }
+.nh-sig .si svg { width: 18px; height: 18px; }
+.nh-sig b { grid-row: 1; grid-column: 2; line-height: 1.3; word-break: keep-all; }
+.nh-sig small { grid-column: 1 / -1; }

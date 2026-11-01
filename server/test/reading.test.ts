@@ -192,6 +192,19 @@ describe('결제 → 풀이 생성 → 결과 조회 (엔진 풀이)', () => {
 describe('10/19 추가 상품 — 결혼운·직업운·썸 타로·월간 선택·요약 카드', () => {
   const BAN = [/반드시|무조건|100%/, /사망|파산/, /종목/, /예요\.예요/, /undefined|NaN/];
   const plain = (c: { chapters: { body: string }[]; summary?: unknown }) => c.chapters.map((x) => x.body).join('\n') + JSON.stringify(c.summary);
+  it('다른 사람에게 맞는 상품을 물으면 그 사람 호칭으로 답하고 내 이름·내 사주로 말하지 않는다, 저장한 사람이면 그 사주로', async () => {
+    const catalog = [{ id: 'lifetime', title: '종합사주·사주지도', price: 29900, series: 'life', cardCopy: '타고난 나' }, { id: 'newyear_2027', title: '2027 신년운세', price: 19900, series: 'year', cardCopy: '내년 흐름' }];
+    const ME = { id: 'p1', name: '송광민', gender: 'M' as const, birthYear: 1980, birthMonth: 3, birthDay: 5, calendar: 'solar', leap: false, birthHour: 9 };
+    const a = await friendReply({ profile: ME, history: [], text: '내가 아니라 진순숙 사장님에게 맞는 상품추천', memories: [], now: NOW, catalog });
+    expect(a.reply).toContain('진순숙 사장님');
+    expect(a.reply).not.toContain('송광민');
+    expect(a.products.length).toBeGreaterThan(0);
+    const MOM = { id: 'p3', name: '진순숙', gender: 'F' as const, birthYear: 1951, birthMonth: 2, birthDay: 1, calendar: 'solar', leap: false, birthHour: null };
+    const b = await friendReply({ profile: ME, others: [ME, MOM], history: [], text: '진순숙 사장님에게 맞는 상품추천', memories: [], now: NOW, catalog });
+    expect(b.reply).toContain('진순숙 님');
+    expect(b.reply).not.toContain('송광민');
+  });
+
   it('모든 유료 상품에 요약 카드(지수 3개 이하·단계·실천)가 붙는다', async () => {
     for (const p of PAID) {
       const g = await generateReading({ id: p.id, title: p.title }, p.people > 1 ? [ME, YOU] : [ME], { meta: { ym: '2027-03', cards: '6,37r,19', mbti: 'INFJ', cat: 'love', sub: 'partner', q: '계속 만나도 될까?' }, now: NOW });

@@ -7,6 +7,7 @@ import { useToday } from '../lib/fortune';
 import { apiAuth, apiGet } from '../lib/api';
 import { Foot, ProdPic, won, type PicName } from '../components/ui';
 import { GuideWidget } from '../components/Guide';
+import { ProdRow } from '../components/ProdRow';
 import { kstMonth, next12 } from '../lib/dates';
 import brand from '../../../brand.config.json';
 import { I } from '../components/icons';
@@ -133,13 +134,7 @@ export default function Home() {
               <div className="nh-sec"><h2 id={`nh-${sec.id}`}>{sec.title}</h2><Link to={sec.more}>무료로 먼저 보기 ›</Link></div>
               <p className="nh-sub">{sec.sub}</p>
               <div className="plist">
-                {rows.map(([p, pic]) => (
-                  <Link key={p.id} to={`/product/${p.id}`} className="prow">
-                    <ProdPic id={p.id} fallback={pic} />
-                    <span className="grow">{p.adult ? <em className="pbadge adult">19세 이상</em> : p.badge ? <em className="pbadge">{p.badge}</em> : null}<b>{p.title}</b><small>{p.cardCopy}</small></span>
-                    <span className="pp">{p.id === 'money_pack' && p.listPrice ? <s>{won(p.listPrice)}</s> : null}{won(p.price)}</span>
-                  </Link>
-                ))}
+                {rows.map(([p, pic]) => <ProdRow key={p.id} p={p as never} pic={pic} showList={p.id === 'money_pack'} />)}
               </div>
             </section>
           );
