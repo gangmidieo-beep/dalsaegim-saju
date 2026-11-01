@@ -66,7 +66,7 @@ describe('PayApp 웹 결제', () => {
     expect(await open('vbank')).toBe('vbank');
     expect(await open('samsungpay')).toBe('card');
     expect(await open('bitcoin')).toBeNull();
-    expect(await open(undefined, true)).toBe('kakaopay');
+    expect(await open(undefined, true)).toBeNull(); // 카카오페이가 꺼져 있으면(PayApp 미승인) 카카오톡 안에서도 기본 결제창
     expect(await open('naverpay', true)).toBe('naverpay');
   });
   it('사주 없이·남의 사주로는 주문 불가, 궁합은 두 사람', async () => {

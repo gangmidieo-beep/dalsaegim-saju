@@ -321,7 +321,7 @@
     "group": "easy",
     "label": "카카오페이",
     "open": "kakaopay",
-    "on": true,
+    "on": false,
     "mark": "K",
     "color": "#FEE500",
     "ink": "#191919"
