@@ -143,7 +143,7 @@ describe('PayApp 웹 결제', () => {
   it('주문 상품명에 서비스명', async () => {
     const t = await guest('pay-4');
     await app.inject({ method: 'POST', url: '/orders', headers: auth(t), payload: { productId: 'money_invest', profileId: await prof(t), phone: '01077778888' } });
-    expect(calls.at(-1)!.get('goodname')).toBe('달새김사주 올해 나의 투자 흐름');
+    expect(calls.at(-1)!.get('goodname')).toBe('달새김사주 투자운');
   });
   it('PayApp 취소 요청 형식(관리자 환불에서 사용)', async () => {
     const before = calls.length;

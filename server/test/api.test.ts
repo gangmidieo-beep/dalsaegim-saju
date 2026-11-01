@@ -66,7 +66,7 @@ describe('공개 API', () => {
     expect(o.json().status).toBe('paid');
     expect(o.json().meta).toEqual({ cat: 'love', sub: 'partner', q: '계속 만나도 될까?' });
     expect((await app.inject({ url: `/readings/${o.json().id}`, headers: auth(token) })).json().status).toBe('queued');
-    expect(((await app.inject({ url: '/me/orders', headers: auth(token) })).json() as any[])[0].title).toBe('고민의 길 심층분석');
+    expect(((await app.inject({ url: '/me/orders', headers: auth(token) })).json() as any[])[0].title).toBe('고민 심층분석');
   });
   it('AI 사주친구: 사주 없으면 안내, 하루 3번 무료, 대화 이어 가기, 기록 초안', async () => {
     expect((await app.inject({ method: 'POST', url: '/friend/chat', headers: auth(token), payload: { text: '안녕' } })).json().code).toBe('profile');
