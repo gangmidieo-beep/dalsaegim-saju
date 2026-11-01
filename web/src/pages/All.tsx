@@ -1,9 +1,9 @@
 // 전체 운세 — 무료 메뉴와 유료 풀이를 한곳에. 사랑 시리즈를 맨 위에.
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Pic, Top, type PicName } from '../components/ui';
 import { GuideWidget } from '../components/Guide';
 import { ProdRow } from '../components/ProdRow';
-import { I } from '../components/icons';
 import brand from '../../../brand.config.json';
 
 const FREE: [string, string, string, PicName][] = [
@@ -14,16 +14,21 @@ const FREE: [string, string, string, PicName][] = [
 ];
 const SERIES: [string, string][] = [['love', '사랑 시리즈'], ['year', '올해·이번 달'], ['life', '나의 사주'], ['money', '돈의 흐름'], ['work', '일과 진로'], ['worry', '고민·성향'], ['mbti', ''], ['friend', '달빛 상담']];
 
+const FREE_FIRST = 6;
+
 export default function All() {
+  const [more, setMore] = useState(false);
   const vis = brand.products.filter((p) => p.visible !== false);
   return (
     <>
       <Top title="전체 운세" back={false} />
       <main className="screen">
         <h2 className="h3">무료로 보기</h2>
-        <div className="list mt12">
-          {FREE.map(([to, t, s, ic]) => <Link key={to} to={to} className="li"><Pic n={ic} size="s" /><div className="grow"><div className="t">{t}</div><div className="s">{s}</div></div><I.right className="chev" /></Link>)}
+        {/* 무료 보기 — 2열 카드, 처음엔 6개만 · [더 보기]로 나머지(11/1 요청 06·07) */}
+        <div className="free2 mt12" id="free-list">
+          {(more ? FREE : FREE.slice(0, FREE_FIRST)).map(([to, t, s, ic]) => <Link key={to} to={to} className="free2-card"><Pic n={ic} size="s" /><b>{t}</b><small>{s}</small></Link>)}
         </div>
+        {FREE.length > FREE_FIRST && <button type="button" className="btn line mt12 free2-more" aria-expanded={more} aria-controls="free-list" onClick={() => setMore((v) => !v)}>{more ? '접기' : `무료 운세 더 보기 (${FREE.length - FREE_FIRST}개)`}</button>}
         {SERIES.map(([sr, label]) => {
           const ps = vis.filter((p) => p.series === sr || (sr === 'love' && p.series === 'adult')).sort((a, b) => (a.id === 'tarot_some' ? 1 : 0) - (b.id === 'tarot_some' ? 1 : 0)); // 속궁합(19세 이상)도 사랑 시리즈에 — 썸 타로는 맨 끝
           if (!ps.length) return null;

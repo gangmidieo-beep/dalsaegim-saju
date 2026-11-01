@@ -8,6 +8,7 @@ import { apiAuth, apiGet } from '../lib/api';
 import { Foot, ProdPic, won, type PicName } from '../components/ui';
 import { GuideWidget } from '../components/Guide';
 import { ProdRow } from '../components/ProdRow';
+import { useShare } from '../components/share';
 import { kstMonth, next12 } from '../lib/dates';
 import brand from '../../../brand.config.json';
 import { I } from '../components/icons';
@@ -52,6 +53,9 @@ export default function Home() {
   const [due, setDue] = useState<Mem[]>([]);
   const [count, setCount] = useState(0);
   const [letter, setLetter] = useState<{ title: string; body: string } | null>(null);
+  const [monthOpen, setMonthOpen] = useState(false); // 월간운세 — 처음엔 안내 카드만, 누르면 월 선택(11/1 요청 02)
+  const openShare = useShare();
+  const shareSig = (to: string, title: string, text: string) => openShare({ title: `달새김사주 ${title}`, text, path: to, contentId: `sig_${to.slice(1)}` });
   const [wish, setWish] = useState<Saved | null>(null); // 지난번 새긴 소망 — 7일이 지나면 진행 상황을 묻는다
   useEffect(() => { apiGet<{ title: string; body: string }>('/letters/today').then(setLetter).catch(() => {}); }, []);
   useEffect(() => {
@@ -106,14 +110,14 @@ export default function Home() {
             </span>
             <I.right />
           </Link>
-          <div className="nh-month" role="group" aria-labelledby="nh-month-t">
-            <div className="mh">
+          <div className={`nh-month${monthOpen ? ' open' : ''}`} role="group" aria-labelledby="nh-month-t">
+            <button type="button" className="mh" aria-expanded={monthOpen} aria-controls="nh-month-grid" onClick={() => { setMonthOpen((v) => !v); }}>
               <span className="art" aria-hidden />
-              <div><small>MONTHLY FORTUNE</small><h2 id="nh-month-t">월간운세 <em className="paid-tag">월별 {won(pOf('month_detail')?.price ?? 4900)}</em></h2><p>원하는 달을 골라 상세운세를 볼 수 있어요 · 월별 단건 구매, 정기결제 없음</p></div>
-            </div>
-            <div className="mgrid">
+              <div><small>MONTHLY FORTUNE</small><h2 id="nh-month-t">월간운세 <em className="paid-tag">월별 {won(pOf('month_detail')?.price ?? 4900)}</em></h2><p>원하는 달을 골라 상세운세를 볼 수 있어요 · 월별 단건 구매, 정기결제 없음</p><span className="mtoggle">{monthOpen ? '접기' : '월 고르기'} <I.right size={14} /></span></div>
+            </button>
+            {monthOpen && <div className="mgrid" id="nh-month-grid">
               {next12().map((g) => <Fragment key={g.yy}><span className="myr">{g.yy}년</span>{g.months.map((m) => <Link key={m.ym} to={`/product/month_detail?ym=${m.ym}`} className={m.now ? 'now' : ''} aria-label={`${m.yy}년 ${m.mm}월 운세${m.now ? ' (이번 달)' : ''}`}><b>{m.mm}월</b>{m.now && <i>이번 달</i>}</Link>)}</Fragment>)}
-            </div>
+            </div>}
           </div>
         </section>
 
@@ -145,9 +149,9 @@ export default function Home() {
           <p className="nh-sub">한 번의 풀이로 끝나지 않는, 나만의 기록</p>
           <div className="nh-sig">
             <Link to="/friend"><span className="si"><I.chat /></span><b>달빛 상담사 서월</b><small>내 사주를 아는 상담사 · 하루 3번 무료</small></Link>
-            <Link to="/letter" onClick={() => track('letter_today_open')}><span className="si"><I.mail /></span><b>달빛편지</b><small>{letter ? `오늘의 편지 · ${letter.title}` : '지금의 마음을 편지로 남기기'}</small></Link>
-            <Link to="/charm"><span className="si"><I.charm /></span><b>나만의 황금부적</b><small>소망을 담아 완성하고 보관해요</small></Link>
-            <Link to="/gift"><span className="si"><I.share /></span><b>마음 보내기</b><small>부적·편지를 소중한 사람에게 이미지로</small></Link>
+            <div className="sig-sh"><Link to="/letter" onClick={() => track('letter_today_open')}><span className="si"><I.mail /></span><b>달빛편지</b><small>{letter ? `오늘의 편지 · ${letter.title}` : '지금의 마음을 편지로 남기기'}</small></Link><button type="button" className="sig-share" aria-label="달빛편지 공유하기" onClick={() => shareSig('/letter', '달빛편지', '오늘 내게 온 달빛편지, 당신도 받아 보세요')}><I.share size={16} /></button></div>
+            <div className="sig-sh"><Link to="/charm"><span className="si"><I.charm /></span><b>나만의 황금부적</b><small>소망을 담아 완성하고 보관해요</small></Link><button type="button" className="sig-share" aria-label="황금부적 공유하기" onClick={() => shareSig('/charm', '나만의 황금부적', '소망을 새긴 나만의 황금부적을 만들어 보세요')}><I.share size={16} /></button></div>
+            <div className="sig-sh"><Link to="/gift"><span className="si"><I.share /></span><b>마음 보내기</b><small>부적·편지를 소중한 사람에게 이미지로</small></Link><button type="button" className="sig-share" aria-label="마음 보내기 공유하기" onClick={() => shareSig('/gift', '마음 보내기', '소중한 사람에게 부적·편지를 이미지로 보내 보세요')}><I.share size={16} /></button></div>
             <Link to="/timeline"><span className="si"><I.timeline /></span><b>내 인생의 타임라인</b><small>{count >= 1 ? `새겨진 순간 ${count}개` : '중요한 순간과 선택을 기록'}</small></Link>
           </div>
         </section>

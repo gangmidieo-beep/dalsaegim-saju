@@ -167,6 +167,14 @@ export const useToast = () => useContext(ToastCtx);
 
 export const Skeleton = ({ h = 80 }: { h?: number }) => <div className="skeleton" style={{ height: h }} />;
 
+// 하단 SNS — 글자 버튼 대신 알아보기 쉬운 아이콘(11/1 대표님 요청 05)
+const SNS_KEY = (l: string) => (/인스타/.test(l) ? 'ig' : /스레드|threads/i.test(l) ? 'th' : /유튜브|youtube/i.test(l) ? 'yt' : 'etc');
+const SNS_ICON: Record<string, ReactNode> = {
+  ig: <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4.2" /><circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none" /></svg>,
+  th: <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M16.6 11.2c-.4-2.6-2.1-3.9-4.5-3.9-2.6 0-4.3 1.7-4.3 4.7 0 3.4 2 5.3 4.6 5.3 2.3 0 3.8-1.3 3.8-3.2 0-2.2-2.1-3.1-4.4-2.7-1.7.3-2.5 1.2-2.4 2.2.1 1.2 1.4 1.8 2.8 1.6 2.4-.3 3.3-2.6 3-5.5" /><path d="M19.5 7.5C18 4.6 15.3 3 12 3 6.8 3 3.5 6.6 3.5 12s3.3 9 8.5 9c3.4 0 5.9-1.4 7.2-4" /></svg>,
+  yt: <svg viewBox="0 0 24 24" width="24" height="24"><rect x="2" y="5" width="20" height="14" rx="4.5" fill="currentColor" /><path d="M10 9.2v5.6l4.8-2.8z" fill="#fff" /></svg>,
+};
+
 export function Foot() {
   const b = brand.business;
   return (
@@ -176,7 +184,7 @@ export function Foot() {
       </div>
       {b.kakao && <a className="kakao" href={b.kakao} target="_blank" rel="noopener noreferrer">카카오톡 채널로 문의하기</a>}<br />
       {/* 공식 SNS(대표님 확정 주소, 10/30) */}
-      {b.sns?.length ? <div className="foot-sns">{b.sns.map(([l, u]) => <a key={u} href={u} target="_blank" rel="noopener noreferrer">{l}</a>)}</div> : null}
+      {b.sns?.length ? <div className="foot-sns">{b.sns.map(([l, u]) => <a key={u} href={u} target="_blank" rel="noopener noreferrer" aria-label={`달새김사주 ${l}`} title={l} className={`sns ${SNS_KEY(l)}`}>{SNS_ICON[SNS_KEY(l)] ?? l}</a>)}</div> : null}
       상호 {b.name} · 대표 {b.ceo}{b.regNo && ` · 사업자등록번호 ${b.regNo}`}{b.mailOrderNo && ` · 통신판매업 ${b.mailOrderNo}`}<br />
       {b.address && <>{b.address}<br /></>}
       {b.phone && <>고객센터 {b.phone} · </>}{b.email && <>이메일 {b.email}</>}<br />

@@ -199,6 +199,9 @@ describe('10/19 추가 상품 — 결혼운·직업운·썸 타로·월간 선�
     expect(a.reply).toContain('진순숙 사장님');
     expect(a.reply).not.toContain('송광민');
     expect(a.products.length).toBeGreaterThan(0);
+    const a2 = await friendReply({ profile: ME, history: [], text: '진순숙 사장님이 요즘 고민이 많으시데. 상품 소개해줄래?', memories: [], now: NOW, catalog });
+    expect(a2.reply).toContain('진순숙 사장님');
+    expect(a2.reply).not.toContain('송광민');
     const MOM = { id: 'p3', name: '진순숙', gender: 'F' as const, birthYear: 1951, birthMonth: 2, birthDay: 1, calendar: 'solar', leap: false, birthHour: null };
     const b = await friendReply({ profile: ME, others: [ME, MOM], history: [], text: '진순숙 사장님에게 맞는 상품추천', memories: [], now: NOW, catalog });
     expect(b.reply).toContain('진순숙 님');

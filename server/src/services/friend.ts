@@ -74,9 +74,13 @@ const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 
 // 다른 사람을 위해 묻는지 — "진순숙 사장님에게 맞는 상품", "엄마한테 좋은 풀이" (11/1 대표님: 남의 이름을 말해도 내 이름으로 답하던 것)
 const KIN = '엄마|아빠|어머니|아버지|어머님|아버님|남편|아내|와이프|신랑|딸|아들|언니|오빠|누나|형|동생|친구|남자\\s?친구|여자\\s?친구|남친|여친|애인|할머니|할아버지|시어머니|장모님|손님|고객|지인|동료|상사|부모님';
-const OTHER_RE = new RegExp(`(?:^|[\\s,])((?:[가-힣]{2,4}\\s?(?:사장님|대표님|선생님|원장님|고객님|님|씨))|(?:${KIN}))\\s?(?:에게|한테|께|의\\s?(?=사주|운세|궁합|운|풀이))`, 'u'); // '~에게·~한테·~께·~의 사주' 처럼 그 사람을 위한 질문일 때만
+const TITLED = '[가-힣]{2,4}\\s?(?:사장님|대표님|선생님|원장님|고객님|님|씨)';
+const OTHER_RE = [ // 그 사람을 위한 질문일 때만: '~에게·~한테·~께·~의 사주', 호칭 붙은 이름은 '~사장님이/께서'도
+  new RegExp(`(?:^|[\\s,])(${TITLED}|${KIN})\\s?(?:에게|한테|께(?!서)|의\\s?(?=사주|운세|궁합|운|풀이))`, 'u'),
+  new RegExp(`(?:^|[\\s,])(${TITLED})\\s?(?:이|가|은|는|께서)(?=[\\s,.?!]|$)`, 'u'),
+];
 export function otherPerson(text: string, myName: string): string | null {
-  const m = OTHER_RE.exec(text);
+  const m = OTHER_RE.map((r) => r.exec(text)).find(Boolean);
   if (!m) return null;
   const who = m[1].replace(/\s+/g, ' ').trim();
   const bare = who.replace(/\s?(사장님|대표님|선생님|원장님|고객님|님|씨)$/, '');
