@@ -45,11 +45,19 @@ export async function apiGet<T>(path: string): Promise<T> {
   if (!r.ok) throw new Error(`${r.status}`);
   return r.json() as Promise<T>;
 }
-// 사주를 서버에도 저장(같은 id) — 실패해도 화면은 계속
-export async function syncProfile(p: Profile, isMain = false) {
-  return apiAuth('/profiles', { method: 'POST', json: { ...p, isMain } }).catch(() => null);
+// 사주를 서버에도 저장(같은 id) — 실패해도 화면은 계속. 서버가 새 id 를 주면(그 id 가 다른 사용자 것) 이 기기 저장값도 바꾼다. 쓸 id 를 돌려준다
+export async function syncProfile(p: Profile, isMain = false): Promise<string> {
+  const r = await apiAuth<{ id?: string }>('/profiles', { method: 'POST', json: { ...p, isMain } }).catch(() => null);
+  if (r?.id && r.id !== p.id) {
+    const st = useApp.getState();
+    useApp.setState({ profiles: st.profiles.map((x) => (x.id === p.id ? { ...x, id: r.id! } : x)), mainId: st.mainId === p.id ? r.id : st.mainId });
+    return r.id;
+  }
+  return p.id;
 }
-export async function syncProfiles(ids: string[]) {
+export async function syncProfiles(ids: string[]): Promise<string[]> {
   const { profiles, mainId } = useApp.getState();
-  for (const id of ids) { const x = profiles.find((p) => p.id === id); if (x) await syncProfile(x, x.id === mainId); }
+  const out: string[] = [];
+  for (const id of ids) { const x = profiles.find((p) => p.id === id); out.push(x ? await syncProfile(x, x.id === mainId) : id); }
+  return out;
 }

@@ -202,6 +202,8 @@ export async function buildApp(opts: { db?: Db; demo?: boolean; logger?: boolean
     const b = req.body as any;
     const count = (await db.select({ id: S.profiles.id }).from(S.profiles).where(eq(S.profiles.userId, id))).length;
     const exists = b.id && (await db.select({ id: S.profiles.id }).from(S.profiles).where(and(eq(S.profiles.id, b.id), eq(S.profiles.userId, id))))[0];
+    // 같은 id 가 다른 사용자(예: 로그인 전 게스트·다른 기기 계정)에 이미 있으면 새 id 로 저장하고 알려 준다 — 화면이 그 id 로 바꿔 쓴다(11/2 대표님 휴대폰 결제 '사주 정보를 다시 저장' 오류)
+    if (b.id && !exists && (await db.select({ id: S.profiles.id }).from(S.profiles).where(eq(S.profiles.id, b.id)))[0]) b.id = newId('p_');
     // 나·가족·연인 등 사주는 10개까지
     if (!exists && count >= 10) return rep.code(402).send({ error: '사주는 10개까지 저장할 수 있어요', code: 'profile_limit' });
     const v = {

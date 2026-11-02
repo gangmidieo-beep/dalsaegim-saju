@@ -38,6 +38,16 @@ describe('공개 API', () => {
     expect(a.mbti).toBe('INFP');
     expect((await app.inject({ method: 'POST', url: '/profiles', headers: auth(token), payload: profile('연인') })).statusCode).toBe(200);
   });
+  it('다른 사용자에게 이미 있는 사주 id 로 저장하면 새 id 로 저장하고, 그 id 로 주문할 수 있다(500 아님)', async () => {
+    const other = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: 'dev-dup' } })).json().token;
+    const r = await app.inject({ method: 'POST', url: '/profiles', headers: auth(other), payload: { ...profile('나'), id: pid } });
+    expect(r.statusCode).toBe(200);
+    const nid = r.json().id;
+    expect(nid).not.toBe(pid);
+    expect((await app.inject({ method: 'POST', url: '/orders', headers: auth(other), payload: { productId: 'month_detail', profileId: nid } })).statusCode).toBe(200);
+    const mine = (await app.inject({ url: '/profiles', headers: auth(token) })).json() as any[];
+    expect(mine.some((x) => x.id === pid)).toBe(true); // 원래 주인의 사주는 그대로
+  });
   it('상품: 달새김 18종 노출(결혼운·직업운·썸 타로·속궁합 추가), 성인 상품은 19 표시용 adult, 사이트 구분값', async () => {
     const list = (await app.inject({ url: '/products' })).json() as any[];
     expect(list).toHaveLength(18);

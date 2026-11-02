@@ -21,7 +21,7 @@ export const PENDING = 'dalsaegim-pay-pending';
 
 export async function purchase(productId: string, profileIds: string[], opts: { method?: string; phone?: string; meta?: Record<string, string> } = {}): Promise<PayResult> {
   try {
-    await syncProfiles(profileIds);
+    profileIds = await syncProfiles(profileIds); // 서버가 id 를 바꿔 저장했으면 바뀐 id 로 주문
     const o = await apiAuth<{ id: string; amount: number; payUrl?: string; status: string }>('/orders', {
       method: 'POST',
       json: { productId, profileId: profileIds.join('+') || undefined, method: opts.method, phone: opts.phone, inApp: isInAppBrowser(), meta: opts.meta },

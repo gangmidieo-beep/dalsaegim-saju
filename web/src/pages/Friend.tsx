@@ -75,9 +75,9 @@ export default function Friend() {
     setMsgs((m) => [...m, { role: 'user', text: t }]);
     setBusy(true);
     try {
-      await syncProfile(profile, true);
+      const pfId = await syncProfile(profile, true);
       const signal = typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal ? AbortSignal.timeout(45_000) : undefined;
-      const r = await apiAuth<{ chatId: string; reply: string; draft: Draft | null; products?: Rec[]; remaining: number | null; pass: boolean; free: number; credits: number | null }>('/friend/chat', { method: 'POST', signal, json: { chatId, profileId: profile.id, text: t, topic: opt.topic ?? topic, persona: opt.persona ?? pe.id, source: sp.get('q') ? 'path' : 'home' } });
+      const r = await apiAuth<{ chatId: string; reply: string; draft: Draft | null; products?: Rec[]; remaining: number | null; pass: boolean; free: number; credits: number | null }>('/friend/chat', { method: 'POST', signal, json: { chatId, profileId: pfId, text: t, topic: opt.topic ?? topic, persona: opt.persona ?? pe.id, source: sp.get('q') ? 'path' : 'home' } });
       // 상담사를 고르자마자 첫 질문을 보내는 경우, 이 시점의 pe 는 이전 상담사라 고른 id 를 쓴다
       const used = personaOf(opt.persona ?? pe.id);
       setChatId(r.chatId); setFriendChat(r.chatId); setChatPersona(used.id);

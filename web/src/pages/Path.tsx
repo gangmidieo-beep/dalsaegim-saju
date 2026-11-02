@@ -110,8 +110,8 @@ function Result({ catId, subId, q, h }: { catId: string; subId: string; q: strin
   const rel = price(r.product);
   const save = async (d: { category: string; title: string; summary?: string }) => {
     try {
-      await syncProfile(profile);
-      await apiAuth('/memories', { method: 'POST', json: { kind: 'path', category: d.category, title: d.title, summary: d.summary, sajuNote: r.memory.sajuNote, profileId: profile.id } });
+      const pfId = await syncProfile(profile);
+      await apiAuth('/memories', { method: 'POST', json: { kind: 'path', category: d.category, title: d.title, summary: d.summary, sajuNote: r.memory.sajuNote, profileId: pfId } });
       setSaved('saved'); track('memory_save', { kind: 'path' });
     } catch (e: any) { toast(e.message); }
   };
@@ -229,8 +229,8 @@ function ChoiceResultView() {
   const deep = price('path_deep')!;
   const save = async (d: { category: string; title: string; summary?: string }) => {
     try {
-      await syncProfile(profile);
-      await apiAuth('/memories', { method: 'POST', json: { kind: 'path', category: d.category, title: d.title, summary: d.summary, sajuNote: r.memory.sajuNote, profileId: profile.id } });
+      const pfId = await syncProfile(profile);
+      await apiAuth('/memories', { method: 'POST', json: { kind: 'path', category: d.category, title: d.title, summary: d.summary, sajuNote: r.memory.sajuNote, profileId: pfId } });
       setSaved('saved'); track('memory_save', { kind: 'fork' });
     } catch (e: any) { toast(e.message); }
   };

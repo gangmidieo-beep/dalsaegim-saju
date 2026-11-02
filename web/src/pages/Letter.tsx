@@ -166,8 +166,8 @@ export function NewLetter() {
     setPhase('open');
     const started = Date.now();
     try {
-      await syncProfile(profile, true);
-      const l = await apiAuth<Letter>('/letters', { method: 'POST', json: { profileId: profile.id, persona: pid, feeling, topic, input, remember } });
+      const pfId = await syncProfile(profile, true);
+      const l = await apiAuth<Letter>('/letters', { method: 'POST', json: { profileId: pfId, persona: pid, feeling, topic, input, remember } });
       await new Promise((r) => setTimeout(r, Math.max(0, 1700 - (Date.now() - started)))); // 봉투가 열리는 1~2초
       track('letter_make', { persona: pid, feeling, topic });
       setLetter(l); setPhase('done'); scrollTo({ top: 0 });
