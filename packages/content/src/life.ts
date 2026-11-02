@@ -1,6 +1,6 @@
 // 결혼운 · 직업운 — 엔진 계산(배우자 자리·십성 무리·앞으로 12달 흐름)으로 장별 문단을 만든다. AI 가 켜져 있으면 이 사실을 바탕으로 문장을 다듬는다.
 // 단정 금지: 결혼 시기·배우자를 확정하지 않고 "기운이 가까워지는 시기"로 말한다.
-import { kstParts, type SajuResult } from '@dalsaegim/engine';
+import { type SajuResult } from '@dalsaegim/engine';
 import { pick } from './core';
 import { sajuMap } from './map';
 import { nextMonths } from './path';
@@ -8,9 +8,11 @@ import { nextMonths } from './path';
 type M = { year: number; month: number; score: number };
 /** 앞으로 12달 가운데 고른 달 — 올해와 내년이 섞이면 "2027년 3월"처럼 해를 붙인다 */
 export function monthsLabel(xs: M[], now = new Date()) {
-  const y0 = kstParts(now).year;
+  void now; // 모든 달에 연도를 붙인다(11/3 대표님: '11월, 2027년 9월'처럼 올해 연도가 빠지면 헷갈림) — 같은 해는 묶어서 '2026년 11월·12월'
   const sorted = [...xs].sort((a, b) => a.year - b.year || a.month - b.month);
-  return sorted.map((x) => (x.year === y0 ? `${x.month}월` : `${x.year}년 ${x.month}월`)).join(', ');
+  const by = new Map<number, number[]>();
+  for (const x of sorted) by.set(x.year, [...(by.get(x.year) ?? []), x.month]);
+  return [...by].map(([y, ms]) => `${y}년 ${ms.map((m) => `${m}월`).join('·')}`).join(', ');
 }
 const topN = (xs: M[], n: number) => [...xs].sort((a, b) => b.score - a.score).slice(0, n);
 const lowN = (xs: M[], n: number) => [...xs].sort((a, b) => a.score - b.score).slice(0, n);

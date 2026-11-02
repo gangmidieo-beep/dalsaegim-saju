@@ -235,7 +235,13 @@ describe('10/19 추가 상품 — 결혼운·직업운·썸 타로·월간 선�
     expect(g.content.summary!.cards).toEqual([{ id: 6, rev: false }, { id: 37, rev: true }, { id: 19, rev: false }]);
     expect(g.content.chapters[0].body).toContain('연인');
     expect(g.content.chapters[1].body).toContain('역방향');
-    expect(g.content.chapters).toHaveLength(5);
+    expect(g.content.chapters).toHaveLength(6); // 11/3: '연락할 때와 기다릴 때' 장 추가
+    const all = g.content.chapters.map((c) => c.body).join('\n');
+    expect(all).not.toMatch(/가볍지 않다는 뜻이에요/); // 상대 마음 단정 금지
+    expect(all).toContain('실제 감정이나 의도를 대신 말해 주는 건 아니에요');
+    expect(g.content.summary!.steps[1].text).toMatch(/^20\d\d년/); // 모든 시기에 연도
+    expect(g.content.summary!.note).toContain('카드의 분위기 지수');
+    expect(g.content.closing.tips[0]).toContain('연락해도 좋은 때'); // 관계 중심 마무리
   });
   it('월간운세: 고른 달(2027-03)로 계산, 31일까지 나눔', async () => {
     const g = await generateReading({ id: 'month_detail', title: '월간운세' }, [ME], { meta: { ym: '2027-03' }, now: NOW });

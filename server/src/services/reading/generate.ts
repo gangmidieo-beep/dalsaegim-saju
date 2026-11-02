@@ -6,7 +6,7 @@ import { and, desc, eq, inArray, lt } from 'drizzle-orm';
 import { calcSaju, branchRelations, kstParts, type SajuResult } from '@dalsaegim/engine';
 import {
   moneyFlow, newYearPreview, sajuMap, sajuMbti, pathResult, nextMonths, monthFortune, todayFortune, toRanges, MONEY_KINDS, type MoneyKind,
-  wealthReport, marriageReport, careerReport, tarotReading, parseCards, monthsLabel, lifetimeReport, fixJosaDeep, type Basis, type SajuTable,
+  wealthReport, marriageReport, careerReport, tarotReading, TONE_NOTE, parseCards, monthsLabel, lifetimeReport, fixJosaDeep, type Basis, type SajuTable,
 } from '@dalsaegim/content';
 import R from '../../../../packages/content/data/reading.json' with { type: 'json' };
 import { generateLong, longOn } from './long.ts';
@@ -21,7 +21,7 @@ export type Visual = { table: SajuTable; flow?: { points: { y: number; m: number
   seun?: { y: number; gz: string; sip: string; score: number; love: number; work: number; wealth: number }[]; seunAt?: number; wolun?: { y: number; m: number; gz: string; sip: string; love: number; work: number; wealth: number }[]; wolunAt?: number };
 export type Closing = { title: string; body: string; tips: string[] };
 /** 결과 맨 위 요약 카드(대표님 V88 리포트 틀) — 막대는 엔진이 계산한 지수, 단계는 실제 좋은 달·날 */
-export type Summary = { tone: 'love' | 'money' | 'saju' | 'time'; headline: string; lead: string; metrics: { label: string; score: number; note?: string }[]; steps: { label: string; text: string }[]; action: string; cards?: { id: number; rev: boolean }[] };
+export type Summary = { tone: 'love' | 'money' | 'saju' | 'time'; headline: string; lead: string; metrics: { label: string; score: number; note?: string }[]; steps: { label: string; text: string }[]; action: string; cards?: { id: number; rev: boolean }[]; note?: string };
 export type ReadingContent = { productId: string; title: string; intro: string; chapters: Chapter[]; closing: Closing; facts?: unknown; visual?: Visual; summary?: Summary; who?: string[]; generatedBy: 'ai' | 'engine' };
 export type Person = { name: string; gender: 'M' | 'F'; year: number; month: number; day: number; calendar: 'solar' | 'lunar'; leap?: boolean; hour?: number | null };
 export type OrderMeta = { cat?: string; sub?: string; q?: string; mbti?: string; ym?: string; cards?: string; y?: string } | null;
@@ -244,11 +244,13 @@ export function buildFacts(productId: string, people: Person[], sajus: SajuResul
     const cards = parseCards(meta?.cards) ?? parseCards('6,47,19')!;
     const r = tarotReading(cards, p0.name, s, id, now);
     lines.push(...r.facts);
+    metaOut = r.meta.map((m) => ({ say: m.say, highlight: m.highlight }) as ChapterMeta);
+    tips = r.actions; // 마무리도 관계 중심으로(오행 생활 조언 대신 — 11/3 대표님 검수)
     sectionsOut = r.sections;
     keywords = cards.map((d) => (d.rev ? d.card.rkw : d.card.kw));
     summaryOut = { tone: 'love', headline: r.verdict, lead: `세 장의 흐름: ${keywords.join(' → ')}`, metrics: r.metrics,
       steps: [{ label: '지금 분위기', text: r.verdict }, { label: '마음이 닿기 쉬운 달', text: r.good }, { label: '서두르지 않을 달', text: r.careful }], action: r.action,
-      cards: cards.map((d) => ({ id: d.card.id, rev: d.rev })) };
+      cards: cards.map((d) => ({ id: d.card.id, rev: d.rev })), note: TONE_NOTE };
   }
   // 요약 카드가 따로 없는 상품 — 엔진 지수(앞으로 12달 평균)와 실제 좋은 달로 채운다
   if (!summaryOut) {
@@ -336,7 +338,7 @@ export function engineContent(product: { id: string; title: string }, people: Pe
     intro: product.id === 'tarot_some' ? `${name} 님이 직접 고른 카드 3장의 해석에, 사주로 본 '마음이 닿기 쉬운 달'을 함께 묶었어요. 카드는 지금 이 순간의 분위기를 비추는 거울이에요.`
       : `${name} 님의 사주와 올해의 흐름을 바탕으로 '${product.title}'을 정리했어요. 숫자와 시기는 무료 요약과 같은 계산에서 나왔어요.`,
     chapters,
-    closing: { title: '달새김이 남기는 말', body: `오늘 읽은 흐름을 기록해 두면, 몇 달 뒤 실제로 어땠는지 함께 돌아볼 수 있어요. ${name} 님의 시간이 차곡차곡 새겨지기를 바라요.`, tips: facts.tips.slice(0, 3) },
+    closing: { title: '달새김이 남기는 말', body: product.id === 'tarot_some' ? `오늘 고른 세 장은 지금 이 관계의 분위기를 비춘 거울이에요. 그 사람의 반응이 어떻게 달라지는지 기록해 두면, 다음에 카드를 다시 뽑을 때 내 마음이 어디까지 왔는지 함께 돌아볼 수 있어요.` : `오늘 읽은 흐름을 기록해 두면, 몇 달 뒤 실제로 어땠는지 함께 돌아볼 수 있어요. ${name} 님의 시간이 차곡차곡 새겨지기를 바라요.`, tips: facts.tips.slice(0, 3) },
   });
 }
 
