@@ -79,7 +79,11 @@ export default function Me() {
   const toggleMem = async () => { const v = !memAI; setMemAI(v); await apiAuth('/me/settings', { method: 'POST', json: { memoryAI: v } }).catch(() => {}); toast(v ? '달빛 상담사가 기록을 참고해요' : '이제 기록을 참고하지 않아요'); };
   const leave = async () => {
     await apiAuth('/me/delete', { method: 'POST', json: {} }).catch(() => {});
-    localStorage.removeItem('dalsaegim'); clearGuest(); setAccount(null);
+    // 화면 저장소를 먼저 비운다 — localStorage 만 지우면 다음 상태 변경 때 사주·이름이 다시 저장돼 탈퇴 뒤에도 보였다(11/2 대표님)
+    useApp.setState({ profiles: [], mainId: null, account: null, friendChatId: null, persona: null, pass: false });
+    useApp.persist?.clearStorage?.();
+    try { for (const k of Object.keys(localStorage)) if (k.startsWith('dalsaegim')) localStorage.removeItem(k); } catch { /* */ }
+    clearGuest();
     toast('탈퇴했어요. 그동안 고마웠어요'); nav('/', { replace: true }); location.reload();
   };
   return (

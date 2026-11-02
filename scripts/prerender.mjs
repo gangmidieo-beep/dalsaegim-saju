@@ -28,7 +28,7 @@ function page(path, title, desc, body) {
     .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${esc(desc)}" />`)
     .replace(/<meta property="og:title" content="[^"]*" \/>/, `<meta property="og:title" content="${esc(title)}" />`)
     .replace(/<meta property="og:description" content="[^"]*" \/>/, `<meta property="og:description" content="${esc(desc)}" />`)
-    .replace(/<meta property="og:image" content="[^"]*" \/>/, (m) => (ORIGIN ? `<meta property="og:image" content="${ORIGIN}/img/og.jpg?v=2" />` : m))
+    .replace(/<meta property="og:image" content="[^"]*" \/>/, (m) => (ORIGIN ? `<meta property="og:image" content="${ORIGIN}/img/og.jpg?v=3" />` : m))
     .replace('</head>', ORIGIN ? `<link rel="canonical" href="${ORIGIN}/${path}" /><meta property="og:url" content="${ORIGIN}/${path}" /></head>` : '</head>')
     .replace('<div id="root"></div>', `<div id="root"><div class="prerender" style="display:none">${body}${bizHtml}</div></div><noscript>${bizHtml}</noscript>`);
   paths.push(path);
