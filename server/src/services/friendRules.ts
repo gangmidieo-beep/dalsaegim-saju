@@ -20,7 +20,10 @@ const byId = (id: string) => TOPICS.find((t) => t.id === id);
 
 /** "상품 뭐 있어?", "가격이 얼마예요?", "나한테 맞는 풀이 추천해 줘" — 달새김 상품·가격·추천을 묻는 말 */
 export const PRODUCT_ASK = /상품|가격|얼마(예요|에요|야|인가|죠|니)|요금|유료|무료로|이용권|결제|구매|살\s?수|판매|풀이\s?(종류|목록|뭐|가\s?있|는\s?뭐)|어떤\s?(풀이|서비스|운세)|서비스\s?(종류|목록|뭐)|메뉴|(풀이|운세).{0,8}추천|추천.{0,8}(풀이|상품|운세)/;
-export const isProductAsk = (text: string) => PRODUCT_ASK.test(text);
+export const isProductAsk = (text: string) => PRODUCT_ASK.test(text) && !isPayTrouble(text);
+// 결제가 잘못됐다·여러 번 눌렀다·환불 — 상품 추천이 아니라 결제 안내로 답한다(11/3 대표님: '결제를 실수로 5번' 질문에 상품 목록이 나옴)
+export const PAY_TROUBLE = /(결제|카드|승인|입금|계좌).{0,24}(실수|잘못|두\s?번|여러\s?번|\d+\s?번|몇\s?번|안\s?(돼|되|됨)|오류|에러|실패|막혀|중복|빠져|나갔|취소|환불|돌려)|환불|결제\s?취소|이중\s?결제|중복\s?결제/;
+export const isPayTrouble = (text: string) => PAY_TROUBLE.test(text);
 const pub = (t: Topic & { re?: RegExp }): Topic => ({ id: t.id, cat: t.cat, dim: t.dim, label: t.label, field: t.field });
 
 /** "직장 상담이 아니라", "직장 말고", "일 얘기는 빼고" → 그 부분을 지운 문장과, 지운 낱말 */

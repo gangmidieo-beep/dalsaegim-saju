@@ -192,6 +192,13 @@ describe('결제 → 풀이 생성 → 결과 조회 (엔진 풀이)', () => {
 describe('10/19 추가 상품 — 결혼운·직업운·썸 타로·월간 선택·요약 카드', () => {
   const BAN = [/반드시|무조건|100%/, /사망|파산/, /종목/, /예요\.예요/, /undefined|NaN/];
   const plain = (c: { chapters: { body: string }[]; summary?: unknown }) => c.chapters.map((x) => x.body).join('\n') + JSON.stringify(c.summary);
+  it('결제를 실수로 여러 번 했다는 말에는 상품 목록 대신 결제 확인·문의 안내', async () => {
+    const P0 = { id: 'p9', name: '홍길동', gender: 'M' as const, birthYear: 1980, birthMonth: 1, birthDay: 1, calendar: 'solar', leap: false, birthHour: null };
+    const r = await friendReply({ profile: P0, history: [], text: '카드 결제를 5번이나 실수로 눌렀는데 어떻게 해야해?', memories: [], now: NOW, catalog: [{ id: 'lifetime', title: '종합사주', price: 29900, series: 'life', cardCopy: '' }] });
+    expect(r.products).toHaveLength(0);
+    expect(r.reply).toContain('승인');
+    expect(r.draft).toBeNull();
+  });
   it('다른 사람에게 맞는 상품을 물으면 그 사람 호칭으로 답하고 내 이름·내 사주로 말하지 않는다, 저장한 사람이면 그 사주로', async () => {
     const catalog = [{ id: 'lifetime', title: '종합사주·사주지도', price: 29900, series: 'life', cardCopy: '타고난 나' }, { id: 'newyear_2027', title: '2027 신년운세', price: 19900, series: 'year', cardCopy: '내년 흐름' }];
     const ME = { id: 'p1', name: '송광민', gender: 'M' as const, birthYear: 1980, birthMonth: 3, birthDay: 5, calendar: 'solar', leap: false, birthHour: 9 };

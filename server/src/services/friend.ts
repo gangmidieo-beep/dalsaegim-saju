@@ -6,7 +6,8 @@ import { calcSaju, type SajuResult } from '@dalsaegim/engine';
 import { sajuMap, todayFortune, monthFortune, nextMonths, toRanges, pick, personaOf, type Dim } from '@dalsaegim/content';
 import { callClaude, parseJson } from './reading/generate.ts';
 import { aiCapReached, aiProvider } from './ai.ts';
-import { ACTIONS, CLARIFY, CLOSE, detectFormat, detectTopic, isProductAsk } from './friendRules.ts';
+import { ACTIONS, CLARIFY, CLOSE, detectFormat, detectTopic, isPayTrouble, isProductAsk } from './friendRules.ts';
+import brand from '../../../brand.config.json' with { type: 'json' };
 
 export type ChatMsg = { role: 'user' | 'friend'; text: string; at: string; products?: RecProduct[] };
 export type MemoryDraft = { category: string; title: string; summary: string; sajuNote: string };
@@ -112,6 +113,12 @@ export async function friendReply(o: {
     summary: `${topic.label} 고민을 달빛 상담사와 나눔.${fmt.noTiming || topic.id === 'pet' ? '' : ` 사주 흐름상 ${b.good}에 기운이 살아나고, ${b.careful}에는 쉬어 가면 좋은 시기.`}`,
     sajuNote: `${topic.label} · 좋은 시기 ${b.good} / 신중한 시기 ${b.careful}`,
   };
+  // 결제 문제는 상담사가 추측하지 않고 확인 방법·문의처를 바로 안내(AI 호출 없음)
+  if (isPayTrouble(o.text)) {
+    const b = (brand as any).business ?? {};
+    const reply = `결제 때문에 많이 놀라셨죠. 결제는 제가 직접 확인할 수 없어서, 정확한 확인 방법을 먼저 알려 드릴게요.\n① 카드사·은행에서 온 '승인' 문자가 있는지 봐 주세요. 결제창만 열렸다 닫힌 건 돈이 나가지 않아요.\n② 승인 문자가 여러 번 왔다면 주문 시각과 금액을 ${b.kakao ? '아래 카카오톡 채널' : '고객센터'}${b.phone ? `(${b.phone})` : ''}로 알려 주세요. 확인한 뒤 중복된 결제는 취소해 드려요.\n③ 이미 결제된 풀이는 [보관함 → 구매한 운세]에서 다시 볼 수 있어요.\n확인되는 동안 마음이 쓰이는 다른 이야기가 있으면 편하게 들려주세요.`;
+    return { reply, draft: null, products: [], topic: 'etc', tokensIn: 0, tokensOut: 0, costKrw: 0, ai: false };
+  }
   const catalog = (o.catalog ?? []).filter((p) => !p.adult);
   const productAsk = isProductAsk(o.text);
   if (!friendLive() || o.noAI) {
