@@ -10,6 +10,7 @@ import {
 } from '@dalsaegim/content';
 import R from '../../../../packages/content/data/reading.json' with { type: 'json' };
 import { generateLong, longOn } from './long.ts';
+import { deepOn, generateDeep } from './deep.ts';
 import { aiCall, aiCapReached, aiCostKrw, aiFatal, aiModel, aiProvider, type AiKind } from '../ai.ts';
 import { schema as S, type Db } from '../../db/index.ts';
 
@@ -371,6 +372,13 @@ export async function generateReading(product: { id: string; title: string }, pe
       return { content: { ...content, who: ps.map((p) => p.name), facts: facts.lines }, tokensIn: g.usage.in + g.usage.cacheWrite + g.usage.cacheRead, tokensOut: g.usage.out, costKrw: g.costKrw, issues: [`AI 장편 실패(${fell}/${g.content.chapters.length}장) → 9장 계산 풀이로 대신 · ${why}`, ...g.issues] };
     }
     return { content: { ...g.content, ...(facts.summary ? { summary: facts.summary } : {}) } as ReadingContent, tokensIn: g.usage.in + g.usage.cacheWrite + g.usage.cacheRead, tokensOut: g.usage.out, costKrw: g.costKrw, issues: g.issues };
+  }
+  // 전 상품 30~40쪽(11/3) — 계산 풀이를 뼈대로 AI 가 장마다 깊게 + 12달 달력·실천 가이드·자주 묻는 질문. AI 가 절반 넘게 실패하면 계산 풀이 그대로
+  if (liveAI() && deepOn(product.id)) {
+    const base = { ...engineContent(product, ps, facts), who: ps.map((p) => p.name), facts: facts.lines };
+    const g = await generateDeep(base, ps, facts.lines, { http: opts.http, now: opts.now, onProgress: opts.onProgress });
+    if (g.fell > g.total / 2) return { content: base, tokensIn: g.tokensIn, tokensOut: g.tokensOut, costKrw: g.costKrw, issues: [`AI 실패 → 계산 풀이로 대신(${g.fell}/${g.total}장) · ${g.fatal || g.issues.find((x) => /실패/.test(x)) || ''}`, ...g.issues] };
+    return { content: fixJosaDeep(g.content), tokensIn: g.tokensIn, tokensOut: g.tokensOut, costKrw: g.costKrw, issues: g.issues };
   }
   if (!liveAI() || product.id === 'tarot_some') { const content = engineContent(product, ps, facts); return { content: { ...content, who: ps.map((p) => p.name), facts: facts.lines }, tokensIn: 0, tokensOut: 0, costKrw: 0, issues: [] as string[] }; }
   const half = Math.ceil(titles.length / 2);

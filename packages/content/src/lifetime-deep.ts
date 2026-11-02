@@ -118,3 +118,10 @@ export function lifetimeDeep(saju: SajuResult, name: string, profileId: string, 
   };
 }
 export type LifetimeDeep = ReturnType<typeof lifetimeDeep>;
+
+/** 앞으로 12달 월운표(모든 상품 PDF 공통 표 — 11/3 분량 보강) */
+export function wolunOf(saju: SajuResult, profileId: string, now = new Date()) {
+  const ds = saju.pillars.day.stem;
+  const love = nextMonths(saju, 'love', profileId, now), work = nextMonths(saju, 'work', profileId, now), wealth = nextMonths(saju, 'wealth', profileId, now);
+  return love.map((m, i) => { const mp = monthlyPillar(new Date(Date.UTC(m.year, m.month - 1, 15, 3))); return { y: m.year, m: m.month, gz: gz(mp), sip: sipsinOfStem(ds, mp.stem) as string, love: m.score, work: work[i].score, wealth: wealth[i].score }; });
+}

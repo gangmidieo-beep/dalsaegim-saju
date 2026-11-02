@@ -17,7 +17,7 @@ function fakeGPT() {
     expect(init.headers.authorization).toBe('Bearer sk-test');
     const req = JSON.parse(init.body); calls.push(req);
     const msg = req.messages.at(-1).content as string;
-    const ids = [...msg.matchAll(/- (L\d\d) 「([^」]+)」 본문 약 (\d+)자/g)].map((m) => ({ id: m[1], title: m[2], len: +m[3] }));
+    const ids = [...msg.matchAll(/- ([LD]\d\d) 「([^」]+)」 본문 약 (\d+)자/g)].map((m) => ({ id: m[1], title: m[2], len: +m[3] }));
     const text = ids.length
       ? JSON.stringify({ chapters: ids.map((c) => ({ id: c.id, title: c.title, say: '요약', body: '김서윤 님, ' + '흐름을 차분히 살펴보면 좋아요. '.repeat(Math.ceil(c.len / 17)), highlight: '한 문장' })) })
       : JSON.stringify({ reply: '그 말이 듣고 싶었군요! 고생했어요.', memory: { category: 'growth', title: '위로', summary: '위로를 나눔' } });
@@ -74,6 +74,14 @@ describe('GPT 로 호출', () => {
     expect(g.costKrw).toBeGreaterThan(0);
     const r = await generateReading({ id: 'love_flow', title: '연애' }, [person], { http, now: new Date('2026-10-23T03:00:00Z') });
     expect(r.content.generatedBy).toBe('ai');
+    // 11/3 전 상품 30~40쪽: 계산 풀이 장 + 12달 달력·실천 가이드·자주 묻는 질문, 월운표 12달
+    expect(r.content.chapters.length).toBeGreaterThanOrEqual(8);
+    expect(r.content.chapters.map((c) => c.title)).toContain('자주 묻는 질문 다섯 가지');
+    expect((r.content.visual as any).wolun).toHaveLength(12);
+    expect(r.content.chapters.reduce((a, c) => a + c.body.length, 0)).toBeGreaterThan(15000);
+    const t = await generateReading({ id: 'tarot_some', title: '썸 타로' }, [person], { http, meta: { cards: '6,37r,19' }, now: new Date('2026-10-23T03:00:00Z') });
+    expect(t.content.chapters).toHaveLength(8); // 6장 + 대화법·질문
+    expect(t.content.summary!.cards).toHaveLength(3);
   });
 });
 
